@@ -9,7 +9,7 @@ from scapy.all import *
 # send interval(sec)
 WAIT_TIME = 10
 
-   
+
 def main():
 #    hub.spawn(create_mldquey_regularly)
 #    '''
@@ -66,12 +66,26 @@ def create_packet(src, dst, srcip, dstip, mldtype):
     sendpkt.serialize()
     return sendpkt
 
+def listener_packet(packet):
+    ryu_pkt = ryupacket.Packet(str(packet))
+    pkt_icmpv6 = ryu_pkt.get_protocols(icmpv6.icmpv6)
+
+    # MLDv2 Query
+    if pkt_icmpv6[0].type_ == icmpv6.MLD_LISTENER_QUERY:
+        print "***** MLDv2 Query : " + str(pkt_icmpv6[0].data)
+
+    # MLDv2 Report
+    if pkt_icmpv6[0].type_ == icmpv6.MLDV2_LISTENER_REPORT:
+        print "***** MLDv2 Report : " + str(pkt_icmpv6[0].data)
+
 def send_packet(ryu_packet):
     sendpkt = Packet(ryu_packet.data)
     print "### scapy Packet ###"
     print type(sendpkt)
     sendpkt.show()
     sendp(sendpkt)
+
+sniff(prn=listener_packet, filter="ip6 and icmp6")
 
 if __name__ == '__main__':
     main()
