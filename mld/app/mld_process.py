@@ -4,20 +4,27 @@ from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from ryu.lib import hub
 import threading
 import time
+import os
 from scapy.all import *
-
-# send interval(sec)
-WAIT_TIME = 10
 
 #==========================================================================
 # mld_process
 #==========================================================================
 class mld_process():
+
+    BASEPATH = os.path.dirname(os.path.abspath(__file__))
+    MULTICAST_SERVICE_INFO = os.path.normpath(
+        os.path.join(BASEPATH, "./multicast_service_info.csv"))
+    
+    # send interval(sec)
+    WAIT_TIME = 5
+    
     def __init__(self):
 # TODO
 #        hub.spawn(self.send_mldquey_regularly)
 #        '''
-        query_thread = threading.Thread(target=self.send_mldquey_regularly)
+        query_thread = threading.Thread(
+            target=self.send_mldquey_regularly)
         query_thread.setDaemon(True)
         query_thread.start()
         query_thread.join()
@@ -27,25 +34,41 @@ class mld_process():
     # send_mldquey_regularly
     #==========================================================================
     def send_mldquey_regularly(self):
-        src = "11:22:33:44:55:66"
-        dst = "66:55:44:33:22:11"
+        src = lambda : "-".join(
+            [hex(fragment)[2:].zfill(2) for fragment in struct.unpack(
+                "BBBBBB", struct.pack("!Q", uuid.getnode())[2:])] )
+        dst = "33:33:xx:xx:xx:xx"
         srcip = "11::"
-        dstip = "::11"
-
-        sendpkt = self.create_packet(src, dst, srcip, dstip,
-                                self.create_mldquery())
+        dstip = "FF02::1"
+        
+        mc_service_info_list = []
+        for line in open(self.MULTICAST_SERVICE_INFO, "r"):
+            if line[0] == "#":
+                continue
+            else:
+                # mc_addr,ip_addr
+                column = list(line[:-1].split(","))
+                mc_service_info_list.append(column)
 
         while True:
-            self.send_packet(sendpkt)
+            for mc_service_info in mc_service_info_list:
+                ip_addr_list = []
+                ip_addr_list.append(mc_service_info[1])
+                mld = self.create_mldquery(
+                    mc_service_info[0], ip_addr_list)
+                sendpkt = self.create_packet(src, dst, srcip, dstip, mld)
+                self.send_packet(sendpkt)
 # TODO
-#            hub.sleep(self.WAIT_TIME)
-            time.sleep(WAIT_TIME)
+#                hub.sleep(self.WAIT_TIME)
+                time.sleep(self.WAIT_TIME)
+            print "**** send end ****"
 
     #==========================================================================
     # create_mldquery
     #==========================================================================
-    def create_mldquery(self):
-        return icmpv6.mldv2_query(address='::')
+    def create_mldquery(self, mc_addr, ip_addr_list):
+        return icmpv6.mldv2_query(
+            address=mc_addr, num=len(ip_addr_list), srcs=ip_addr_list)
 
     #==========================================================================
     # create_mldreport
@@ -92,10 +115,10 @@ class mld_process():
     #==========================================================================
     def send_packet(self, ryu_packet):
         sendpkt = Packet(ryu_packet.data)
-        print "### scapy Packet ###"
-        print type(sendpkt)
-        sendpkt.show()
-        sendp(sendpkt)
+#        print "### scapy Packet ###"
+#        print type(sendpkt)
+#        sendpkt.show()
+#        sendp(sendpkt)
 
     #==========================================================================
     # listener_packet
