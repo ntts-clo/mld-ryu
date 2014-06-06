@@ -7,6 +7,15 @@ import time
 import os
 from scapy.all import *
 
+# TODO read file
+src = "00:11:22:33:44:55"
+dst = "33:33:00:00:00:00"
+srcip = "11::"
+dstip = "FF02::1"
+unicastaddresses1 = "11::"
+unicastaddresses2 = "22::"
+multicastaddresses = "ff38::1"
+
 #==========================================================================
 # mld_process
 #==========================================================================
@@ -15,24 +24,20 @@ class mld_process():
     BASEPATH = os.path.dirname(os.path.abspath(__file__))
     MULTICAST_SERVICE_INFO = os.path.normpath(
         os.path.join(BASEPATH, "./multicast_service_info.csv"))
-    
+
     # send interval(sec)
     WAIT_TIME = 5
-    
+
     def __init__(self):
+# Debug
         print "in init()"
-        hub.spawn(self.send_mldquey_regularly)
+        #hub.spawn(self.send_mldquey_regularly)
 
     #==========================================================================
     # send_mldquey_regularly
     #==========================================================================
     def send_mldquey_regularly(self):
 #       TODO read file
-        src = "00:11:22:33:44:55"
-        dst = "33:33:00:00:00:00"
-        srcip = "11::"
-        dstip = "FF02::1"
-        
         mc_service_info_list = []
         for line in open(self.MULTICAST_SERVICE_INFO, "r"):
             if line[0] == "#":
@@ -62,14 +67,38 @@ class mld_process():
     # create_mldreport
     #==========================================================================
     def create_mldreport(self):
-        return icmpv6.mldv2_report(
-                    record_num=1, records=[
-                        icmpv6.mldv2_report_group(type_=1, address='::')])
+# TODO
+        address_list = [unicastaddresses1, unicastaddresses2]
+
+        for address in address_list:
+            record_list = []
+
+            src_list = []
+            src_list.append(address)
+
+            record_list.append(icmpv6.mldv2_report_group(
+                                                 type_=icmpv6.MODE_IS_INCLUDE,
+                                                 num=1,
+                                                 address=multicastaddresses,
+                                                 srcs=src_list))
+
+            record_list.append(icmpv6.mldv2_report_group(
+                                                 type_=icmpv6.MODE_IS_EXCLUDE,
+                                                 num=1,
+                                                 address=multicastaddresses,
+                                                 srcs=src_list))
+
+            mld = icmpv6.mldv2_report(record_num=len(record_list),
+                                      records=record_list)
+
+            sendpkt = self.create_packet(src, dst, srcip, dstip, mld)
+            self.send_packet(sendpkt)
 
     #==========================================================================
     # create_packet
     #==========================================================================
     def create_packet(self, src, dst, srcip, dstip, mld):
+# Debug
         print "in create_packet"
         # ether
         eth = ethernet.ethernet(
@@ -95,6 +124,7 @@ class mld_process():
 #        sendpkt = eth / vln / ip6 / icmp6
         sendpkt = eth / ip6 / icmp6
         sendpkt.serialize()
+# Debug
         print "created ryu-packet : " + str(sendpkt)
 
         return sendpkt
@@ -104,30 +134,36 @@ class mld_process():
     #==========================================================================
     def send_packet(self, ryu_packet):
         sendpkt = Packet(ryu_packet.data)
-#        print "### scapy Packet ###"
-#        print type(sendpkt)
-#        sendpkt.show()
-#        sendp(sendpkt)
+# Debug
+        print "### scapy Packet ###"
+        sendpkt.show()
+        sendp(sendpkt)
 
     #==========================================================================
     # listener_packet
     #==========================================================================
     def listener_packet(self, packet):
         ryu_pkt = ryu_packet.Packet(str(packet))
-        pkt_icmpv6 = ryu_pkt.get_protocols(icmpv6.icmpv6)
+        pkt_icmpv6_list = ryu_pkt.get_protocols(icmpv6.icmpv6)
 
-        # MLDv2 Query
-        if pkt_icmpv6[0].type_ == icmpv6.MLD_LISTENER_QUERY:
-            print "***** MLDv2 Query : " + str(pkt_icmpv6[0].data)
+        for pkt_icmpv6 in pkt_icmpv6_list:
+            # MLDv2 Query
+            if pkt_icmpv6.type_ == icmpv6.MLD_LISTENER_QUERY:
+# Debug
+                print "***** MLDv2 Query : " + str(pkt_icmpv6.data)
+                self.create_mldreport()
 
-        # MLDv2 Report
-        if pkt_icmpv6[0].type_ == icmpv6.MLDV2_LISTENER_REPORT:
-            print "***** MLDv2 Report : " + str(pkt_icmpv6[0].data)
+            # MLDv2 Report
+            if pkt_icmpv6.type_ == icmpv6.MLDV2_LISTENER_REPORT:
+# Debug
+                print "***** MLDv2 Report : " + str(pkt_icmpv6.data)
 
     #==========================================================================
     # sniff
     #==========================================================================
     def sniff(self):
+# Debug
+        print('*****sniff START ******')
         sniff(prn=self.listener_packet, filter="ip6 and icmp6")
 
 if __name__ == '__main__':
