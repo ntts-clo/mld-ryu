@@ -15,25 +15,25 @@ WAIT_TIME = 10
 class mld_process():
     def __init__(self):
 # TODO
-#        hub.spawn(create_mldquey_regularly)
+#        hub.spawn(self.send_mldquey_regularly)
 #        '''
-        query_thread = threading.Thread(target=self.create_mldquey_regularly)
+        query_thread = threading.Thread(target=self.send_mldquey_regularly)
         query_thread.setDaemon(True)
         query_thread.start()
         query_thread.join()
 #        '''
 
     #==========================================================================
-    # mld_process
+    # send_mldquey_regularly
     #==========================================================================
-    def create_mldquey_regularly(self):
+    def send_mldquey_regularly(self):
         src = "11:22:33:44:55:66"
         dst = "66:55:44:33:22:11"
         srcip = "11::"
         dstip = "::11"
 
         sendpkt = self.create_packet(src, dst, srcip, dstip,
-                                icmpv6.ICMPV6_MEMBERSHIP_QUERY)
+                                self.create_mldquery())
 
         while True:
             self.send_packet(sendpkt)
@@ -42,40 +42,48 @@ class mld_process():
             time.sleep(WAIT_TIME)
 
     #==========================================================================
-    # mld_process
+    # create_mldquery
     #==========================================================================
-    def create_packet(self, src, dst, srcip, dstip, mldtype):
-# TODO
-#        create send packet
-#        ether - vlan - ipv6 - icmpv6 ( - mldv2 )
-        sendpkt = ryu_packet.Packet()
-#        ether
-        sendpkt.add_protocol(ethernet.ethernet(
-#        ethertype=ether.ETH_TYPE_8021Q, dst=dst, src=src))
-            ethertype=ether.ETH_TYPE_IPV6, dst=dst, src=src))
+    def create_mldquery(self):
+        return icmpv6.mldv2_query(address='::')
+
+    #==========================================================================
+    # create_mldreport
+    #==========================================================================
+    def create_mldreport(self):
+        return icmpv6.mldv2_report(
+                    record_num=1, records=[
+                        icmpv6.mldv2_report_group(type_=1, address='::')])
+
+    #==========================================================================
+    # create_packet
+    #==========================================================================
+    def create_packet(self, src, dst, srcip, dstip, mld):
+        # ether
+        eth = ethernet.ethernet(
+#            ethertype=ether.ETH_TYPE_8021Q, dst=dst, src=src)
+            ethertype=ether.ETH_TYPE_IPV6, dst=dst, src=src)
 # TODO
         '''
         # vlan
-        sendpkt.add_protocol(vlan.vlan(
-            vid=100, ethertype=ether.ETH_TYPE_IPV6))
+        vln = vlan.vlan(vid=100, ethertype=ether.ETH_TYPE_IPV6)
         '''
-#        ipv6
-        sendpkt.add_protocol(ipv6.ipv6(
-            src=srcip, dst=dstip, nxt=inet.IPPROTO_ICMPV6))
-#        mldv2
-        if mldtype == icmpv6.ICMPV6_MEMBERSHIP_QUERY:
-            sendpkt.add_protocol(icmpv6.icmpv6(
-                type_=icmpv6.ICMPV6_MEMBERSHIP_QUERY,
-                data=icmpv6.mldv2_query(address='::')))
+        # ipv6
+        ip6 = ipv6.ipv6(src=srcip, dst=dstip, nxt=inet.IPPROTO_ICMPV6)
+        # mldv2
+        if type(mld) == icmpv6.mldv2_query:
+            icmp6 = icmpv6.icmpv6(
+                type_=icmpv6.ICMPV6_MEMBERSHIP_QUERY, data=mld)
 
-        elif mldtype == icmpv6.MLDV2_LISTENER_REPORT:
-            sendpkt.add_protocol(icmpv6.icmpv6(
-                type_=icmpv6.MLDV2_LISTENER_REPORT,
-                data=icmpv6.mldv2_report(
-                    record_num=1, records=[
-                        icmpv6.mldv2_report_group(type_=1, address='::')])))
+        elif type(mld) == icmpv6.mldv2_report:
+            icmp6 = icmpv6.icmpv6(
+                type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
 
+        # ether - vlan - ipv6 - icmpv6 ( - mldv2 )
+#        sendpkt = eth / vln / ip6 / icmp6
+        sendpkt = eth / ip6 / icmp6
         sendpkt.serialize()
+        print "created ryu-packet : " + str(sendpkt)
 
         return sendpkt
 
@@ -96,11 +104,11 @@ class mld_process():
         ryu_pkt = ryu_packet.Packet(str(packet))
         pkt_icmpv6 = ryu_pkt.get_protocols(icmpv6.icmpv6)
 
-#        MLDv2 Query
+        # MLDv2 Query
         if pkt_icmpv6[0].type_ == icmpv6.MLD_LISTENER_QUERY:
             print "***** MLDv2 Query : " + str(pkt_icmpv6[0].data)
 
-#        MLDv2 Report
+        # MLDv2 Report
         if pkt_icmpv6[0].type_ == icmpv6.MLDV2_LISTENER_REPORT:
             print "***** MLDv2 Report : " + str(pkt_icmpv6[0].data)
 
