@@ -2,7 +2,7 @@ from ryu.ofproto import ofproto_v1_3, ofproto_v1_3_parser, ether, inet
 from ryu.lib.packet import packet as ryu_packet
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from ryu.lib import hub
-import threading
+hub.patch()
 import time
 import os
 from scapy.all import *
@@ -20,24 +20,16 @@ class mld_process():
     WAIT_TIME = 5
     
     def __init__(self):
-# TODO
-#        hub.spawn(self.send_mldquey_regularly)
-#        '''
-        query_thread = threading.Thread(
-            target=self.send_mldquey_regularly)
-        query_thread.setDaemon(True)
-        query_thread.start()
-        query_thread.join()
-#        '''
+        print "in init()"
+        hub.spawn(self.send_mldquey_regularly)
 
     #==========================================================================
     # send_mldquey_regularly
     #==========================================================================
     def send_mldquey_regularly(self):
-        src = lambda : "-".join(
-            [hex(fragment)[2:].zfill(2) for fragment in struct.unpack(
-                "BBBBBB", struct.pack("!Q", uuid.getnode())[2:])] )
-        dst = "33:33:xx:xx:xx:xx"
+#       TODO read file
+        src = "00:11:22:33:44:55"
+        dst = "33:33:00:00:00:00"
         srcip = "11::"
         dstip = "FF02::1"
         
@@ -58,17 +50,13 @@ class mld_process():
                     mc_service_info[0], ip_addr_list)
                 sendpkt = self.create_packet(src, dst, srcip, dstip, mld)
                 self.send_packet(sendpkt)
-# TODO
-#                hub.sleep(self.WAIT_TIME)
-                time.sleep(self.WAIT_TIME)
-            print "**** send end ****"
+                hub.sleep(self.WAIT_TIME)
 
     #==========================================================================
     # create_mldquery
     #==========================================================================
     def create_mldquery(self, mc_addr, ip_addr_list):
-        return icmpv6.mldv2_query(
-            address=mc_addr, num=len(ip_addr_list), srcs=ip_addr_list)
+        return icmpv6.mldv2_query(address=mc_addr, srcs=ip_addr_list)
 
     #==========================================================================
     # create_mldreport
@@ -82,6 +70,7 @@ class mld_process():
     # create_packet
     #==========================================================================
     def create_packet(self, src, dst, srcip, dstip, mld):
+        print "in create_packet"
         # ether
         eth = ethernet.ethernet(
 #            ethertype=ether.ETH_TYPE_8021Q, dst=dst, src=src)
