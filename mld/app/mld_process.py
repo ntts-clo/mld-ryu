@@ -15,6 +15,8 @@ dstip = "FF02::1"
 unicastaddresses1 = "11::"
 unicastaddresses2 = "22::"
 multicastaddresses = "ff38::1"
+addressinfo = [src, dst, srcip, dstip,
+               unicastaddresses1, unicastaddresses2, multicastaddresses]
 
 #==========================================================================
 # mld_process
@@ -24,6 +26,8 @@ class mld_process():
     BASEPATH = os.path.dirname(os.path.abspath(__file__))
     MULTICAST_SERVICE_INFO = os.path.normpath(
         os.path.join(BASEPATH, "./multicast_service_info.csv"))
+    ADDRESS_INFO = os.path.normpath(
+        os.path.join(BASEPATH, "./address_info.csv"))
 
     # send interval(sec)
     WAIT_TIME = 5
@@ -31,19 +35,31 @@ class mld_process():
     def __init__(self):
 # Debug
         print "in init()"
-        #hub.spawn(self.send_mldquey_regularly)
+        for line in open(self.ADDRESS_INFO, "r"):
+            if line[0] == "#":
+                continue
+            else:
+                columns = list(line[:-1].split(","))
+                for i in range(len(columns)):
+                    if columns[i]:
+                        addressinfo[i] = columns[i]
+
+# Debug
+        print "addressinfo : " + str(addressinfo)
+        hub.spawn(self.send_mldquey_regularly)
 
     #==========================================================================
     # send_mldquey_regularly
     #==========================================================================
     def send_mldquey_regularly(self):
-#       TODO read file
+# Debug
+        print "in send_mldquey_regularly()"
         mc_service_info_list = []
         for line in open(self.MULTICAST_SERVICE_INFO, "r"):
             if line[0] == "#":
                 continue
             else:
-                # mc_addr,ip_addr
+                # multicast_addr, srcip_addr
                 column = list(line[:-1].split(","))
                 mc_service_info_list.append(column)
 
@@ -168,4 +184,4 @@ class mld_process():
 
 if __name__ == '__main__':
     mld_proc = mld_process()
-    mld_proc.sniff()
+#    mld_proc.sniff()
