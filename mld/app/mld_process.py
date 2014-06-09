@@ -1,19 +1,11 @@
+# coding: utf-8
 from ryu.ofproto import ether, inet
 from ryu.lib.packet import packet as ryu_packet
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
-from ryu.lib import hub
-hub.patch()
+from ryu.lib import hub; hub.patch()
 from scapy import sendrecv
 from scapy import packet as scapy_packet
 import os
-
-src = "00:11:22:33:44:55"
-dst = "33:33:00:00:00:00"
-srcip = "11::"
-dstip = "FF02::1"
-multicastaddresses = "ff38::1"
-addressinfo = [src, dst, srcip, dstip, multicastaddresses]
-
 
 #==========================================================================
 # mld_process
@@ -25,6 +17,7 @@ class mld_process():
         os.path.join(BASEPATH, "./multicast_service_info.csv"))
     ADDRESS_INFO = os.path.normpath(
         os.path.join(BASEPATH, "./address_info.csv"))
+    addressinfo = []
 
     # send interval(sec)
     WAIT_TIME = 10
@@ -37,12 +30,11 @@ class mld_process():
                 continue
             else:
                 columns = list(line[:-1].split(","))
-                for i in range(len(columns)):
-                    if columns[i]:
-                        addressinfo[i] = columns[i]
+                for column in columns:
+                    self.addressinfo.append(column)
 
 # Debug
-        print "addressinfo : " + str(addressinfo)
+        print "addressinfo : " + str(self.addressinfo)
         hub.spawn(self.send_mldquey_regularly)
 
     #==========================================================================
@@ -67,8 +59,8 @@ class mld_process():
                 mld = self.create_mldquery(
                     mc_service_info[0], ip_addr_list)
                 sendpkt = self.create_packet(
-                    addressinfo[0], addressinfo[1],
-                    addressinfo[2], addressinfo[3], mld)
+                    self.addressinfo[0], self.addressinfo[1],
+                    self.addressinfo[2], self.addressinfo[3], mld)
                 self.send_packet(sendpkt)
                 hub.sleep(self.WAIT_TIME)
 
@@ -100,14 +92,14 @@ class mld_process():
             record_list.append(icmpv6.mldv2_report_group(
                                                  type_=icmpv6.MODE_IS_EXCLUDE,
                                                  num=1,
-                                                 address=addressinfo[4],
+                                                 address=self.addressinfo[4],
                                                  srcs=src_list))
 
             mld = icmpv6.mldv2_report(record_num=len(record_list),
                                       records=record_list)
 
-            sendpkt = self.create_packet(addressinfo[0], addressinfo[1],
-                                         addressinfo[2], addressinfo[3], mld)
+            sendpkt = self.create_packet(self.addressinfo[0], self.addressinfo[1],
+                                         self.addressinfo[2], self.addressinfo[3], mld)
 
             self.send_packet(sendpkt)
 
@@ -181,8 +173,11 @@ class mld_process():
     def sniff(self):
 # Debug
         print('*****sniff START ******')
+        # TODO send_mldquey_regularlyで作成したQueryを引っ掛けないように
         sendrecv.sniff(prn=self.listener_packet, filter="ip6 and icmp6")
 
 if __name__ == '__main__':
     mld_proc = mld_process()
     mld_proc.sniff()
+    while True:
+        hub.sleep(1)
