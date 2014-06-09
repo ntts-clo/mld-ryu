@@ -1,11 +1,10 @@
-from ryu.ofproto import ofproto_v1_3, ofproto_v1_3_parser, ether, inet
+from ryu.ofproto import ether, inet
 from ryu.lib.packet import packet as ryu_packet
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from ryu.lib import hub
-hub.patch()
-import time
-import os
 from scapy.all import *
+
+hub.patch()
 
 # TODO read file
 src = "00:11:22:33:44:55"
@@ -13,6 +12,7 @@ dst = "33:33:00:00:00:00"
 srcip = "11::"
 dstip = "FF02::1"
 multicastaddresses = "ff38::1"
+
 
 #==========================================================================
 # mld_process
