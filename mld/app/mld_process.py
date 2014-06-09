@@ -67,7 +67,7 @@ class mld_process():
                 mld = self.create_mldquery(
                     mc_service_info[0], ip_addr_list)
                 sendpkt = self.create_packet(
-                    addressinfo[0], addressinfo[1], 
+                    addressinfo[0], addressinfo[1],
                     addressinfo[2], addressinfo[3], mld)
                 self.send_packet(sendpkt)
                 hub.sleep(self.WAIT_TIME)
@@ -100,13 +100,15 @@ class mld_process():
             record_list.append(icmpv6.mldv2_report_group(
                                                  type_=icmpv6.MODE_IS_EXCLUDE,
                                                  num=1,
-                                                 address=multicastaddresses,
+                                                 address=addressinfo[4],
                                                  srcs=src_list))
 
             mld = icmpv6.mldv2_report(record_num=len(record_list),
                                       records=record_list)
 
-            sendpkt = self.create_packet(src, dst, srcip, dstip, mld)
+            sendpkt = self.create_packet(addressinfo[0], addressinfo[1],
+                                         addressinfo[2], addressinfo[3], mld)
+
             self.send_packet(sendpkt)
 
     #==========================================================================
