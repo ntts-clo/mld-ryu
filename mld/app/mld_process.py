@@ -1,22 +1,20 @@
-from ryu.ofproto import ofproto_v1_3, ofproto_v1_3_parser, ether, inet
+from ryu.ofproto import ether, inet
 from ryu.lib.packet import packet as ryu_packet
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from ryu.lib import hub
-hub.patch()
-import time
-import os
 from scapy.all import *
+
+hub.patch()
 
 # TODO read file
 src = "00:11:22:33:44:55"
 dst = "33:33:00:00:00:00"
 srcip = "11::"
 dstip = "FF02::1"
-unicastaddresses1 = "11::"
-unicastaddresses2 = "22::"
 multicastaddresses = "ff38::1"
 addressinfo = [src, dst, srcip, dstip,
                unicastaddresses1, unicastaddresses2, multicastaddresses]
+
 
 #==========================================================================
 # mld_process
@@ -83,20 +81,20 @@ class mld_process():
     # create_mldreport
     #==========================================================================
     def create_mldreport(self):
-# TODO
-        address_list = [unicastaddresses1, unicastaddresses2]
+        mc_service_info_list = []
+        for line in open(self.MULTICAST_SERVICE_INFO, "r"):
+            if line[0] == "#":
+                continue
+            else:
+                # mc_addr,ip_addr
+                column = list(line[:-1].split(","))
+                mc_service_info_list.append(column)
 
-        for address in address_list:
+        for mc_service_info in mc_service_info_list:
             record_list = []
 
             src_list = []
-            src_list.append(address)
-
-            record_list.append(icmpv6.mldv2_report_group(
-                                                 type_=icmpv6.MODE_IS_INCLUDE,
-                                                 num=1,
-                                                 address=multicastaddresses,
-                                                 srcs=src_list))
+            src_list.append(mc_service_info[1])
 
             record_list.append(icmpv6.mldv2_report_group(
                                                  type_=icmpv6.MODE_IS_EXCLUDE,
@@ -116,18 +114,18 @@ class mld_process():
     def create_packet(self, src, dst, srcip, dstip, mld):
 # Debug
         print "in create_packet"
-        # ether
+        # ETHER
         eth = ethernet.ethernet(
 #            ethertype=ether.ETH_TYPE_8021Q, dst=dst, src=src)
             ethertype=ether.ETH_TYPE_IPV6, dst=dst, src=src)
 # TODO
         '''
-        # vlan
+        # VLAN
         vln = vlan.vlan(vid=100, ethertype=ether.ETH_TYPE_IPV6)
         '''
-        # ipv6
+        # IPV6
         ip6 = ipv6.ipv6(src=srcip, dst=dstip, nxt=inet.IPPROTO_ICMPV6)
-        # mldv2
+        # MLDV2
         if type(mld) == icmpv6.mldv2_query:
             icmp6 = icmpv6.icmpv6(
                 type_=icmpv6.ICMPV6_MEMBERSHIP_QUERY, data=mld)
