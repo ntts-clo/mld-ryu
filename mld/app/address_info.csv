@@ -1,2 +1,2 @@
-#src,dst,srcip,dstip,unicastaddresses1,unicastaddresses2,multicastaddresses
-d4:3d:7e:4a:43:fd,33:33:fe:4a:43:fd,fe80::d63d:7eff:fe4a:43fd,FF02::1,11::,22::,ff38::1
+#src             ,dst              ,srcip                    ,dstip  ,multicastaddresses
+d4:3d:7e:4a:43:fd,33:33:fe:4a:43:fd,fe80::d63d:7eff:fe4a:43fd,FF02::1,ff38::1

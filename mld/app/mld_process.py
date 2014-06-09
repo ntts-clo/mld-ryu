@@ -2,18 +2,17 @@ from ryu.ofproto import ether, inet
 from ryu.lib.packet import packet as ryu_packet
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from ryu.lib import hub
-from scapy.all import *
-
 hub.patch()
+from scapy import sendrecv
+from scapy import packet as scapy_packet
+import os
 
-# TODO read file
 src = "00:11:22:33:44:55"
 dst = "33:33:00:00:00:00"
 srcip = "11::"
 dstip = "FF02::1"
 multicastaddresses = "ff38::1"
-addressinfo = [src, dst, srcip, dstip,
-               unicastaddresses1, unicastaddresses2, multicastaddresses]
+addressinfo = [src, dst, srcip, dstip, multicastaddresses]
 
 
 #==========================================================================
@@ -28,7 +27,7 @@ class mld_process():
         os.path.join(BASEPATH, "./address_info.csv"))
 
     # send interval(sec)
-    WAIT_TIME = 5
+    WAIT_TIME = 10
 
     def __init__(self):
 # Debug
@@ -67,7 +66,9 @@ class mld_process():
                 ip_addr_list.append(mc_service_info[1])
                 mld = self.create_mldquery(
                     mc_service_info[0], ip_addr_list)
-                sendpkt = self.create_packet(src, dst, srcip, dstip, mld)
+                sendpkt = self.create_packet(
+                    addressinfo[0], addressinfo[1], 
+                    addressinfo[2], addressinfo[3], mld)
                 self.send_packet(sendpkt)
                 hub.sleep(self.WAIT_TIME)
 
@@ -147,11 +148,11 @@ class mld_process():
     # send_packet
     #==========================================================================
     def send_packet(self, ryu_packet):
-        sendpkt = Packet(ryu_packet.data)
+        sendpkt = scapy_packet.Packet(ryu_packet.data)
 # Debug
         print "### scapy Packet ###"
         sendpkt.show()
-        sendp(sendpkt)
+        sendrecv.sendp(sendpkt)
 
     #==========================================================================
     # listener_packet
@@ -178,8 +179,8 @@ class mld_process():
     def sniff(self):
 # Debug
         print('*****sniff START ******')
-        sniff(prn=self.listener_packet, filter="ip6 and icmp6")
+        sendrecv.sniff(prn=self.listener_packet, filter="ip6 and icmp6")
 
 if __name__ == '__main__':
     mld_proc = mld_process()
-#    mld_proc.sniff()
+    mld_proc.sniff()
