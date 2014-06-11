@@ -17,8 +17,8 @@ pkt.add_protocol(ethernet.ethernet(ethertype=ether.ETH_TYPE_8021Q))
 pkt.add_protocol(vlan.vlan(vid=10, ethertype=ether.ETH_TYPE_IPV6))
 pkt.add_protocol(ipv6.ipv6(nxt=inet.IPPROTO_ICMPV6))
 pkt.add_protocol(icmpv6.icmpv6(
-		type_=icmpv6.MLD_LISTENER_QUERY,
-		data=icmpv6.mldv2_query()))
+    type_=icmpv6.MLD_LISTENER_QUERY,
+    data=icmpv6.mldv2_query()))
 pkt.serialize()
 
 sock.send(pkt.data)
