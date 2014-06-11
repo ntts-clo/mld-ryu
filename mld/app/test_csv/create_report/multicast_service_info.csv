@@ -1,10 +1,5 @@
 #mc_addr,ip_addr
-#1::1,a::a
-#2::2,b::b
-#3::3,c::c
-#4::4,d::d
-#5::5,e::e
-ca:72:37:28:96:87,fe80::c872:37ff:fe28:9687
-32:d7:56:ff:ec:37,fe80::30d7:56ff:feff:ec37
-26:af:02:04:8b:4e,fe80::24af:2ff:fe04:8b4e
-da:3f:56:95:d4:14,fe80::d83f:56ff:fe95:d414
+#create_report_check
+02:cc:a7:9f:76:6d,fe80::cc:a7ff:fe9f:766d
+9a:2c:b9:2e:ed:ce,fe80::982c:b9ff:fe2e:edce
+b6:72:1e:ec:a0:d6,fe80::b472:1eff:feec:a0d6
