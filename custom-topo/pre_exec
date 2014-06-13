@@ -1,5 +1,10 @@
 # 先頭が#ではじまる行はコメント
 
+s1:ifconfig s1-eth1 inet6 add 2001:2::100/64
+s1:ifconfig s1-eth4 inet6 add 2001:6::100/64
+s2:ifconfig s2-eth2 inet6 add 2001:3::101/64
+s3:ifconfig s3-eth2 inet6 add 2001:4::102/64
+s3:ifconfig s3-eth3 inet6 add 2001:5::103/64
 r1:xorp_rtrmgr -b ./xorp.cfg -d -l xorp.log
 #h1:vlc-wrapper -vvv /home/koshiba/sample.mov --sout '#transcode{vcodec=mp2v,vb=800,scale=1,acodec=mpga,ab=128,channels=2,samplerate=44100}:rtp{mux=ts,dst=ff38::1:1}' --ttl 5 --loop &
 #h2:vlc-wrapper -vvv --ipv6 rtp://\[2001::100\]@\[ff38::1:1\]:5004 &
