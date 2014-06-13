@@ -1,0 +1,2 @@
+ cookie=0x0, duration=11.839s, table=0, n_packets=0, n_bytes=0, idle_age=11, icmp6,in_port=2,icmp_type=143 actions=output:1
+ cookie=0x0, duration=11.847s, table=0, n_packets=0, n_bytes=0, idle_age=11, in_port=1 actions=output:2

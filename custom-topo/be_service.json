@@ -83,15 +83,15 @@
     "switches" : [
 	{
 	    "switch_name" : "s1",
-	    "bridge" : true
+	    "bridge" : false
 	},
 	{
 	    "switch_name" : "s2",
-	    "bridge" : true
+	    "bridge" : false
 	},
 	{
 	    "switch_name" : "s3",
-	    "bridge" : true
+	    "bridge" : false
 	}
     ],
     "_comment" : "linksの記述にインターフェースを明示的に書ける。コロンデリミタ。省略時は空いてるやつから若い順。switchに関しては指定不可",
