@@ -1,18 +1,18 @@
 # coding: utf-8
 from ryu.ofproto import ether, inet
 from ryu.lib.packet import packet as ryu_packet
-from ryu.lib.packet import ethernet, ipv6, vlan
-from ryu.lib.packet import icmpv6
-from ryu.lib import hub;
+from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
+from ryu.lib import hub
 hub.patch()
 from scapy import sendrecv
 from scapy import packet as scapy_packet
 import os
 from icmpv6_extend import icmpv6_extend
 
-#==========================================================================
+
+# ==========================================================================
 # mld_process
-#==========================================================================
+# ==========================================================================
 class mld_process():
 
     BASEPATH = os.path.dirname(os.path.abspath(__file__))
@@ -40,9 +40,9 @@ class mld_process():
 #        print "addressinfo : " + str(self.addressinfo)
         hub.spawn(self.send_mldquey_regularly)
 
-    #==========================================================================
+    # =========================================================================
     # send_mldquey_regularly
-    #==========================================================================
+    # =========================================================================
     def send_mldquey_regularly(self):
 # Debug
         print "in send_mldquey_regularly()"
@@ -70,16 +70,16 @@ class mld_process():
                 self.send_packet(sendpkt)
                 hub.sleep(self.WAIT_TIME)
 
-    #==========================================================================
+    # =========================================================================
     # create_mldquery
-    #==========================================================================
+    # =========================================================================
     def create_mldquery(self, mc_addr, ip_addr_list):
         return icmpv6.mldv2_query(address=mc_addr, srcs=ip_addr_list,
                                    maxresp=10000, qqic=15)
 
-    #==========================================================================
+    # =========================================================================
     # create_mldreport
-    #==========================================================================
+    # =========================================================================
     def create_mldreport(self):
         mc_service_info_list = []
         for line in open(self.MULTICAST_SERVICE_INFO, "r"):
@@ -97,23 +97,24 @@ class mld_process():
             src_list.append(mc_service_info[1])
 
             record_list.append(icmpv6.mldv2_report_group(
-                                                 type_=icmpv6.MODE_IS_EXCLUDE,
+                                                 type_=icmpv6.MODE_IS_INCLUDE,
                                                  num=1,
-                                                 address=self.addressinfo[4],
+                                                 address=mc_service_info[1],
                                                  srcs=src_list))
 
-            mld = icmpv6.mldv2_report(record_num=len(record_list),
+            mld = icmpv6.mldv2_report(record_num=0,
                                       records=record_list)
 
-            sendpkt = self.create_packet(self.addressinfo[0], self.addressinfo[1],
-                                         self.addressinfo[2], self.addressinfo[3], mld)
-#                                         "::11", self.addressinfo[3], mld)
+            sendpkt = self.create_packet(self.addressinfo[0],
+                                         self.addressinfo[1],
+                                         self.addressinfo[2],
+                                         self.addressinfo[3], mld)
 
             self.send_packet(sendpkt)
 
-    #==========================================================================
+    # =========================================================================
     # create_packet
-    #==========================================================================
+    # =========================================================================
     def create_packet(self, src, dst, srcip, dstip, mld):
 # Debug
         print "in create_packet"
@@ -153,9 +154,9 @@ class mld_process():
 
         return sendpkt
 
-    #==========================================================================
+    # =========================================================================
     # send_packet
-    #==========================================================================
+    # =========================================================================
     def send_packet(self, ryu_packet):
         sendpkt = scapy_packet.Packet(ryu_packet.data)
 # Debug
@@ -163,9 +164,9 @@ class mld_process():
 #        sendpkt.show()
         sendrecv.sendp(sendpkt)
 
-    #==========================================================================
+    # =========================================================================
     # listener_packet
-    #==========================================================================
+    # =========================================================================
     def listener_packet(self, packet):
         ryu_pkt = ryu_packet.Packet(str(packet))
 # Debug
@@ -182,11 +183,11 @@ class mld_process():
             # MLDv2 Report
             if pkt_icmpv6.type_ == icmpv6.MLDV2_LISTENER_REPORT:
 # Debug
-                print "***** MLDv2 Report : "# + str(pkt_icmpv6.data)
+                print "***** MLDv2 Report : " + str(pkt_icmpv6.data)
 
-    #==========================================================================
+    # =========================================================================
     # sniff
-    #==========================================================================
+    # =========================================================================
     def sniff(self):
 # Debug
         print('***** sniff START ******')
