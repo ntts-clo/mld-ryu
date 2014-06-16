@@ -12,13 +12,6 @@ s1:ovs-ofctl add-flows s1 ./s1.flow
 s2:ovs-ofctl add-flows s2 ./s2.flow
 s3:ovs-ofctl add-flows s3 ./s3.flow
 
-# FlowTableに定義されていないパケットをパケットインしない
-s1:ovs-ofctl mod-port s1 s1-eth1 no-packet-in
-s1:ovs-ofctl mod-port s1 s1-eth4 no-packet-in
-s2:ovs-ofctl mod-port s2 s2-eth2 no-packet-in
-s3:ovs-ofctl mod-port s3 s3-eth2 no-packet-in
-s3:ovs-ofctl mod-port s3 s3-eth3 no-packet-in
-
 # xorp起動(r1)
 #r1:xorp_rtrmgr -b ./xorp.cfg -d -l xorp.log
 

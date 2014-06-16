@@ -1,3 +1,5 @@
- cookie=0x0, duration=12160.689s, table=0, n_packets=16, n_bytes=1984, idle_age=401, icmp6,in_port=3,icmp_type=143 actions=CONTROLLER:65535
- cookie=0x0, duration=12160.697s, table=0, n_packets=10, n_bytes=1100, idle_age=11554, icmp6,in_port=2,icmp_type=143 actions=CONTROLLER:65535
- cookie=0x0, duration=26.771s, table=0, n_packets=2, n_bytes=212, idle_age=8, in_port=1 actions=output:2,output:3
+ cookie=0x0, duration=16109.023s, table=0, n_packets=50, n_bytes=5660, idle_age=3617, icmp6,in_port=3,icmp_type=143 actions=CONTROLLER:65535
+ cookie=0x0, duration=16109.031s, table=0, n_packets=43, n_bytes=4670, idle_age=3567, icmp6,in_port=2,icmp_type=143 actions=CONTROLLER:65535
+ cookie=0x0, duration=744.462s, table=0, n_packets=10, n_bytes=756, idle_age=359, in_port=1 actions=NORMAL
+ cookie=0x0, duration=748.012s, table=0, n_packets=24, n_bytes=1512, idle_age=188, in_port=2 actions=NORMAL
+ cookie=0x0, duration=741.376s, table=0, n_packets=5, n_bytes=378, idle_age=405, in_port=3 actions=NORMAL

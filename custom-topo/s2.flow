@@ -1,3 +1,3 @@
-NXST_FLOW reply (xid=0x4):
- cookie=0x0, duration=534.735s, table=0, n_packets=5, n_bytes=550, idle_age=412, icmp6,in_port=2,icmp_type=143 actions=CONTROLLER:65535
- cookie=0x0, duration=534.743s, table=0, n_packets=18, n_bytes=1740, idle_age=412, in_port=1 actions=output:2
+ cookie=0x0, duration=16139.082s, table=0, n_packets=51, n_bytes=5582, idle_age=3590, icmp6,in_port=2,icmp_type=143 actions=CONTROLLER:65535
+ cookie=0x0, duration=763.403s, table=0, n_packets=16, n_bytes=840, idle_age=193, in_port=1 actions=NORMAL
+ cookie=0x0, duration=758.708s, table=0, n_packets=5, n_bytes=378, idle_age=371, in_port=2 actions=NORMAL
