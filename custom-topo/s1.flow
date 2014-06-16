@@ -1,6 +1,4 @@
- cookie=0x0, duration=72.198s, table=0, n_packets=0, n_bytes=0, idle_age=72, icmp6,in_port=3,icmp_type=143 actions=output:4
- cookie=0x0, duration=68.106s, table=0, n_packets=0, n_bytes=0, idle_age=68, udp6,in_port=1,tp_src=130 actions=output:2,output:3
- cookie=0x0, duration=72.204s, table=0, n_packets=0, n_bytes=0, idle_age=72, icmp6,in_port=2,icmp_type=143 actions=output:4
- cookie=0x0, duration=72.211s, table=0, n_packets=0, n_bytes=0, idle_age=72, icmp6,in_port=4,icmp_type=143 actions=output:1
- cookie=0x0, duration=72.227s, table=0, n_packets=0, n_bytes=0, idle_age=72, icmp6,in_port=1,icmp_type=130 actions=output:4
- cookie=0x0, duration=72.219s, table=0, n_packets=0, n_bytes=0, idle_age=72, icmp6,in_port=4,icmp_type=130 actions=output:2,output:3
+ cookie=0x0, duration=50.309s, table=0, n_packets=0, n_bytes=0, idle_age=50, icmp6,in_port=4,icmp_type=143 actions=output:1
+ cookie=0x0, duration=50.321s, table=0, n_packets=0, n_bytes=0, idle_age=50, icmp6,in_port=1,icmp_type=130 actions=CONTROLLER:65535
+ cookie=0x0, duration=50.313s, table=0, n_packets=0, n_bytes=0, idle_age=50, icmp6,in_port=4,icmp_type=130 actions=output:2,output:3
+ cookie=0x0, duration=50.304s, table=0, n_packets=0, n_bytes=0, idle_age=50, udp6,in_port=1 actions=output:2,output:3

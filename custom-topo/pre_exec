@@ -1,14 +1,30 @@
 # 先頭が#ではじまる行はコメント
 
+# スイッチのip設定
 s1:ifconfig s1-eth1 inet6 add 2001:2::100/64
 s1:ifconfig s1-eth4 inet6 add 2001:6::100/64
 s2:ifconfig s2-eth2 inet6 add 2001:3::101/64
 s3:ifconfig s3-eth2 inet6 add 2001:4::102/64
 s3:ifconfig s3-eth3 inet6 add 2001:5::103/64
+
+# FlowTableの設定読み込み
 s1:ovs-ofctl add-flows s1 ./s1.flow
 s2:ovs-ofctl add-flows s2 ./s2.flow
 s3:ovs-ofctl add-flows s3 ./s3.flow
-r1:xorp_rtrmgr -b ./xorp.cfg -d -l xorp.log
+
+# FlowTableに定義されていないパケットをパケットインしない
+s1:ovs-ofctl mod-port s1 s1-eth1 no-packet-in
+s1:ovs-ofctl mod-port s1 s1-eth4 no-packet-in
+s2:ovs-ofctl mod-port s2 s2-eth2 no-packet-in
+s3:ovs-ofctl mod-port s3 s3-eth2 no-packet-in
+s3:ovs-ofctl mod-port s3 s3-eth3 no-packet-in
+
+# xorp起動(r1)
+#r1:xorp_rtrmgr -b ./xorp.cfg -d -l xorp.log
+
+# 動画配信(h1)
 #h1:vlc-wrapper -vvv /home/koshiba/sample.mov --sout '#transcode{vcodec=mp2v,vb=800,scale=1,acodec=mpga,ab=128,channels=2,samplerate=44100}:rtp{mux=ts,dst=ff38::1:1}' --ttl 5 --loop &
+
+# 動画受信
 #h2:vlc-wrapper -vvv --ipv6 rtp://\[2001::100\]@\[ff38::1:1\]:5004 &
 
