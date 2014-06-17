@@ -8,6 +8,8 @@ from scapy import sendrecv
 from scapy import packet as scapy_packet
 import os
 from icmpv6_extend import icmpv6_extend
+import cPickle
+import zmq
 
 
 # ==========================================================================
@@ -15,6 +17,7 @@ from icmpv6_extend import icmpv6_extend
 # ==========================================================================
 class mld_process():
 
+    IPC_PATH = "ipc:///tmp/feeds/0"
     BASEPATH = os.path.dirname(os.path.abspath(__file__))
     MULTICAST_SERVICE_INFO = os.path.normpath(
         os.path.join(BASEPATH, "./multicast_service_info.csv"))
@@ -25,9 +28,15 @@ class mld_process():
     # send interval(sec)
     WAIT_TIME = 10
 
+    ctx = zmq.Context()
+    sock = ctx.socket(zmq.SUB)
+    sock.connect(IPC_PATH)
+    sock.setsockopt(zmq.SUBSCRIBE, "")
+
     def __init__(self):
 # Debug
         print "in init()"
+
         for line in open(self.ADDRESS_INFO, "r"):
             if line[0] == "#":
                 continue
@@ -196,6 +205,13 @@ class mld_process():
 
 if __name__ == '__main__':
     mld_proc = mld_process()
-    mld_proc.sniff()
+    # sniffによるreceive
+    #mld_proc.sniff()
+
     while True:
+        # zeromqによるreceive
+        recvpkt = mld_proc.sock.recv()
+        packet = cPickle.loads(recvpkt)
+        mld_proc.listener_packet(packet)
+
         hub.sleep(1)
