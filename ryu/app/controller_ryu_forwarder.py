@@ -1,7 +1,7 @@
 #sudo apt-get install libzmq-dev
 #copy icmpv6_extend
 #  mld.app,icmpv6_extend to ryu.app.icmpv6_extend
-
+import cPickle
 import zmq
 from ryu.ofproto import ofproto_v1_3, ether, inet
 from ryu.lib.packet import packet, ethernet, ipv6, icmpv6, vlan
@@ -40,7 +40,8 @@ class PacketInForwarder(simple_switch_13.SimpleSwitch13):
 
         sendpkt = self.createPacket(src, dst, srcip, dstip)
 
-        self.sock.send(str(sendpkt))
+#        self.sock.send(str(sendpkt))
+        self.sock.send(cPickle.dumps(sendpkt, protocol=0))
         #self.sock.send(cPickle(sendpkt))
 
         print ("###packet_in END ", sendpkt)

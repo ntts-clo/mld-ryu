@@ -1,3 +1,4 @@
+import cPickle
 import binascii
 import zmq
 
@@ -7,10 +8,12 @@ ctx = zmq.Context()
 sock = ctx.socket(zmq.SUB)
 
 sock.connect(IPC_PATH)
-sock.setsockopt(zmq.SUBSCRIBE, "") # receive all data
+sock.setsockopt(zmq.SUBSCRIBE, "")
 
 while True:
-    data = sock.recv()
+    recvpkt = sock.recv()
+    data = cPickle.loads(recvpkt)
     print "### mld_receiver START"
-    print binascii.hexlify(data)
+    print data
+    #print binascii.hexlify(data)
     print "### mld_receiver END"
