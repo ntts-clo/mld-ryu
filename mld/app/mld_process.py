@@ -1,4 +1,8 @@
 # coding: utf-8
+# zmq install
+#  >sudo apt-get install libzmq-dev
+#
+
 from ryu.ofproto import ether, inet
 from ryu.lib.packet import packet as ryu_packet
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
@@ -18,6 +22,7 @@ import zmq
 class mld_process():
 
     IPC_PATH = "ipc:///tmp/feeds/0"
+    IPC_PATH_SEND = "ipc:///tmp/feeds/1"
     BASEPATH = os.path.dirname(os.path.abspath(__file__))
     MULTICAST_SERVICE_INFO = os.path.normpath(
         os.path.join(BASEPATH, "./multicast_service_info.csv"))
@@ -32,6 +37,9 @@ class mld_process():
     sock = ctx.socket(zmq.SUB)
     sock.connect(IPC_PATH)
     sock.setsockopt(zmq.SUBSCRIBE, "")
+
+    sendsock = ctx.socket(zmq.PUB)
+    sendsock.bind(IPC_PATH_SEND)
 
     def __init__(self):
 # Debug
@@ -171,7 +179,12 @@ class mld_process():
 # Debug
 #        print "### scapy Packet ###"
 #        sendpkt.show()
+        """ comment
+        # send of scapy
         sendrecv.sendp(sendpkt)
+        """
+        # send of zeromq 
+        self.sendsock.send(cPickle.dumps(sendpkt, protocol=0))
 
     # =========================================================================
     # listener_packet
@@ -205,11 +218,12 @@ class mld_process():
 
 if __name__ == '__main__':
     mld_proc = mld_process()
-    # sniffによるreceive
-    #mld_proc.sniff()
-
+    """ comment
+    # receive of sniff
+    mld_proc.sniff()
+    """
     while True:
-        # zeromqによるreceive
+        # receive of zeromq
         recvpkt = mld_proc.sock.recv()
         packet = cPickle.loads(recvpkt)
         mld_proc.listener_packet(packet)
