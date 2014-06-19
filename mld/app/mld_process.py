@@ -7,14 +7,13 @@ from ryu.ofproto import ether, inet
 from ryu.lib.packet import packet as ryu_packet
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from ryu.lib import hub
-hub.patch()
 from scapy import sendrecv
 from scapy import packet as scapy_packet
+from eventlet import patcher 
 from icmpv6_extend import icmpv6_extend
-import os
-import logging
-import cPickle
+import os, logging, cPickle, threading, time
 import zmq
+hub.patch()
 
 
 # ==========================================================================
@@ -25,7 +24,7 @@ class mld_process():
     LOG_LEVEL = logging.DEBUG
     
     # send interval(sec)
-    WAIT_TIME = 10
+    WAIT_TIME = 20
 
     IPC_PATH = "ipc:///tmp/feeds/0"
     IPC_PATH_SEND = "ipc:///tmp/feeds/1"
@@ -44,10 +43,13 @@ class mld_process():
     sendsock = ctx.socket(zmq.PUB)
     sendsock.bind(IPC_PATH_SEND)
 
+    org_thread = patcher.original('threading')
+    org_thread_time = patcher.original('time')
+
     def __init__(self):
         stream_log = logging.StreamHandler()
         stream_log.setFormatter(logging.Formatter(
-                '%(asctime)s [%(levelname)s] %(funcName)s %(message)s'))
+            '%(asctime)s [%(levelname)s] - %(threadName)s(%(funcName)s) - %(message)s'))
         self.logger = logging.getLogger(type(self).__name__)
         self.logger.addHandler(stream_log)
         self.logger.setLevel(self.LOG_LEVEL)
@@ -92,7 +94,6 @@ class mld_process():
                     self.addressinfo[2], self.addressinfo[3], mld)
                 self.send_packet_to_sw(sendpkt)
                 hub.sleep(self.WAIT_TIME)
-
     # =========================================================================
     # create_mldquery
     # =========================================================================
@@ -218,6 +219,20 @@ class mld_process():
                                   str(pkt_icmpv6.data))
 
     # =========================================================================
+    # receive_from_ryu
+    # =========================================================================
+    def receive_from_ryu(self):
+        self.logger.debug("")
+        while True:
+            # receive of zeromq
+            recvpkt = self.sock.recv()
+            packet = cPickle.loads(recvpkt)
+            self.logger.debug("packet : %s", str(packet))
+            self.listener_packet(packet)
+
+            self.org_thread_time.sleep(1)
+
+    # =========================================================================
     # sniff
     # =========================================================================
     def sniff(self):
@@ -231,11 +246,9 @@ if __name__ == '__main__':
     # receive of sniff
     mld_proc.sniff()
     """
+    recv_thre = mld_proc.org_thread.Thread(
+                                target=mld_proc.receive_from_ryu,
+                                name="ReceiveThread")
+    recv_thre.start()
     while True:
-        # receive of zeromq
-        recvpkt = mld_proc.sock.recv()
-        packet = cPickle.loads(recvpkt)
-        mld_proc.listener_packet(packet)
-
         hub.sleep(1)
-
