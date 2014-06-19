@@ -10,8 +10,9 @@ from ryu.lib import hub
 hub.patch()
 from scapy import sendrecv
 from scapy import packet as scapy_packet
-import os
 from icmpv6_extend import icmpv6_extend
+import os
+import logging
 import cPickle
 import zmq
 
@@ -20,6 +21,11 @@ import zmq
 # mld_process
 # ==========================================================================
 class mld_process():
+
+    LOG_LEVEL = logging.DEBUG
+    
+    # send interval(sec)
+    WAIT_TIME = 10
 
     IPC_PATH = "ipc:///tmp/feeds/0"
     IPC_PATH_SEND = "ipc:///tmp/feeds/1"
@@ -30,9 +36,6 @@ class mld_process():
         os.path.join(BASEPATH, "./address_info.csv"))
     addressinfo = []
 
-    # send interval(sec)
-    WAIT_TIME = 10
-
     ctx = zmq.Context()
     sock = ctx.socket(zmq.SUB)
     sock.connect(IPC_PATH)
@@ -42,8 +45,13 @@ class mld_process():
     sendsock.bind(IPC_PATH_SEND)
 
     def __init__(self):
-# Debug
-        print "in init()"
+        stream_log = logging.StreamHandler()
+        stream_log.setFormatter(logging.Formatter(
+                '%(asctime)s [%(levelname)s] %(funcName)s %(message)s'))
+        self.logger = logging.getLogger(type(self).__name__)
+        self.logger.addHandler(stream_log)
+        self.logger.setLevel(self.LOG_LEVEL)
+        self.logger.debug("")
 
         for line in open(self.ADDRESS_INFO, "r"):
             if line[0] == "#":
@@ -53,16 +61,14 @@ class mld_process():
                 for column in columns:
                     self.addressinfo.append(column)
 
-# Debug
-#        print "addressinfo : " + str(self.addressinfo)
+        self.logger.debug("addressinfo : %s" , str(self.addressinfo))
         hub.spawn(self.send_mldquey_regularly)
 
     # =========================================================================
     # send_mldquey_regularly
     # =========================================================================
     def send_mldquey_regularly(self):
-# Debug
-        print "in send_mldquey_regularly()"
+        self.logger.debug("")
         mc_service_info_list = []
         for line in open(self.MULTICAST_SERVICE_INFO, "r"):
             if line[0] == "#":
@@ -71,6 +77,9 @@ class mld_process():
                 # multicast_addr, srcip_addr
                 column = list(line[:-1].split(","))
                 mc_service_info_list.append(column)
+        self.logger.debug(
+            "send address(multicast_addr, srcip_addr) : %s",
+            str(mc_service_info_list))
 
         while True:
             for mc_service_info in mc_service_info_list:
@@ -81,16 +90,14 @@ class mld_process():
                 sendpkt = self.create_packet(
                     self.addressinfo[0], self.addressinfo[1],
                     self.addressinfo[2], self.addressinfo[3], mld)
-#                    "11::", self.addressinfo[3], mld)
-# Debug
-                print "***** send mldquey regularly *****"
-                self.send_packet(sendpkt)
+                self.send_packet_to_sw(sendpkt)
                 hub.sleep(self.WAIT_TIME)
 
     # =========================================================================
     # create_mldquery
     # =========================================================================
     def create_mldquery(self, mc_addr, ip_addr_list):
+        self.logger.debug("")
         return icmpv6.mldv2_query(address=mc_addr, srcs=ip_addr_list,
                                    maxresp=10000, qqic=15)
 
@@ -98,12 +105,13 @@ class mld_process():
     # create_mldreport
     # =========================================================================
     def create_mldreport(self):
+        self.logger.debug("")
         mc_service_info_list = []
         for line in open(self.MULTICAST_SERVICE_INFO, "r"):
             if line[0] == "#":
                 continue
             else:
-                # mc_addr,ip_addr
+                # mc_addr, ip_addr
                 column = list(line[:-1].split(","))
                 mc_service_info_list.append(column)
 
@@ -127,14 +135,13 @@ class mld_process():
                                          self.addressinfo[2],
                                          self.addressinfo[3], mld)
 
-            self.send_packet(sendpkt)
+            self.send_packet_to_ryu(sendpkt)
 
     # =========================================================================
     # create_packet
     # =========================================================================
     def create_packet(self, src, dst, srcip, dstip, mld):
-# Debug
-        print "in create_packet"
+        self.logger.debug("")
         # ETHER
         eth = ethernet.ethernet(
 #            ethertype=ether.ETH_TYPE_8021Q, dst=dst, src=src)
@@ -150,8 +157,6 @@ class mld_process():
                                   ipv6.option(type_=1, len_=0)])]
         ip6 = ipv6.ipv6(src=srcip, dst=dstip, hop_limit=1,
                         nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
-# Debug
-#        print " ipv6 : "+str(ip6)
 
         # MLDV2
         if type(mld) == icmpv6.mldv2_query:
@@ -166,53 +171,57 @@ class mld_process():
 #        sendpkt = eth / vln / ip6 / icmp6
         sendpkt = eth / ip6 / icmp6
         sendpkt.serialize()
-# Debug
-        print "created ryu-packet : " + str(sendpkt)
+        self.logger.debug("created packet(ryu) : %s", str(sendpkt))
 
         return sendpkt
 
     # =========================================================================
-    # send_packet
+    # send_packet_to_sw
     # =========================================================================
-    def send_packet(self, ryu_packet):
+    def send_packet_to_sw(self, ryu_packet):
+        self.logger.debug("")
         sendpkt = scapy_packet.Packet(ryu_packet.data)
-# Debug
-#        print "### scapy Packet ###"
-#        sendpkt.show()
-        """ comment
+
         # send of scapy
         sendrecv.sendp(sendpkt)
-        """
+        self.logger.info("sent 1 packet to switch.")
+
+    # =========================================================================
+    # send_packet_to_ryu
+    # =========================================================================
+    def send_packet_to_ryu(self, ryu_packet):
+        self.logger.debug("")
+        sendpkt = scapy_packet.Packet(ryu_packet.data)
+        
         # send of zeromq 
         self.sendsock.send(cPickle.dumps(sendpkt, protocol=0))
+        self.logger.info("sent 1 packet to ryu.")
 
     # =========================================================================
     # listener_packet
     # =========================================================================
     def listener_packet(self, packet):
+        self.logger.debug("")
         ryu_pkt = ryu_packet.Packet(str(packet))
-# Debug
-        print('*****called listener_packet() ******')
         pkt_icmpv6_list = ryu_pkt.get_protocols(icmpv6.icmpv6)
 
         for pkt_icmpv6 in pkt_icmpv6_list:
             # MLDv2 Query
             if pkt_icmpv6.type_ == icmpv6.MLD_LISTENER_QUERY:
-# Debug
-                print "***** MLDv2 Query : " + str(pkt_icmpv6.data)
+                self.logger.debug("MLDv2 Query : %s",
+                                  str(pkt_icmpv6.data))
                 self.create_mldreport()
 
             # MLDv2 Report
             if pkt_icmpv6.type_ == icmpv6.MLDV2_LISTENER_REPORT:
-# Debug
-                print "***** MLDv2 Report : " + str(pkt_icmpv6.data)
+                self.logger.debug("MLDv2 Report : %s",
+                                  str(pkt_icmpv6.data))
 
     # =========================================================================
     # sniff
     # =========================================================================
     def sniff(self):
-# Debug
-        print('***** sniff START ******')
+        self.logger.debug("")
         sendrecv.sniff(prn=self.listener_packet,
                        filter='ip6 proto 0 and multicast')
 
@@ -229,3 +238,4 @@ if __name__ == '__main__':
         mld_proc.listener_packet(packet)
 
         hub.sleep(1)
+
