@@ -1,12 +1,14 @@
 # coding: utf-8
 # zmq install
 #  >sudo apt-get install libzmq-dev
+#  >sudo apt-get install python-zmq
 
 from ryu.ofproto import ether, inet
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from ryu.lib import hub
 from scapy import sendrecv
 from scapy import packet as scapy_packet
+from eventlet import patcher
 from icmpv6_extend import icmpv6_extend
 import os
 import logging
@@ -33,8 +35,12 @@ class mld_process():
         os.path.join(BASEPATH, "./address_info.csv"))
     addressinfo = []
 
+    org_thread = patcher.original("threading")
+    org_thread_time = patcher.original("time")
 
     def __init__(self):
+        logging.config.fileConfig("logconf.ini")
+        self.logger = logging.getLogger(__name__)
         self.logger.debug("")
 
         for line in open(self.ADDRESS_INFO, "r"):
@@ -45,6 +51,15 @@ class mld_process():
                 for column in columns:
                     self.addressinfo.append(column)
 
+        ctx = zmq.Context()
+        self.recv_sock = ctx.socket(zmq.SUB)
+        self.recv_sock.connect(self.IPC_PATH_RECV)
+        self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
+
+        self.send_sock = ctx.socket(zmq.PUB)
+        self.send_sock.bind(self.IPC_PATH_SEND)
+
+        self.logger.debug("addressinfo : %s", str(self.addressinfo))
 
     # =========================================================================
     # send_mldquey_regularly
@@ -104,6 +119,10 @@ class mld_process():
             src_list.append(mc_service_info[1])
 
             record_list.append(icmpv6.mldv2_report_group(
+                                                 type_=icmpv6.MODE_IS_INCLUDE,
+                                                 num=1,
+                                                 address=mc_service_info[1],
+                                                 srcs=src_list))
 
             mld = icmpv6.mldv2_report(record_num=0,
                                       records=record_list)
@@ -125,10 +144,14 @@ class mld_process():
 #            ethertype=ether.ETH_TYPE_8021Q, dst=dst, src=src)
             ethertype=ether.ETH_TYPE_IPV6, dst=dst, src=src)
 # TODO
+        """
         # VLAN
         vln = vlan.vlan(vid=100, ethertype=ether.ETH_TYPE_IPV6)
+        """
         # IPV6 with Hop-By-Hop
         ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6,
+                    data=[ipv6.option(type_=5, len_=2, data="\x00\x00"),
+                          ipv6.option(type_=1, len_=0)])]
         ip6 = ipv6.ipv6(src=srcip, dst=dstip, hop_limit=1,
                         nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
 
@@ -166,12 +189,22 @@ class mld_process():
     def send_packet_to_ryu(self, ryu_packet):
         self.logger.debug("")
         sendpkt = scapy_packet.Packet(ryu_packet.data)
+
+        # send of zeromq
+        self.send_sock.send(cPickle.dumps(sendpkt, protocol=0))
         self.logger.info("sent 1 packet to ryu.")
 
     # =========================================================================
     # listener_packet
     # =========================================================================
     def listener_packet(self, packet):
+        self.logger.debug("###packet=" + str(packet))
+        pkt_eth = packet.get_protocols(ethernet.ethernet)
+        pkt_ipv6 = packet.get_protocols(ipv6.ipv6)
+        pkt_icmpv6_list = packet.get_protocols(icmpv6.icmpv6)
+        print("pkt_eth" + str(pkt_eth))
+        print("pkt_ipv6" + str(pkt_ipv6))
+        print("pkt_icmpv6_list" + str(pkt_icmpv6_list))
         for pkt_icmpv6 in pkt_icmpv6_list:
             # MLDv2 Query
             if pkt_icmpv6.type_ == icmpv6.MLD_LISTENER_QUERY:
@@ -191,6 +224,7 @@ class mld_process():
         self.logger.debug("")
         while True:
             # receive of zeromq
+            recvpkt = self.recv_sock.recv()
             packet = cPickle.loads(recvpkt)
             self.logger.debug("packet : %s", str(packet))
             self.listener_packet(packet)
