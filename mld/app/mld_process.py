@@ -9,9 +9,9 @@ from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from ryu.lib import hub
 from scapy import sendrecv
 from scapy import packet as scapy_packet
-from eventlet import patcher 
+from eventlet import patcher
 from icmpv6_extend import icmpv6_extend
-import os, logging, cPickle, threading, time
+import os, logging, logging.config, cPickle, sys, traceback
 import zmq
 hub.patch()
 
@@ -21,10 +21,8 @@ hub.patch()
 # ==========================================================================
 class mld_process():
 
-    LOG_LEVEL = logging.DEBUG
-    
     # send interval(sec)
-    WAIT_TIME = 20
+    WAIT_TIME = 10
 
     IPC_PATH = "ipc:///tmp/feeds/0"
     IPC_PATH_SEND = "ipc:///tmp/feeds/1"
@@ -43,16 +41,12 @@ class mld_process():
     sendsock = ctx.socket(zmq.PUB)
     sendsock.bind(IPC_PATH_SEND)
 
-    org_thread = patcher.original('threading')
-    org_thread_time = patcher.original('time')
+    org_thread = patcher.original("threading")
+    org_thread_time = patcher.original("time")
 
     def __init__(self):
-        stream_log = logging.StreamHandler()
-        stream_log.setFormatter(logging.Formatter(
-            '%(asctime)s [%(levelname)s] - %(threadName)s(%(funcName)s) - %(message)s'))
-        self.logger = logging.getLogger(type(self).__name__)
-        self.logger.addHandler(stream_log)
-        self.logger.setLevel(self.LOG_LEVEL)
+        logging.config.fileConfig("logconf.ini")
+        self.logger = logging.getLogger(__name__)
         self.logger.debug("")
 
         for line in open(self.ADDRESS_INFO, "r"):
@@ -63,8 +57,7 @@ class mld_process():
                 for column in columns:
                     self.addressinfo.append(column)
 
-        self.logger.debug("addressinfo : %s" , str(self.addressinfo))
-        hub.spawn(self.send_mldquey_regularly)
+        self.logger.debug("addressinfo : %s", str(self.addressinfo))
 
     # =========================================================================
     # send_mldquey_regularly
@@ -94,6 +87,7 @@ class mld_process():
                     self.addressinfo[2], self.addressinfo[3], mld)
                 self.send_packet_to_sw(sendpkt)
                 hub.sleep(self.WAIT_TIME)
+
     # =========================================================================
     # create_mldquery
     # =========================================================================
@@ -123,10 +117,10 @@ class mld_process():
             src_list.append(mc_service_info[1])
 
             record_list.append(icmpv6.mldv2_report_group(
-                                                 type_=icmpv6.MODE_IS_INCLUDE,
-                                                 num=1,
-                                                 address=mc_service_info[1],
-                                                 srcs=src_list))
+                                        type_=icmpv6.MODE_IS_INCLUDE,
+                                        num=1,
+                                        address=mc_service_info[1],
+                                        srcs=src_list))
 
             mld = icmpv6.mldv2_report(record_num=0,
                                       records=record_list)
@@ -148,14 +142,14 @@ class mld_process():
 #            ethertype=ether.ETH_TYPE_8021Q, dst=dst, src=src)
             ethertype=ether.ETH_TYPE_IPV6, dst=dst, src=src)
 # TODO
-        '''
+        """
         # VLAN
         vln = vlan.vlan(vid=100, ethertype=ether.ETH_TYPE_IPV6)
-        '''
+        """
         # IPV6 with Hop-By-Hop
         ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6,
-                            data=[ipv6.option(type_=5, len_=2, data=""),
-                                  ipv6.option(type_=1, len_=0)])]
+                    data=[ipv6.option(type_=5, len_=2, data="\x00\x00"),
+                          ipv6.option(type_=1, len_=0)])]
         ip6 = ipv6.ipv6(src=srcip, dst=dstip, hop_limit=1,
                         nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
 
@@ -193,8 +187,8 @@ class mld_process():
     def send_packet_to_ryu(self, ryu_packet):
         self.logger.debug("")
         sendpkt = scapy_packet.Packet(ryu_packet.data)
-        
-        # send of zeromq 
+
+        # send of zeromq
         self.sendsock.send(cPickle.dumps(sendpkt, protocol=0))
         self.logger.info("sent 1 packet to ryu.")
 
@@ -238,14 +232,11 @@ class mld_process():
     def sniff(self):
         self.logger.debug("")
         sendrecv.sniff(prn=self.listener_packet,
-                       filter='ip6 proto 0 and multicast')
+                       filter="ip6 proto 0 and multicast")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     mld_proc = mld_process()
-    """ comment
-    # receive of sniff
-    mld_proc.sniff()
-    """
+    hub.spawn(mld_proc.send_mldquey_regularly)
     recv_thre = mld_proc.org_thread.Thread(
                                 target=mld_proc.receive_from_ryu,
                                 name="ReceiveThread")
