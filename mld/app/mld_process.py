@@ -6,6 +6,7 @@
 from ryu.ofproto import ether, inet
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from ryu.lib import hub
+hub.patch()
 from scapy import sendrecv
 from scapy import packet as scapy_packet
 from eventlet import patcher
@@ -14,7 +15,6 @@ import os
 import logging
 import cPickle
 import zmq
-hub.patch()
 
 
 # ==========================================================================
@@ -29,6 +29,7 @@ class mld_process():
 
     IPC_PATH_RECV = "ipc:///tmp/feeds/0"
     IPC_PATH_SEND = "ipc:///tmp/feeds/1"
+
     BASEPATH = os.path.dirname(os.path.abspath(__file__))
     MULTICAST_SERVICE_INFO = os.path.normpath(
         os.path.join(BASEPATH, "./multicast_service_info.csv"))
@@ -57,12 +58,12 @@ class mld_process():
                     self.addressinfo.append(column)
 
         ctx = zmq.Context()
+        self.send_sock = ctx.socket(zmq.PUB)
+        self.send_sock.bind(self.IPC_PATH_SEND)
+
         self.recv_sock = ctx.socket(zmq.SUB)
         self.recv_sock.connect(self.IPC_PATH_RECV)
         self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
-
-        self.send_sock = ctx.socket(zmq.PUB)
-        self.send_sock.bind(self.IPC_PATH_SEND)
 
         self.logger.debug("addressinfo : %s", str(self.addressinfo))
         hub.spawn(self.send_mldquey_regularly)
@@ -145,10 +146,12 @@ class mld_process():
     # =========================================================================
     def create_packet(self, src, dst, srcip, dstip, mld):
         self.logger.debug("")
+
         # ETHER
         eth = ethernet.ethernet(
 #            ethertype=ether.ETH_TYPE_8021Q, dst=dst, src=src)
             ethertype=ether.ETH_TYPE_IPV6, dst=dst, src=src)
+
 # TODO
         '''
         # VLAN
@@ -194,11 +197,10 @@ class mld_process():
     # =========================================================================
     def send_packet_to_ryu(self, ryu_packet):
         self.logger.debug("")
-        sendpkt = scapy_packet.Packet(ryu_packet.data)
 
         # send of zeromq
-        self.send_sock.send(cPickle.dumps(sendpkt, protocol=0))
-        self.logger.info("sent 1 packet to ryu.")
+        self.send_sock.send(cPickle.dumps(ryu_packet, protocol=0))
+        self.logger.info("sent 1 packet to ryu. = " + str(ryu_packet))
 
     # =========================================================================
     # listener_packet
@@ -239,6 +241,7 @@ class mld_process():
 
 if __name__ == '__main__':
     mld_proc = mld_process()
+    hub.sleep(1)
     recv_thre = mld_proc.org_thread.Thread(
                                 target=mld_proc.receive_from_ryu,
                                 name="ReceiveThread")
