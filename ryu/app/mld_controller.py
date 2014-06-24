@@ -34,15 +34,8 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     def __init__(self, *args, **kwargs):
         super(mld_controller, self).__init__(*args, **kwargs)
 
-        stream_log = logging.StreamHandler()
-        stream_log.setFormatter(logging.Formatter(
-                                "%(asctime)s [%(levelname)s] - "
-                                "%(threadName)s(%(funcName)s) - "
-                                "%(message)s"
-                                ))
-        self.logger = logging.getLogger(type(self).__name__)
-        self.logger.addHandler(stream_log)
-        self.logger.setLevel(self.LOG_LEVEL)
+        logging.config.fileConfig("logconf.ini")
+        self.logger = logging.getLogger(__name__)
         self.logger.debug("")
 
         # ====================================================================
