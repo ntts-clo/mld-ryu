@@ -26,8 +26,11 @@ class mld_process():
     # send interval(sec)
     WAIT_TIME = 20
 
-    IPC_PATH_RECV = "ipc:///tmp/feeds/0"
-    IPC_PATH_SEND = "ipc:///tmp/feeds/1"
+    IPC = "ipc://"
+    SEND_PATH = "/tmp/feeds/mld-ryu"
+    RECV_PATH = "/tmp/feeds/ryu-mld"
+    IPC_PATH_SEND = IPC + SEND_PATH
+    IPC_PATH_RECV = IPC + RECV_PATH
 
     BASEPATH = os.path.dirname(os.path.abspath(__file__))
     MULTICAST_SERVICE_INFO = os.path.normpath(
@@ -54,6 +57,12 @@ class mld_process():
 
         self.logger.debug("addressinfo : %s", str(self.addressinfo))
 
+        # CHECK TMP FILE(SEND)
+        self.check_exists_tmp(self.SEND_PATH)
+
+        # CHECK TMP FILE(RECV)
+        self.check_exists_tmp(self.RECV_PATH)
+        
         ctx = zmq.Context()
         self.send_sock = ctx.socket(zmq.PUB)
         self.send_sock.bind(self.IPC_PATH_SEND)
@@ -61,6 +70,21 @@ class mld_process():
         self.recv_sock = ctx.socket(zmq.SUB)
         self.recv_sock.connect(self.IPC_PATH_RECV)
         self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
+
+    # ==================================================================
+    # check_exists_tmp
+    # ==================================================================
+    def check_exists_tmp(self, filename):
+        self.logger.debug("")
+
+        if os.path.exists(filename):
+            return
+
+        else:
+            f = open(filename, "w")
+            f.write("")
+            f.close()
+            self.logger.info("create file [%s]", filename)
 
     # ==================================================================
     # send_mldquey_regularly
@@ -86,9 +110,7 @@ class mld_process():
                     ip_addr_list.append(mc_service_info[1])
                 mld = self.create_mldquery(
                     mc_service_info[0], ip_addr_list)
-                sendpkt = self.create_packet(
-                    self.addressinfo[0], self.addressinfo[1],
-                    self.addressinfo[2], self.addressinfo[3], mld)
+                sendpkt = self.create_packet(self.addressinfo, mld)
                 self.send_packet_to_sw(sendpkt)
                 hub.sleep(self.WAIT_TIME)
 
@@ -103,49 +125,32 @@ class mld_process():
     # ==================================================================
     # create_mldreport
     # ==================================================================
-    def create_mldreport(self):
+    def create_mldreport(self, mc_service_info):
         self.logger.debug("")
-        mc_service_info_list = []
-        for line in open(self.MULTICAST_SERVICE_INFO, "r"):
-            if line[0] == "#":
-                continue
-            else:
-                # mc_addr, ip_addr
-                column = list(line[:-1].split(","))
-                mc_service_info_list.append(column)
 
-        for mc_service_info in mc_service_info_list:
-            record_list = []
+        src_list = []
+        src_list.append(mc_service_info[1])
 
-            src_list = []
-            src_list.append(mc_service_info[1])
+        record_list = []
+        record_list.append(icmpv6.mldv2_report_group(
+                                    type_=icmpv6.MODE_IS_INCLUDE,
+                                    num=1,
+                                    address=mc_service_info[0],
+                                    srcs=src_list))
 
-            record_list.append(icmpv6.mldv2_report_group(
-                                        type_=icmpv6.MODE_IS_INCLUDE,
-                                        num=1,
-                                        address=mc_service_info[1],
-                                        srcs=src_list))
-
-            mld = icmpv6.mldv2_report(record_num=0,
-                                      records=record_list)
-
-            sendpkt = self.create_packet(self.addressinfo[0],
-                                         self.addressinfo[1],
-                                         self.addressinfo[2],
-                                         self.addressinfo[3], mld)
-
-            self.send_packet_to_ryu(sendpkt)
+        return icmpv6.mldv2_report(records=record_list)
 
     # ==================================================================
     # create_packet
     # ==================================================================
-    def create_packet(self, src, dst, srcip, dstip, mld):
+    def create_packet(self, addressinfo, mld):
         self.logger.debug("")
 
         # ETHER
         eth = ethernet.ethernet(
-#            ethertype=ether.ETH_TYPE_8021Q, dst=dst, src=src)
-            ethertype=ether.ETH_TYPE_IPV6, dst=dst, src=src)
+#            ethertype=ether.ETH_TYPE_8021Q
+            ethertype=ether.ETH_TYPE_IPV6, 
+            src=addressinfo[0], dst=addressinfo[1])
 
 # TODO
         """
@@ -156,8 +161,9 @@ class mld_process():
         ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6,
                     data=[ipv6.option(type_=5, len_=2, data="\x00\x00"),
                           ipv6.option(type_=1, len_=0)])]
-        ip6 = ipv6.ipv6(src=srcip, dst=dstip, hop_limit=1,
-                        nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
+        ip6 = ipv6.ipv6(src=addressinfo[2], dst=addressinfo[3],
+                        hop_limit=1, nxt=inet.IPPROTO_HOPOPTS,
+                        ext_hdrs=ext_headers)
 
         # MLDV2
         if type(mld) == icmpv6.mldv2_query:
@@ -198,9 +204,9 @@ class mld_process():
         self.logger.info("sent 1 packet to ryu. = " + str(ryu_packet))
 
     # ==================================================================
-    # listener_packet
+    # distribute_receive_packet
     # ==================================================================
-    def listener_packet(self, packet):
+    def distribute_receive_packet(self, packet):
         self.logger.debug("")
         self.logger.debug("###packet=" + str(packet))
         pkt_eth = packet.get_protocols(ethernet.ethernet)
@@ -209,17 +215,65 @@ class mld_process():
         self.logger.debug("pkt_eth" + str(pkt_eth))
         self.logger.debug("pkt_ipv6" + str(pkt_ipv6))
         self.logger.debug("pkt_icmpv6_list" + str(pkt_icmpv6_list))
+
         for pkt_icmpv6 in pkt_icmpv6_list:
             # MLDv2 Query
             if pkt_icmpv6.type_ == icmpv6.MLD_LISTENER_QUERY:
                 self.logger.debug("MLDv2 Query : %s",
                                   str(pkt_icmpv6.data))
-                self.create_mldreport()
+                self.send_reply()
 
             # MLDv2 Report
             if pkt_icmpv6.type_ == icmpv6.MLDV2_LISTENER_REPORT:
                 self.logger.debug("MLDv2 Report : %s",
                                   str(pkt_icmpv6.data))
+                self.send_multicast_info(pkt_icmpv6)
+
+    # ==================================================================
+    # send_reply
+    # ==================================================================
+    def send_reply(self):
+        self.logger.debug("")
+        
+        mc_info_list = self.load_multicast_info()
+        for mc_info in mc_info_list:
+            mld = self.create_mldreport(mc_info)
+            sendpkt = self.create_packet(self.addressinfo, mld)
+            self.send_packet_to_ryu(sendpkt)
+
+    # ==================================================================
+    # load_multicast_info
+    # ==================================================================
+    def load_multicast_info(self):
+        self.logger.debug("")
+# TODO p-inしたReportから保持した情報を返却する
+#     （暫定でファイルからの読み込み）
+        mc_service_info_list = []
+        for line in open(self.MULTICAST_SERVICE_INFO, "r"):
+            if line[0] == "#":
+                continue
+            else:
+                # mc_addr, ip_addr
+                column = list(line[:-1].split(","))
+                mc_service_info_list.append(column)
+        return mc_service_info_list
+
+    # ==================================================================
+    # send_multicast_info
+    # ==================================================================
+    def send_multicast_info(self, pkt):
+        self.logger.debug("")
+        self.regist_multicast_info(pkt)
+# TODO p-outの情報を設定したReportを生成する
+#        sendpkt = self.create_mldreport(("", ""))
+#        self.send_packet_to_ryu(sendpkt)
+
+    # ==================================================================
+    # regist_multicast_info
+    # ==================================================================
+    def regist_multicast_info(self, pkt):
+        self.logger.debug("")
+# TODO p-inしたReportの情報をメモリ上に保持する
 
     # ==================================================================
     # receive_from_ryu
@@ -231,7 +285,7 @@ class mld_process():
             recvpkt = self.recv_sock.recv()
             packet = cPickle.loads(recvpkt)
             self.logger.debug("packet : %s", str(packet))
-            self.listener_packet(packet)
+            self.distribute_receive_packet(packet)
 
             self.org_thread_time.sleep(1)
 
