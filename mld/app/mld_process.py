@@ -40,7 +40,7 @@ class mld_process():
     org_thread_time = patcher.original("time")
 
     def __init__(self):
-        logging.config.fileConfig("logconf.ini")
+        logging.config.fileConfig("../../logconf.ini")
         self.logger = logging.getLogger(__name__)
         self.logger.debug("")
 
@@ -201,13 +201,14 @@ class mld_process():
     # listener_packet
     # ==================================================================
     def listener_packet(self, packet):
+        self.logger.debug("")
         self.logger.debug("###packet=" + str(packet))
         pkt_eth = packet.get_protocols(ethernet.ethernet)
         pkt_ipv6 = packet.get_protocols(ipv6.ipv6)
         pkt_icmpv6_list = packet.get_protocols(icmpv6.icmpv6)
-        print("pkt_eth" + str(pkt_eth))
-        print("pkt_ipv6" + str(pkt_ipv6))
-        print("pkt_icmpv6_list" + str(pkt_icmpv6_list))
+        self.logger.debug("pkt_eth" + str(pkt_eth))
+        self.logger.debug("pkt_ipv6" + str(pkt_ipv6))
+        self.logger.debug("pkt_icmpv6_list" + str(pkt_icmpv6_list))
         for pkt_icmpv6 in pkt_icmpv6_list:
             # MLDv2 Query
             if pkt_icmpv6.type_ == icmpv6.MLD_LISTENER_QUERY:
