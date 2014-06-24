@@ -14,6 +14,7 @@ import cPickle
 import zmq
 from eventlet import patcher
 import logging
+import os
 
 
 class mld_controller(simple_switch_13.SimpleSwitch13):
@@ -24,23 +25,41 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     WAIT_TIME = 1
 
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
-    IPC_PATH_SEND = "ipc:///tmp/feeds/0"
-    IPC_PATH_RECV = "ipc:///tmp/feeds/1"
+
+    IPC = "ipc://"
+    SEND_PATH = "/tmp/feeds/0"
+    RECV_PATH = "/tmp/feeds/1"
+    IPC_PATH_SEND = IPC + SEND_PATH
+    IPC_PATH_RECV = IPC + RECV_PATH
 
     org_thread = patcher.original("threading")
     org_thread_time = patcher.original("time")
-    patcher.monkey_patch()
 
     def __init__(self, *args, **kwargs):
         super(mld_controller, self).__init__(*args, **kwargs)
 
-        logging.config.fileConfig("logconf.ini")
-        self.logger = logging.getLogger(__name__)
+        stream_log = logging.StreamHandler()
+        stream_log.setFormatter(logging.Formatter(
+                                "%(asctime)s [%(levelname)s] - "
+                                "%(threadName)s(%(funcName)s) - "
+                                "%(message)s"
+                                ))
+        self.logger = logging.getLogger(type(self).__name__)
+        self.logger.addHandler(stream_log)
+        self.logger.setLevel(self.LOG_LEVEL)
         self.logger.debug("")
+
+        patcher.monkey_patch()
 
         # ====================================================================
         # CRETATE SCOKET
         # ====================================================================
+        # CHECK TMP FILE(SEND)
+        self.check_exists_tmp(self.SEND_PATH)
+
+        # CHECK TMP FILE(RECV)
+        self.check_exists_tmp(self.RECV_PATH)
+
         ctx = zmq.Context()
 
         # SEND SOCKET CREATE
@@ -67,19 +86,27 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     def _packet_in_handler(self, ev):
         self.logger.debug("")
 
-# TODO
-        srcip = "fe80::200:ff:fe00:1"
-        dstip = "fe80::200:ff:fe00:2"
         msg = ev.msg
         pkt = packet.Packet(msg.data)
 
-        # get_protocols(ethernet)
-        pkt_eth = pkt.get_protocols(ethernet.ethernet)[0]
-        dst = pkt_eth.dst
-        src = pkt_eth.src
+        # CHECK ETH
+        pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
+        if not pkt_ethernet:
+            return
 
-        sendpkt = self.createPacket(src, dst, srcip, dstip)
-        self.send_packet_to_mld(sendpkt)
+        # CHECK ICMPV6
+        pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
+        if not pkt_icmpv6:
+            return
+
+        # CHECK MLD TYPE
+        if not pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT,
+                                    icmpv6.ICMPV6_MEMBERSHIP_QUERY]:
+            return
+
+        self.logger.debug("packet-in %s \n", (pkt))
+
+        self.send_packet_to_mld(pkt)
 
     # =========================================================================
     # _switch_features_handler
@@ -90,41 +117,6 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
 
         self.msg = ev.msg
         self.datapath = ev.msg.datapath
-
-    # =========================================================================
-    # createPacket
-    # =========================================================================
-    def createPacket(self, src, dst, srcip, dstip):
-        self.logger.debug("")
-
-        # ETHER
-        eth = ethernet.ethernet(
-#            ethertype=ether.ETH_TYPE_8021Q, dst=dst, src=src)
-            ethertype=ether.ETH_TYPE_IPV6, dst=dst, src=src)
-
-# TODO
-        '''
-        # VLAN
-        vln = vlan.vlan(vid=100, ethertype=ether.ETH_TYPE_IPV6)
-        '''
-        # IPV6 with Hop-By-Hop
-        ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6,
-                    data=[ipv6.option(type_=5, len_=2, data="\x00\x00"),
-                          ipv6.option(type_=1, len_=0)])]
-        ip6 = ipv6.ipv6(src=srcip, dst=dstip, hop_limit=1,
-                        nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
-
-        # MLDV2
-        icmp6 = icmpv6_extend(type_=icmpv6.ICMPV6_MEMBERSHIP_QUERY,
-                            data=icmpv6.mldv2_query(address="ff38::1"))
-
-        # ether - vlan - ipv6 - icmpv6 ( - mldv2 )
-#        sendpkt = eth / vln / ip6 / icmp6
-        sendpkt = eth / ip6 / icmp6
-        self.logger.debug("####created packet= %s \n", str(sendpkt))
-        sendpkt.serialize()
-
-        return sendpkt
 
     # =========================================================================
     # send_packet_to_mld
@@ -160,17 +152,12 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
 
-# TODO
         pkt_eth = packet.get_protocols(ethernet.ethernet)[0]
         dst = pkt_eth.dst
         src = pkt_eth.src
-        in_port = 1234
         self.mac_to_port.setdefault(datapath, {})
 
-        self.logger.debug("packet out %s %s %s %s",
-                          datapath, src, dst, in_port)
-
-        self.mac_to_port[datapath][src] = in_port
+        self.logger.debug("packet out %s %s %s", datapath, src, dst)
 
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
                                           ofproto.OFPCML_NO_BUFFER)]
@@ -181,6 +168,29 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                                   actions=actions,
                                   data=packet.data)
 
-        datapath.send_msg(out)
+        self.send_msg(datapath, out)
+
+    # =========================================================================
+    # send_msg
+    # =========================================================================
+    def send_msg(self, datapath, packetout):
+        self.logger.debug("")
+
+        datapath.send_msg(packetout)
 
         self.logger.info("sent 1 packet to PacketOut. ")
+
+    # =========================================================================
+    # check_exists_tmp
+    # =========================================================================
+    def check_exists_tmp(self, filename):
+        self.logger.debug("")
+
+        if os.path.exists(filename):
+            return
+
+        else:
+            f = open(filename, "w")
+            f.write("")
+            f.close()
+            self.logger.info("create file [%s]", filename)
