@@ -27,8 +27,8 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
     IPC = "ipc://"
-    SEND_PATH = "/tmp/feeds/0"
-    RECV_PATH = "/tmp/feeds/1"
+    SEND_PATH = "/tmp/feeds/ryu-mld"
+    RECV_PATH = "/tmp/feeds/mld-ryu"
     IPC_PATH_SEND = IPC + SEND_PATH
     IPC_PATH_RECV = IPC + RECV_PATH
 
