@@ -139,13 +139,13 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
             recvpkt = self.recv_sock.recv()
             packet = cPickle.loads(recvpkt)
             self.logger.debug("####recvpkt= %s \n", str(packet))
-            self.sendPacketOut(packet)
+            self.send_packet_out(packet)
             self.org_thread_time.sleep(self.WAIT_TIME)
 
     # =========================================================================
     # sendPacketOut
     # =========================================================================
-    def sendPacketOut(self, packet):
+    def send_packet_out(self, packet):
         self.logger.debug("")
 
         datapath = self.datapath
