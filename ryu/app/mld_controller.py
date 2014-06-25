@@ -48,7 +48,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         self.logger.addHandler(stream_log)
         self.logger.setLevel(self.LOG_LEVEL)
         self.logger.debug("")
-
+        self.logger.debug("[SendSocket]IPC %s", self.IPC_PATH_SEND)
         patcher.monkey_patch()
 
         # ====================================================================
@@ -190,7 +190,16 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
             return
 
         else:
-            f = open(filename, "w")
-            f.write("")
-            f.close()
-            self.logger.info("create file [%s]", filename)
+            dirpath = os.path.dirname(filename)
+            if os.path.isdir(dirpath):
+                f = open(filename, "w")
+                f.write("")
+                f.close()
+                self.logger.info("create file[%s]", filename)
+            else:
+                os.makedirs(dirpath)
+                f = open(filename, "w")
+                f.write("")
+                f.close()
+                self.logger.info("create dir[%s], file[%s]",
+                                 dirpath, filename)
