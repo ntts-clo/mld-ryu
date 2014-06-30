@@ -4,17 +4,23 @@
 #  >sudo apt-get install python-zmq
 
 from ryu.ofproto import ether, inet
-from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
+from ryu.ofproto import ofproto_v1_3_parser as ofproto_parser
+from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan, packet
 from ryu.lib import hub
 from scapy import sendrecv
 from scapy import packet as scapy_packet
 from eventlet import patcher
 from icmpv6_extend import icmpv6_extend
+from user_manage import ChannelInfo
 import os
 import logging
 import logging.config
 import cPickle
 import zmq
+import json
+import sys
+sys.path.append('../../common')
+from message import message
 hub.patch()
 
 
@@ -24,7 +30,7 @@ hub.patch()
 class mld_process():
 
     # send interval(sec)
-    WAIT_TIME = 20
+    WAIT_TIME = 25
 
     IPC = "ipc://"
     SEND_PATH = "/tmp/feeds/mld-ryu"
@@ -43,9 +49,11 @@ class mld_process():
     org_thread_time = patcher.original("time")
 
     def __init__(self):
-        logging.config.fileConfig("../../logconf.ini")
+        logging.config.fileConfig("../../common/logconf.ini")
         self.logger = logging.getLogger(__name__)
         self.logger.debug("")
+
+        self.ch_info = ChannelInfo()
 
         for line in open(self.ADDRESS_INFO, "r"):
             if line[0] == "#":
@@ -55,7 +63,15 @@ class mld_process():
                 for column in columns:
                     self.addressinfo.append(column)
 
-        self.logger.debug("addressinfo : %s", str(self.addressinfo))
+        self.logger.info("addressinfo : %s", str(self.addressinfo))
+
+        jsonfile = open("switch_info.json")
+        self.switch_data = json.load(jsonfile)
+        self.logger.info("switch_info : %s", str(self.switch_data))
+        self.switches = self.switch_data["switches"]
+        self.edge_switch = self.switches [0]
+        self.switch1 = self.switches[1]
+        self.switch2 = self.switches[2]
 
         # CHECK TMP FILE(SEND)
         self.check_exists_tmp(self.SEND_PATH)
@@ -81,16 +97,35 @@ class mld_process():
             return
 
         else:
-            f = open(filename, "w")
-            f.write("")
-            f.close()
-            self.logger.info("create file [%s]", filename)
+            dirpath = os.path.dirname(filename)
+            if os.path.isdir(dirpath):
+                f = open(filename, "w")
+                f.write("")
+                f.close()
+                self.logger.info("create file[%s]", filename)
+            else:
+                os.makedirs(dirpath)
+                f = open(filename, "w")
+                f.write("")
+                f.close()
+                self.logger.info("create dir[%s], file[%s]",
+                                 dirpath, filename)
 
     # ==================================================================
     # send_mldquey_regularly
     # ==================================================================
     def send_mldquey_regularly(self):
         self.logger.debug("")
+        # TODO 設定ファイルでGeneralQueryを投げられるようにする
+        """
+        if self.conf.generalquery:
+            while True:
+                mld = self.create_mldquery(("::", None))
+                sendpkt = self.create_packet(self.addressinfo, mld)
+                self.send_packet_to_sw(sendpkt)
+                hub.sleep(self.WAIT_TIME)
+        else:
+        """
         mc_service_info_list = []
         for line in open(self.MULTICAST_SERVICE_INFO, "r"):
             if line[0] == "#":
@@ -104,12 +139,8 @@ class mld_process():
             str(mc_service_info_list))
 
         while True:
-            for mc_service_info in mc_service_info_list:
-                ip_addr_list = []
-                if not mc_service_info[1] == "":
-                    ip_addr_list.append(mc_service_info[1])
-                mld = self.create_mldquery(
-                    mc_service_info[0], ip_addr_list)
+            for mc_info in mc_service_info_list:
+                mld = self.create_mldquery(mc_info[0], mc_info[1])
                 sendpkt = self.create_packet(self.addressinfo, mld)
                 self.send_packet_to_sw(sendpkt)
                 hub.sleep(self.WAIT_TIME)
@@ -117,26 +148,26 @@ class mld_process():
     # ==================================================================
     # create_mldquery
     # ==================================================================
-    def create_mldquery(self, mc_addr, ip_addr_list):
+    def create_mldquery(self, mc_address, mc_serv_ip):
         self.logger.debug("")
-        return icmpv6.mldv2_query(address=mc_addr, srcs=ip_addr_list,
-                                   maxresp=10000, qqic=15)
+
+        return icmpv6.mldv2_query(
+            address=mc_address,
+            srcs=[mc_serv_ip] if mc_serv_ip else None,
+            maxresp=10000, qqic=self.WAIT_TIME)
 
     # ==================================================================
     # create_mldreport
     # ==================================================================
-    def create_mldreport(self, mc_service_info):
+    def create_mldreport(self, mc_address, mc_serv_ip, report_types):
         self.logger.debug("")
 
-        src_list = []
-        src_list.append(mc_service_info[1])
-
         record_list = []
-        record_list.append(icmpv6.mldv2_report_group(
-                                    type_=icmpv6.MODE_IS_INCLUDE,
-                                    num=1,
-                                    address=mc_service_info[0],
-                                    srcs=src_list))
+        for report_type in report_types:
+            record_list.append(
+                icmpv6.mldv2_report_group(
+                    type_=report_type, address=mc_address, 
+                    srcs=[mc_serv_ip]))
 
         return icmpv6.mldv2_report(records=record_list)
 
@@ -148,7 +179,7 @@ class mld_process():
 
         # ETHER
         eth = ethernet.ethernet(
-#            ethertype=ether.ETH_TYPE_8021Q
+#            ethertype=ether.ETH_TYPE_8021Q,
             ethertype=ether.ETH_TYPE_IPV6, 
             src=addressinfo[0], dst=addressinfo[1])
 
@@ -191,32 +222,41 @@ class mld_process():
 
         # send of scapy
         sendrecv.sendp(sendpkt)
-        self.logger.info("sent 1 packet to switch.")
+        self.logger.debug("sent 1 packet to switch.")
 
     # ==================================================================
     # send_packet_to_ryu
     # ==================================================================
-    def send_packet_to_ryu(self, ryu_packet):
+    def send_packet_to_ryu(self, packet):
         self.logger.debug("")
 
         # send of zeromq
-        self.send_sock.send(cPickle.dumps(ryu_packet, protocol=0))
-        self.logger.info("sent 1 packet to ryu. = " + str(ryu_packet))
+        self.send_sock.send(cPickle.dumps(packet, protocol=0))
+        self.logger.debug("sent 1 packet to ryu. = " + str(packet))
 
     # ==================================================================
-    # distribute_receive_packet
+    # analyse_receive_packet
     # ==================================================================
-    def distribute_receive_packet(self, packet):
+    def analyse_receive_packet(self, recvpkt):
         self.logger.debug("")
-        self.logger.debug("###packet=" + str(packet))
-        pkt_eth = packet.get_protocols(ethernet.ethernet)
-        pkt_ipv6 = packet.get_protocols(ipv6.ipv6)
-        pkt_icmpv6_list = packet.get_protocols(icmpv6.icmpv6)
-        self.logger.debug("pkt_eth" + str(pkt_eth))
-        self.logger.debug("pkt_ipv6" + str(pkt_ipv6))
-        self.logger.debug("pkt_icmpv6_list" + str(pkt_icmpv6_list))
+        message = recvpkt.message
+        self.logger.debug("received message : " + str(message))
 
-        for pkt_icmpv6 in pkt_icmpv6_list:
+        if message["type_"] == 1: # TODO 定数化
+            flowmod = self.set_switch_config(message)
+            # self.send_packet_to_ryu(flowmod)
+
+        elif message["type_"] == 2: # TODO 定数化
+            #pkt = packet.Packet(recvpkt.data)
+
+            # pkt_eth = pkt.get_protocols(ethernet.ethernet)
+            # pkt_ipv6 = pkt.get_protocols(ipv6.ipv6)
+            # pkt_icmpv6_list = pkt.get_protocols(icmpv6.icmpv6)
+            # self.logger.debug("pkt_eth" + str(pkt_eth))
+            # self.logger.debug("pkt_ipv6" + str(pkt_ipv6))
+            pkt_icmpv6 = message["data"]
+            self.logger.debug("pkt_icmpv6 : " + str(pkt_icmpv6))
+
             # MLDv2 Query
             if pkt_icmpv6.type_ == icmpv6.MLD_LISTENER_QUERY:
                 self.logger.debug("MLDv2 Query : %s",
@@ -227,7 +267,39 @@ class mld_process():
             if pkt_icmpv6.type_ == icmpv6.MLDV2_LISTENER_REPORT:
                 self.logger.debug("MLDv2 Report : %s",
                                   str(pkt_icmpv6.data))
-                self.send_multicast_info(pkt_icmpv6)
+                self.manage_user(message)
+
+        else:
+            # TODO raise Exception? 分岐自体不要?
+            pass
+
+    # ==================================================================
+    # set_switch_config
+    # ==================================================================
+    def set_switch_config(self, message):
+        self.logger.debug("")
+        
+        # TODO ファイルから読み込んだSWの情報から、
+        #      接続元SWがエッジか収容か判定し、初期設定をFlowModする
+        #   エッジSW：ルータからのQueryをp-in
+        #             MLDからのQueryを収容SWへ
+        #             p-out(Report)をルータへ ※BEサービスのみ
+        #             それ以外はブリッジとして動作
+        #   収容SW  ：ホストからReportがきたらp-in
+        #             それ以外はブリッジとして動作
+
+        datapath = message["datapath"]
+        for switch in self.switches:
+            if datapath == switch["datapath"]:
+                if switch["sw_name"] == "esw":
+                    # TODO エッジSWのFlowMod
+                    self.logger.debug("sw_name : %s", switch["sw_name"])
+                else:
+                    # TODO 収容SWのFlowMod
+                    self.logger.debug("sw_name : %s", switch["sw_name"])
+
+        # TODO FlowModの内容を返却
+        return ofproto_parser.OFPFlowMod(datapath=datapath)
 
     # ==================================================================
     # send_reply
@@ -235,45 +307,63 @@ class mld_process():
     def send_reply(self):
         self.logger.debug("")
         
-        mc_info_list = self.load_multicast_info()
-        for mc_info in mc_info_list:
-            mld = self.create_mldreport(mc_info)
-            sendpkt = self.create_packet(self.addressinfo, mld)
-            self.send_packet_to_ryu(sendpkt)
+        if not self.ch_info.channel_info:
+            # 未視聴状態の場合は何もしない
+            self.logger.info("No one shows any channels.")
+
+        else:
+            for mc_info in self.ch_info.channel_info.keys():
+                report_type = [icmpv6.MODE_IS_INCLUDE]
+                mld = self.create_mldreport(
+                    mc_info[0], mc_info[1], report_type)
+                sendpkt = self.create_packet(self.addressinfo, mld)
+                # TODO エッジスイッチにp-out
+                # self.send_packet_to_ryu(sendpkt)
 
     # ==================================================================
-    # load_multicast_info
+    # manage_user
     # ==================================================================
-    def load_multicast_info(self):
+    def manage_user(self, message):
         self.logger.debug("")
-# TODO p-inしたReportから保持した情報を返却する
-#     （暫定でファイルからの読み込み）
-        mc_service_info_list = []
-        for line in open(self.MULTICAST_SERVICE_INFO, "r"):
-            if line[0] == "#":
-                continue
+
+        for report in message["data"].data.records:
+            # ALLOW_NEW_SOURCES：視聴情報に追加
+            if report.type_ == icmpv6.ALLOW_NEW_SOURCES:
+                reply_type = self.ch_info.add_info(
+                    mc_addr=report.address,
+                    serv_ip=report.srcs[0],
+                    data_path=message["datapath"],
+                    port_no=message["in_port"],
+                    cid=100) # TODO cidをvlanから取得
+
+            # BLOCK_OLD_SOURCES：視聴情報から削除
+            elif report.type_ == icmpv6.BLOCK_OLD_SOURCES:
+                reply_type = self.ch_info.remove_info(
+                    mc_addr=report.address,
+                    serv_ip=report.srcs[0],
+                    data_path=message["datapath"],
+                    port_no=message["in_port"],
+                    cid=100) # TODO cidをvlanから取得
+
             else:
-                # mc_addr, ip_addr
-                column = list(line[:-1].split(","))
-                mc_service_info_list.append(column)
-        return mc_service_info_list
+                reply_type = 0 # TODO 定数化
 
-    # ==================================================================
-    # send_multicast_info
-    # ==================================================================
-    def send_multicast_info(self, pkt):
-        self.logger.debug("")
-        self.regist_multicast_info(pkt)
-# TODO p-outの情報を設定したReportを生成する
-#        sendpkt = self.create_mldreport(("", ""))
-#        self.send_packet_to_ryu(sendpkt)
+            self.logger.debug("ch_info : %s", self.ch_info.channel_info)
 
-    # ==================================================================
-    # regist_multicast_info
-    # ==================================================================
-    def regist_multicast_info(self, pkt):
-        self.logger.debug("")
-# TODO p-inしたReportの情報をメモリ上に保持する
+            if reply_type == 2:
+                # TODO エッジスイッチへ投げるReportを作成(ADD_NEW_RESOURCESおよびCHANGE_TO_INCLUDE)
+                # TODO エッジスイッチとp-inしてきた収容スイッチへFlowMod
+                # TODO ryuにsend
+                self.logger.debug("reply_type == 2")
+            elif reply_type == 1:
+                # TODO p-inしてきた収容スイッチへFlowMod
+                # TODO ryuにsend
+                self.logger.debug("reply_type == 1")
+            else:
+                # 何もしない
+                pass
+        
+        # TODO タイムアウト判定
 
     # ==================================================================
     # receive_from_ryu
@@ -284,8 +374,7 @@ class mld_process():
             # receive of zeromq
             recvpkt = self.recv_sock.recv()
             packet = cPickle.loads(recvpkt)
-            self.logger.debug("packet : %s", str(packet))
-            self.distribute_receive_packet(packet)
+            self.analyse_receive_packet(packet)
 
             self.org_thread_time.sleep(1)
 
