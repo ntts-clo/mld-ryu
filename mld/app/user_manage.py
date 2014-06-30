@@ -13,11 +13,15 @@ class BaseInfo():
 
 class ChannelInfo(BaseInfo):
     def __init__(self):
+        print("ChannelInfo : __init__")
         # {["FF38::1:1", "2001:1::20"]: {"datapath1":ChannelSwitchInfoのインスタンス, ... } という形
         self.channel_info = {}
 #        self.accessor = DatabaseAccessor()
 
     def add_info(self, mc_addr, serv_ip, data_path, port_no, cid):
+        print("ChannelInfo : add_info(%s, %s, %s, %s, %s)" % 
+               (mc_addr, serv_ip, str(data_path), str(port_no), str(cid)))
+        print("self.channel_info : %s" % self.channel_info)
         """
           視聴端末を追加。さらに、
             1. ch視聴ユーザが当該swにおける最初の視聴ユーザだった場合、エッジルータへ
@@ -34,6 +38,7 @@ class ChannelInfo(BaseInfo):
             # 当該チャンネルが存在しない場合
             sw_info = ChannelSwitchInfo(data_path, port_no, cid)
             self.channel_info[(mc_addr, serv_ip)] = {data_path: sw_info}
+            print("added self.channel_info : %s" % self.channel_info) 
             return 2  # エッジSW、収容SW両方へのFlowMod、およびエッジルータへのReport Todo:即値やめろ
 
         # 当該チャンネルが既に存在する場合
@@ -42,13 +47,18 @@ class ChannelInfo(BaseInfo):
         if data_path not in sw_info:
             new_sw_info = ChannelSwitchInfo(data_path, port_no, cid)
             sw_info[data_path] = new_sw_info
+            print("added self.channel_info : %s" % self.channel_info) 
             return 1  # 収容SWへのFlowModが必要 Todo:即値やめろ
 
         # 当該チャンネルにこの収容SWの情報がある場合
         ch_sw_info = sw_info[data_path]  # ChannelSwitchInfoクラスのインスタンス
+        print("added self.channel_info : %s" % self.channel_info) 
         return ch_sw_info.add_info(port_no, cid)
 
     def remove_info(self, mc_addr, serv_ip, data_path, port_no, cid):
+        print("ChannelInfo : remove_info(%s, %s, %s, %s, %s)" % 
+               (mc_addr, serv_ip, str(data_path), str(port_no), str(cid)))
+        print("self.channel_info : %s" % self.channel_info)
         """
           視聴端末を削除。さらに、
             1. 当該sw、当該ポートの視聴ユーザが0になった場合、
@@ -63,27 +73,40 @@ class ChannelInfo(BaseInfo):
         # チャンネルおよびDataPath存在チェック
         # 存在しなければ何もしない
         if (mc_addr, serv_ip) not in self.channel_info \
-            or data_path not in self.channel_info[mc_addr]:
+            or data_path not in self.channel_info[(mc_addr, serv_ip)]:
+                print "remove target is nothing."
                 return 0  # FlowModの必要なし Todo: 即値やめろ
 
         # 存在する場合
         ch_sw_info = self.channel_info[(mc_addr, serv_ip)][data_path]
         ret = ch_sw_info.remove_info(port_no, cid)
-        if ret == 2:
+        if ret == 1 and len(ch_sw_info.port_info.keys()) == 0:
             # 当該SWの視聴ユーザが0の場合、DataPathに対応する情報を削除する
-            self.channel_info[mc_addr].pop(data_path)
+            self.channel_info[(mc_addr, serv_ip)].pop(data_path)
+            print("removed datapath : %s" % data_path) 
+            print("removed self.channel_info[(mc_addr, serv_ip)] : %s" 
+                   % self.channel_info[(mc_addr, serv_ip)]) 
+            
+            if len(self.channel_info[(mc_addr, serv_ip)]) == 0:
+                # 当該mcグループの視聴ユーザが0の場合、mcグループに対応する情報を削除する
+                self.channel_info.pop((mc_addr, serv_ip))
+                ret = 2
 
+        print("removed self.channel_info : %s" % self.channel_info) 
         return ret
 
 
 class ChannelSwitchInfo(BaseInfo):
     def __init__(self, data_path, port_no=-1, cid=-1):
+        print("ChannelSwitchInfo : __init__")
         self.data_path = data_path
         self.port_info = {}
         if cid != -1:
             self.port_info[port_no] = [cid]
 
     def add_info(self, port_no, cid):
+        print("ChannelSwitchInfo : add_info(%s, %s)" % (str(port_no), str(cid)))
+        print("self.port_info : %s" % self.port_info)
         # port_infoにユーザ情報を追加
         if port_no in self.port_info:
             # 当該ポートに視聴ユーザが存在する場合
@@ -98,9 +121,12 @@ class ChannelSwitchInfo(BaseInfo):
         else:
             # 当該ポートに視聴ユーザが存在しない場合
             self.port_info[port_no] = [cid]
+            print("added self.port_info : %s" % self.port_info)
             return 1  # 収容SWへのFlowModが必要 Todo: 即値やめろ
 
     def remove_info(self, port_no, cid):
+        print("ChannelSwitchInfo : remove_info(%s, %s)" % (str(port_no), str(cid)))
+        print("self.port_info : %s" % self.port_info)
         # port_infoから当該ユーザ情報を検索し削除
         # ch_infoを更新
         #   当該chを視聴しているユーザがいなくなった場合
@@ -116,13 +142,20 @@ class ChannelSwitchInfo(BaseInfo):
         idx = self.find(cid_list, cid)
         if idx == -1:
             # 指定されたCIDが存在しなければ何もせず抜ける Todo: 本当にそれでよいか精査
+            print "remove target is nothing."
             return 0  # FlowMod必要なし Todo: 即値やめろ
         cid_list.pop(idx)
+        """
+        if len(self.port_info) == 0:
+            print("removed self.port_info : %s" % self.port_info)
+            print("removed cid_list : %s, return 2" % cid_list)
+            return 2  # エッジSW、収容SW両方へのFlowMod、およびエッジルータへのReport Todo:即値やめろ
+        """
         if len(cid_list) == 0:
             self.port_info.pop(port_no)
+            print("removed self.port_info : %s" % self.port_info)
+            print("removed cid_list : %s, return 1" % cid_list)
             return 1  # 収容SWへのFlowModが必要 Todo: 即値やめろ
-        if len(self.port_info) == 0:
-            return 2  # エッジSW、収容SW両方へのFlowMod、およびエッジルータへのReport Todo:即値やめろ
 
     """
     ソート済み配列からキー値を探索
