@@ -136,7 +136,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         send_message = message(type_=2, datapath=msg.datapath.id,
                                in_port=msg.match['in_port'], data=pkt_icmpv6)
 
-        self.logger.debug("### send message= %s \n", str(send_message))
+        self.logger.debug("send message= %s \n", str(send_message))
 
         self.send_to_mld(send_message)
 
@@ -183,9 +183,34 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                 # receive of zeromq
                 recvpkt = self.recv_sock.recv()
                 packet = cPickle.loads(recvpkt)
-                self.logger.debug("### recv packet= %s \n", str(packet))
-                self.send_packet_out(packet)
+                self.analyse_receive_packet(packet)
                 self.org_thread_time.sleep(self.WAIT_TIME)
+
+    # ==================================================================
+    # analyse_receive_packet
+    # ==================================================================
+    def analyse_receive_packet(self, recvpkt):
+        self.logger.debug("")
+        message = recvpkt.message
+        self.logger.debug("ryu received message : " + str(message))
+
+        if message["type_"] == 21:
+            #TODO 定数化[FLOW_MOD]
+            flowmod = message["data"]
+            self.logger.debug("【TODO】 FLOW_MOD [data]: " + str(flowmod))
+            self.send_msg_to_flowmod(self.datapath, flowmod)
+
+        elif message["type_"] == 22:
+            #TODO 定数化[PACKET_OUT]
+            pktout = message["data"]
+            self.logger.debug("【TODO】 PACKET_OUT [data]: " + str(pktout))
+            self.send_msg_to_packetout(self.datapath, pktout)
+
+        else:
+            #TODO 定数化[DEBUG] typeが一致しない場合、packet_outを独自生成し、送信
+            debug = message["data"]
+            self.logger.debug("【TODO】 DEBUG [data]: " + str(debug))
+            self.send_packet_out(debug)
 
     # =========================================================================
     # sendPacketOut
@@ -213,12 +238,22 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                                   actions=actions,
                                   data=packet.data)
 
-        self.send_msg(datapath, out)
+        self.send_msg_to_packetout(datapath, out)
 
     # =========================================================================
-    # send_msg
+    # send_msg_to_flowmod
     # =========================================================================
-    def send_msg(self, datapath, packetout):
+    def send_msg_to_flowmod(self, datapath, flowmod):
+        self.logger.debug("")
+
+        datapath.send_msg(flowmod)
+
+        self.logger.info("sent 1 packet to FlowMod. ")
+
+    # =========================================================================
+    # send_msg_to_packetout
+    # =========================================================================
+    def send_msg_to_packetout(self, datapath, packetout):
         self.logger.debug("")
 
         datapath.send_msg(packetout)
