@@ -1,0 +1,30 @@
+{
+    "switches": [
+        {
+            "_comment": "エッジスイッチ",
+            "sw_name": "esw",
+            "datapath": 1,
+            "ports": {
+                "port": [1, 2, 3, 4]
+            }
+        },
+        {
+            "_comment": "収容スイッチ1",
+            "sw_name": "sw1",
+            "datapath": 2,
+            "ports": {
+                "_comment": "エッジスイッチとの接続ポート",
+                "port": [1]
+            }
+        },
+        {
+            "_comment": "収容スイッチ2",
+            "sw_name": "sw2",
+            "datapath": 3,
+            "ports": {
+                "_comment": "エッジスイッチとの接続ポート",
+                "port": [1]
+            }
+        }
+    ]
+}
