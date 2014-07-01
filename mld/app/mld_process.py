@@ -4,7 +4,7 @@
 #  >sudo apt-get install python-zmq
 
 from ryu.ofproto import ether, inet
-from ryu.ofproto import ofproto_v1_3_parser as ofproto_parser
+from ryu.ofproto import ofproto_v1_3_parser as parser
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan, packet
 from ryu.lib import hub
 from scapy import sendrecv
@@ -20,7 +20,7 @@ import zmq
 import json
 import sys
 sys.path.append('../../common')
-from message import message
+from message import message 
 hub.patch()
 
 
@@ -66,9 +66,9 @@ class mld_process():
         self.logger.info("addressinfo : %s", str(self.addressinfo))
 
         jsonfile = open("switch_info.json")
-        self.switch_data = json.load(jsonfile)
-        self.logger.info("switch_info : %s", str(self.switch_data))
-        self.switches = self.switch_data["switches"]
+        switch_data = json.load(jsonfile)
+        self.logger.info("switch_info : %s", str(switch_data))
+        self.switches = switch_data["switches"]
         self.edge_switch = self.switches [0]
         self.switch1 = self.switches[1]
         self.switch2 = self.switches[2]
@@ -241,19 +241,12 @@ class mld_process():
         self.logger.debug("")
         message = recvpkt.message
         self.logger.debug("received message : " + str(message))
+        receive_type = message["type_"]
 
-        if message["type_"] == 1: # TODO 定数化
-            flowmod = self.set_switch_config(message)
-            # self.send_packet_to_ryu(flowmod)
+        if receive_type == 11: # TODO 定数化
+            self.set_switch_config(message)
 
-        elif message["type_"] == 2: # TODO 定数化
-            #pkt = packet.Packet(recvpkt.data)
-
-            # pkt_eth = pkt.get_protocols(ethernet.ethernet)
-            # pkt_ipv6 = pkt.get_protocols(ipv6.ipv6)
-            # pkt_icmpv6_list = pkt.get_protocols(icmpv6.icmpv6)
-            # self.logger.debug("pkt_eth" + str(pkt_eth))
-            # self.logger.debug("pkt_ipv6" + str(pkt_ipv6))
+        elif receive_type == 12: # TODO 定数化
             pkt_icmpv6 = message["data"]
             self.logger.debug("pkt_icmpv6 : " + str(pkt_icmpv6))
 
@@ -270,36 +263,85 @@ class mld_process():
                 self.manage_user(message)
 
         else:
-            # TODO raise Exception? 分岐自体不要?
-            pass
+            self.logger.debug("received type : %s", message["type_"])
 
     # ==================================================================
     # set_switch_config
     # ==================================================================
-    def set_switch_config(self, message):
+    def set_switch_config(self, receive_message):
         self.logger.debug("")
-        
-        # TODO ファイルから読み込んだSWの情報から、
-        #      接続元SWがエッジか収容か判定し、初期設定をFlowModする
-        #   エッジSW：ルータからのQueryをp-in
-        #             MLDからのQueryを収容SWへ
-        #             p-out(Report)をルータへ ※BEサービスのみ
-        #             それ以外はブリッジとして動作
-        #   収容SW  ：ホストからReportがきたらp-in
-        #             それ以外はブリッジとして動作
 
-        datapath = message["datapath"]
+        # ファイルから読み込んだSWの情報から接続元SWがエッジか収容か判定し、
+        # 初期設定をFlowModする
+        target_switch = receive_message["datapath"]
         for switch in self.switches:
-            if datapath == switch["datapath"]:
-                if switch["sw_name"] == "esw":
-                    # TODO エッジSWのFlowMod
-                    self.logger.debug("sw_name : %s", switch["sw_name"])
-                else:
-                    # TODO 収容SWのFlowMod
-                    self.logger.debug("sw_name : %s", switch["sw_name"])
+            if target_switch == switch["datapath"]:
+                sw_name = switch["sw_name"]
+                ports = switch["ports"]
+                flowlist = []
+                if sw_name == "esw":
+                    # エッジSWのFlowMod
+                    self.logger.debug("sw_name : %s", sw_name)
+                    # TODO ルータからのQueryをp-inする
+                    flowlist.append(self.create_flowmod(
+                        datapath=target_switch,
+                        in_port=ports[0], out_port="p-in", type_=130))
+                    # MLDからのQueryを収容SWへ
+                    flowlist.append(self.create_flowmod(
+                        datapath=target_switch,
+                        in_port=ports[3], out_port=ports[1:3], type_=130))
+                    # TODO BEサービス
+                    # if self.conf.service_type == be:
+                    # TODO p-out(Report)をルータへ
+                    flowlist.append(self.create_flowmod(
+                        datapath=target_switch,
+                        in_port="p-out", out_port=ports[0], type_=143))
+                    # TODO それ以外のパケットはブリッジとして動作
+                    flowlist.append(self.create_flowmod(
+                        datapath=target_switch,
+                        in_port="", out_port="", type_=0))
+                    mod_message = message(
+                        type_=21, # TODO 定数化
+                        datapath=0, data=flowlist)
+                    self.logger.debug("mod_message : %s", str(mod_message))
 
-        # TODO FlowModの内容を返却
-        return ofproto_parser.OFPFlowMod(datapath=datapath)
+                    self.send_packet_to_ryu(mod_message)
+
+                if sw_name == "sw1" or sw_name == "sw2":
+                    # 収容SWのFlowMod
+                    self.logger.debug("sw_name : %s", sw_name)
+                    # TODO ホストからReportがきたらp-in
+                    flowlist.append(self.create_flowmod(
+                        datapath=target_switch,
+                        in_port=ports[0], out_port="p-in", type_=0))
+                    # TODO それ以外のパケットはブリッジとして動作
+                    flowlist.append(self.create_flowmod(
+                        datapath=target_switch,
+                        in_port="", out_port="", type_=0))
+                    mod_message = message(
+                        type_=21, # TODO 定数化
+                        datapath=0, data=flowlist)
+                    self.logger.debug("mod_message : %s", str(mod_message))
+
+                    self.send_packet_to_ryu(mod_message)
+
+    # ==================================================================
+    # create_flowmod
+    # ==================================================================
+    def create_flowmod(self, datapath, in_port, out_port, type_):
+        self.logger.debug("")
+        # TODO 引数を元にFlowmodを生成し、返却する
+        
+        return parser.OFPFlowMod(datapath=datapath)
+
+    # ==================================================================
+    # create_packetout
+    # ==================================================================
+    def create_packetout(self, datapath, in_port, out_port, type_):
+        self.logger.debug("")
+        # TODO 引数を元にPacketOutを生成し、返却する
+        
+        return parser.OFPPacketOut(datapath=datapath)
 
     # ==================================================================
     # send_reply
@@ -312,10 +354,12 @@ class mld_process():
             self.logger.info("No one shows any channels.")
 
         else:
+            # 視聴中のMCグループ毎にレポートを作成
             for mc_info in self.ch_info.channel_info.keys():
                 report_type = [icmpv6.MODE_IS_INCLUDE]
                 mld = self.create_mldreport(
                     mc_info[0], mc_info[1], report_type)
+                # packetのsrcはMLD処理部のものを使用する
                 sendpkt = self.create_packet(self.addressinfo, mld)
                 # TODO エッジスイッチにp-out
                 # self.send_packet_to_ryu(sendpkt)
@@ -323,17 +367,23 @@ class mld_process():
     # ==================================================================
     # manage_user
     # ==================================================================
-    def manage_user(self, message):
+    def manage_user(self, receive_message):
         self.logger.debug("")
 
-        for report in message["data"].data.records:
+        mldv2_report = receive_message["data"].data
+        target_switch = receive_message["datapath"]
+        in_port = receive_message["in_port"]
+        esw = self.switches[0]
+
+        for report in mldv2_report.records:
+            self.logger.debug("report : %s", str(report))
             # ALLOW_NEW_SOURCES：視聴情報に追加
             if report.type_ == icmpv6.ALLOW_NEW_SOURCES:
                 reply_type = self.ch_info.add_info(
                     mc_addr=report.address,
                     serv_ip=report.srcs[0],
-                    data_path=message["datapath"],
-                    port_no=message["in_port"],
+                    data_path=target_switch,
+                    port_no=in_port,
                     cid=100) # TODO cidをvlanから取得
 
             # BLOCK_OLD_SOURCES：視聴情報から削除
@@ -341,29 +391,51 @@ class mld_process():
                 reply_type = self.ch_info.remove_info(
                     mc_addr=report.address,
                     serv_ip=report.srcs[0],
-                    data_path=message["datapath"],
-                    port_no=message["in_port"],
+                    data_path=target_switch,
+                    port_no=in_port,
                     cid=100) # TODO cidをvlanから取得
 
             else:
+                self.logger.debug("report.type : %s", report.type_)
                 reply_type = 0 # TODO 定数化
 
-            self.logger.debug("ch_info : %s", self.ch_info.channel_info)
+            self.logger.debug("channel_info : %s", self.ch_info.channel_info)
 
-            if reply_type == 2:
+            flowlist = []
+            if reply_type == 11:
+                self.logger.debug("reply_type : %d", reply_type)
+                # packet-inしてきた収容スイッチへFlowMod
+                flowlist.append(self.create_flowmod(
+                    datapath=target_switch, in_port="esw",
+                    out_port=in_port, type_=0))
+                mod_message = message(
+                    type_=21, # TODO 定数化
+                    datapath=0, data=flowlist)
+                self.send_packet_to_ryu(mod_message)
+
+            elif reply_type == 12:
+                self.logger.debug("reply_type : %d", reply_type)
+                # エッジスイッチとpacket-inしてきた収容スイッチへFlowMod
+                flowlist.append(self.create_flowmod(
+                    datapath=esw["datapath"], in_port=esw["ports"][0],
+                    out_port="接続元sw", type_=0))
+                flowlist.append(self.create_flowmod(
+                    datapath=target_switch, in_port="esw",
+                    out_port=in_port, type_=0))
+                mod_message = message(
+                    type_=21, # TODO 定数化
+                    datapath=0, data=flowlist)
+                self.send_packet_to_ryu(mod_message)
+                
+                
                 # TODO エッジスイッチへ投げるReportを作成(ADD_NEW_RESOURCESおよびCHANGE_TO_INCLUDE)
-                # TODO エッジスイッチとp-inしてきた収容スイッチへFlowMod
-                # TODO ryuにsend
-                self.logger.debug("reply_type == 2")
-            elif reply_type == 1:
-                # TODO p-inしてきた収容スイッチへFlowMod
-                # TODO ryuにsend
-                self.logger.debug("reply_type == 1")
+                
+                
             else:
                 # 何もしない
-                pass
+                self.logger.debug("reply_type : %d", reply_type)
         
-        # TODO タイムアウト判定
+        # TODO タイムアウト処理
 
     # ==================================================================
     # receive_from_ryu
@@ -371,6 +443,7 @@ class mld_process():
     def receive_from_ryu(self):
         self.logger.debug("")
         while True:
+            self.logger.debug("waiting receive packet...")
             # receive of zeromq
             recvpkt = self.recv_sock.recv()
             packet = cPickle.loads(recvpkt)
@@ -380,7 +453,7 @@ class mld_process():
 
 if __name__ == "__main__":
     mld_proc = mld_process()
-    hub.spawn(mld_proc.send_mldquey_regularly)
+#    hub.spawn(mld_proc.send_mldquey_regularly)
     recv_thre = mld_proc.org_thread.Thread(
                                 target=mld_proc.receive_from_ryu,
                                 name="ReceiveThread")
