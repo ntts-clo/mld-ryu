@@ -12,10 +12,13 @@ from ryu.controller.handler import set_ev_cls
 from icmpv6_extend import icmpv6_extend
 import cPickle
 import zmq
+#TODO
 #from zmq.eventloop import ioloop, zmqstream
 from eventlet import patcher
 import logging
 import os
+os.sys.path.append('../../common')
+from message import message
 
 
 class mld_controller(simple_switch_13.SimpleSwitch13):
@@ -26,6 +29,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     WAIT_TIME = 1
     SOCKET_TIME_OUT = 1000
     SOCKET_FLG = 1
+    PACKET_CHECK_FLG = "OFF" #"ON"/"OFF"
 
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
@@ -96,23 +100,26 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
 
         msg = ev.msg
         pkt = packet.Packet(msg.data)
+
         # CHECK ETH
         pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
-        if not pkt_ethernet:
-            self.logger.debug("###check ethernet = %s", str(pkt))
+        if self.PACKET_CHECK_FLG == "ON" and not pkt_ethernet:
+            self.logger.debug("### check ethernet = %s", str(pkt))
             return
 
         # CHECK ICMPV6
         pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
-        if not pkt_icmpv6:
-            self.logger.debug("###check icmpv6 = %s", str(pkt))
+        if self.PACKET_CHECK_FLG == "ON" and not pkt_icmpv6:
+            self.logger.debug("### check icmpv6 = %s", str(pkt))
             return
 
         # CHECK MLD TYPE
-        if not pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT,
-                                    icmpv6.ICMPV6_MEMBERSHIP_QUERY]:
-            self.logger.debug("###check icmpv6.TYPE = %s", str(pkt))
+        if self.PACKET_CHECK_FLG == "ON" and not pkt_icmpv6.type_ in [
+                                             icmpv6.MLDV2_LISTENER_REPORT,
+                                             icmpv6.ICMPV6_MEMBERSHIP_QUERY]:
+            self.logger.debug("### check icmpv6.TYPE = %s", str(pkt))
             return
+
 # TODO
         """
         srcip = "fe80::200:ff:fe00:1"
@@ -122,10 +129,16 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         src = pkt_eth.src
         pkt = self.createPacket(src, dst, srcip, dstip)
         """
-        self.logger.debug("###send packet= %s \n", str(pkt))
 
-        self.send_to_mld(pkt)
-        #self.recv_to_mld(pkt)
+        self.logger.debug("msg.datapath.id:%s ", str(msg.datapath.id))
+        self.logger.debug("msg.match['in_port']:%s", str(msg.match['in_port']))
+
+        send_message = message(type_=2, datapath=msg.datapath.id,
+                               in_port=msg.match['in_port'], data=pkt_icmpv6)
+
+        self.logger.debug("send message= %s \n", str(send_message))
+
+        self.send_to_mld(send_message)
 
     # =========================================================================
     # _switch_features_handler
@@ -157,22 +170,47 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         for msg in msgs:
             packet = msg
             #packet = cPickle.loads(msg)
-            self.logger.debug("###recv packet= %s \n", str(packet))
+            self.logger.debug("### recv packet= %s \n", str(packet))
             self.send_packet_out(packet)
     """
     def receive_from_mld(self):
         self.logger.debug("")
         while True:
             if self.SOCKET_FLG == 0:
-                self.logger.debug("####EXIT LOOP")
+                self.logger.debug("### EXIT LOOP")
                 break
             else:
                 # receive of zeromq
                 recvpkt = self.recv_sock.recv()
                 packet = cPickle.loads(recvpkt)
-                self.logger.debug("###recv packet= %s \n", str(packet))
-                self.send_packet_out(packet)
+                self.analyse_receive_packet(packet)
                 self.org_thread_time.sleep(self.WAIT_TIME)
+
+    # ==================================================================
+    # analyse_receive_packet
+    # ==================================================================
+    def analyse_receive_packet(self, recvpkt):
+        self.logger.debug("")
+        message = recvpkt.message
+        self.logger.debug("ryu received message : " + str(message))
+
+        if message["type_"] == 21:
+            #TODO 定数化[FLOW_MOD]
+            flowmod = message["data"]
+            self.logger.debug("【TODO】 FLOW_MOD [data]: " + str(flowmod))
+            self.send_msg_to_flowmod(self.datapath, flowmod)
+
+        elif message["type_"] == 22:
+            #TODO 定数化[PACKET_OUT]
+            pktout = message["data"]
+            self.logger.debug("【TODO】 PACKET_OUT [data]: " + str(pktout))
+            self.send_msg_to_packetout(self.datapath, pktout)
+
+        else:
+            #TODO 定数化[DEBUG] typeが一致しない場合、packet_outを独自生成し、送信
+            debug = message["data"]
+            self.logger.debug("【TODO】 DEBUG [data]: " + str(debug))
+            self.send_packet_out(debug)
 
     # =========================================================================
     # sendPacketOut
@@ -200,12 +238,22 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                                   actions=actions,
                                   data=packet.data)
 
-        self.send_msg(datapath, out)
+        self.send_msg_to_packetout(datapath, out)
 
     # =========================================================================
-    # send_msg
+    # send_msg_to_flowmod
     # =========================================================================
-    def send_msg(self, datapath, packetout):
+    def send_msg_to_flowmod(self, datapath, flowmod):
+        self.logger.debug("")
+
+        datapath.send_msg(flowmod)
+
+        self.logger.info("sent 1 packet to FlowMod. ")
+
+    # =========================================================================
+    # send_msg_to_packetout
+    # =========================================================================
+    def send_msg_to_packetout(self, datapath, packetout):
         self.logger.debug("")
 
         datapath.send_msg(packetout)
@@ -242,7 +290,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         # ether  vlan  ipv6  icmpv6(mldv2)
 #        sendpkt = eth / vln / ip6 / icmp6
         sendpkt = eth / ip6 / icmp6
-        self.logger.debug("####created packet= %s \n", str(sendpkt))
+        self.logger.debug("### created packet= %s \n", str(sendpkt))
 
         sendpkt.serialize()
 
