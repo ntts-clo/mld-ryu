@@ -1,0 +1,10 @@
+{
+    "settings" : {
+        "_comment"    : "ベストエフォートサービスか品質保証サービスか。BE or QA(QualityAssurance)",
+        "service_type": "BE",
+        "_comment"           : "定期送信クエリのタイプ。GQ(GeneralQuery) or SQ(SpecificQuery)",
+        "reguraly_query_type": "SQ",
+        "_comment"               : "定期送信クエリのの送信間隔",
+        "reguraly_query_interval": 125
+    }
+}
