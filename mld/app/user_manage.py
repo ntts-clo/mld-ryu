@@ -3,7 +3,10 @@
 
 import cPickle
 import bisect
-from pymongo import MongoClient
+import sys
+sys.path.append('../../common')
+import mld_const
+#from pymongo import MongoClient
 
 
 class BaseInfo():
@@ -39,7 +42,8 @@ class ChannelInfo(BaseInfo):
             sw_info = ChannelSwitchInfo(data_path, port_no, cid)
             self.channel_info[(mc_addr, serv_ip)] = {data_path: sw_info}
             print("added self.channel_info : %s" % self.channel_info) 
-            return 12  # エッジSW、収容SW両方へのFlowMod、およびエッジルータへのReport Todo:即値やめろ
+            # エッジSW、収容SW両方へのFlowMod、およびエッジルータへのReport
+            return mld_const.CON_REPLY_ADD_FLOW_MOD_AND_PACKET_OUT
 
         # 当該チャンネルが既に存在する場合
         # DataPath存在チェック
@@ -48,7 +52,8 @@ class ChannelInfo(BaseInfo):
             new_sw_info = ChannelSwitchInfo(data_path, port_no, cid)
             sw_info[data_path] = new_sw_info
             print("added self.channel_info : %s" % self.channel_info) 
-            return 11  # 収容SWへのFlowModが必要 Todo:即値やめろ
+            # 収容SWへのFlowMod
+            return mld_const.CON_REPLY_ADD_FLOW_MOD
 
         # 当該チャンネルにこの収容SWの情報がある場合
         ch_sw_info = sw_info[data_path]  # ChannelSwitchInfoクラスのインスタンス
@@ -75,12 +80,15 @@ class ChannelInfo(BaseInfo):
         if (mc_addr, serv_ip) not in self.channel_info \
             or data_path not in self.channel_info[(mc_addr, serv_ip)]:
                 print "remove target is nothing."
-                return 0  # FlowModの必要なし Todo: 即値やめろ
+                # FlowModの必要なし
+                return mld_const.CON_REPLY_NOTHING
 
         # 存在する場合
         ch_sw_info = self.channel_info[(mc_addr, serv_ip)][data_path]
         ret = ch_sw_info.remove_info(port_no, cid)
-        if ret == 21 and len(ch_sw_info.port_info.keys()) == 0:
+        if ret == mld_const.CON_REPLY_DEL_FLOW_MOD \
+            and len(ch_sw_info.port_info.keys()) == 0:
+
             # 当該SWの視聴ユーザが0の場合、DataPathに対応する情報を削除する
             self.channel_info[(mc_addr, serv_ip)].pop(data_path)
             print("removed datapath : %s" % data_path) 
@@ -90,7 +98,7 @@ class ChannelInfo(BaseInfo):
             if len(self.channel_info[(mc_addr, serv_ip)]) == 0:
                 # 当該mcグループの視聴ユーザが0の場合、mcグループに対応する情報を削除する
                 self.channel_info.pop((mc_addr, serv_ip))
-                ret = 22
+                ret = mld_const.CON_REPLY_DEL_FLOW_MOD_AND_PACKET_OUT
 
         print("removed self.channel_info : %s" % self.channel_info) 
         return ret
@@ -117,12 +125,14 @@ class ChannelSwitchInfo(BaseInfo):
                 pos = bisect.bisect(cid_list, cid)
                 bisect.insort(cid_list, cid)
             # Todo: 既にCIDが存在する場合に無視する処理でよいか精査
-            return 0  # FlowMod必要なし Todo: 即値やめろ
+            # FlowMod必要なし
+            return mld_const.CON_REPLY_NOTHING
         else:
             # 当該ポートに視聴ユーザが存在しない場合
             self.port_info[port_no] = [cid]
             print("added self.port_info : %s" % self.port_info)
-            return 11  # 収容SWへのFlowModが必要 Todo: 即値やめろ
+            # 収容SWへのFlowMod
+            return mld_const.CON_REPLY_ADD_FLOW_MOD
 
     def remove_info(self, port_no, cid):
         print("ChannelSwitchInfo : remove_info(%s, %s)" % (str(port_no), str(cid)))
@@ -133,7 +143,8 @@ class ChannelSwitchInfo(BaseInfo):
         if port_no not in self.port_info:
             # 当該ポートにユーザがそもそも存在しない場合
             # 何もせず抜ける Todo: 本当にそれでよいか精査
-            return 0  # FlowMod必要なし Todo: 即値やめろ
+            # FlowMod必要なし
+            return mld_const.CON_REPLY_NOTHING
 
         # 当該ポートにユーザが存在する場合
         # cidを探索し、存在すれば削除
@@ -143,19 +154,16 @@ class ChannelSwitchInfo(BaseInfo):
         if idx == -1:
             # 指定されたCIDが存在しなければ何もせず抜ける Todo: 本当にそれでよいか精査
             print "remove target is nothing."
-            return 0  # FlowMod必要なし Todo: 即値やめろ
+            # FlowMod必要なし
+            return mld_const.CON_REPLY_NOTHING
+
         cid_list.pop(idx)
-        """
-        if len(self.port_info) == 0:
-            print("removed self.port_info : %s" % self.port_info)
-            print("removed cid_list : %s, return 2" % cid_list)
-            return 2  # エッジSW、収容SW両方へのFlowMod、およびエッジルータへのReport Todo:即値やめろ
-        """
         if len(cid_list) == 0:
             self.port_info.pop(port_no)
             print("removed self.port_info : %s" % self.port_info)
             print("removed cid_list : %s, return 1" % cid_list)
-            return 21  # 収容SWへのFlowModが必要 Todo: 即値やめろ
+            # 収容SWへのFlowModが必要
+            return mld_const.CON_REPLY_DEL_FLOW_MOD
 
     """
     ソート済み配列からキー値を探索
@@ -168,7 +176,7 @@ class ChannelSwitchInfo(BaseInfo):
             return idx
         return -1
 
-
+"""
 class DatabaseAccessor:
     def __init__(self, connect_str):
         self.client = MongoClient(connect_str)
@@ -185,7 +193,7 @@ class DatabaseAccessor:
         result = self.col.find_one()
         dump = result[key]
         return cPickle.loads(dump)
-
+"""
 """
 class UserInfo:
     def __init__(self, port_no=-1):
