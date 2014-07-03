@@ -18,10 +18,10 @@ import logging
 import logging.config
 import cPickle
 import zmq
-import json
 import sys
 sys.path.append('../../common')
 from message import message
+from read_json import read_json
 import mld_const
 hub.patch()
 
@@ -57,6 +57,11 @@ class mld_process():
 
         self.ch_info = ChannelInfo()
 
+        # 設定情報読み込み
+        config = read_json("../../common/config.json")
+        self.logger.info("config_info : %s", str(config.data))
+        self.config = config.data["settings"]
+
         for line in open(self.ADDRESS_INFO, "r"):
             if line[0] == "#":
                 continue
@@ -67,10 +72,10 @@ class mld_process():
 
         self.logger.info("addressinfo : %s", str(self.addressinfo))
 
-        jsonfile = open("switch_info.json")
-        switch_data = json.load(jsonfile)
-        self.logger.info("switch_info : %s", str(switch_data))
-        self.switches = switch_data["switches"]
+        # スイッチ情報読み込み
+        switches = read_json("../../common/switch_info.json")
+        self.logger.info("switch_info : %s", str(switches.data))
+        self.switches = switches.data["switches"]
         self.edge_switch = self.switches[0]
         self.switch1 = self.switches[1]
         self.switch2 = self.switches[2]
@@ -88,8 +93,6 @@ class mld_process():
         self.recv_sock = ctx.socket(zmq.SUB)
         self.recv_sock.connect(self.IPC_PATH_RECV)
         self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
-
-        # TODO 設定ファイル読み込み
 
     # ==================================================================
     # check_exists_tmp
@@ -120,34 +123,32 @@ class mld_process():
     # ==================================================================
     def send_mldquey_regularly(self):
         self.logger.debug("")
-        # TODO 設定ファイルでGeneralQueryを投げられるようにする
-        """
-        if self.conf.generalquery:
+
+        if self.config["reguraly_query_type"] == "GQ":
             while True:
                 mld = self.create_mldquery(("::", None))
                 sendpkt = self.create_packet(self.addressinfo, mld)
                 self.send_packet_to_sw(sendpkt)
                 hub.sleep(self.WAIT_TIME)
-        else:
-        """
-        mc_service_info_list = []
-        for line in open(self.MULTICAST_SERVICE_INFO, "r"):
-            if line[0] == "#":
-                continue
-            else:
-                # multicast_addr, srcip_addr
-                column = list(line[:-1].split(","))
-                mc_service_info_list.append(column)
-        self.logger.debug(
-            "send address(multicast_addr, srcip_addr) : %s",
-            str(mc_service_info_list))
+        elif self.config["reguraly_query_type"] == "SQ":
+            mc_service_info_list = []
+            for line in open(self.MULTICAST_SERVICE_INFO, "r"):
+                if line[0] == "#":
+                    continue
+                else:
+                    # multicast_addr, srcip_addr
+                    column = list(line[:-1].split(","))
+                    mc_service_info_list.append(column)
+            self.logger.debug(
+                "send address(multicast_addr, srcip_addr) : %s",
+                str(mc_service_info_list))
 
-        while True:
-            for mc_info in mc_service_info_list:
-                mld = self.create_mldquery(mc_info[0], mc_info[1])
-                sendpkt = self.create_packet(self.addressinfo, mld)
-                self.send_packet_to_sw(sendpkt)
-                hub.sleep(self.WAIT_TIME)
+            while True:
+                for mc_info in mc_service_info_list:
+                    mld = self.create_mldquery(mc_info[0], mc_info[1])
+                    sendpkt = self.create_packet(self.addressinfo, mld)
+                    self.send_packet_to_sw(sendpkt)
+                    hub.sleep(self.WAIT_TIME)
 
     # ==================================================================
     # create_mldquery
@@ -297,23 +298,23 @@ class mld_process():
                     flowlist.append(self.create_flowmod(
                         datapath=target_switch,
                         in_port=ports[3], out_port=ports[1:3], type_=130))
-                    # TODO BEサービス
-                    # if self.conf.service_type == "be":
-                    # TODO p-out(Report)をルータへ
-                    flowlist.append(self.create_flowmod(
-                        datapath=target_switch,
-                        in_port="p-out", out_port=ports[0], type_=143))
-                    # TODO それ以外のパケットはブリッジとして動作
-                    flowlist.append(self.create_flowmod(
-                        datapath=target_switch,
-                        in_port="", out_port="", type_=0))
-                    flow_message = message(
-                        type_=mld_const.CON_FLOW_MOD,
-                        datapath=0, data=flowlist)
-                    self.logger.debug("flow_message[data] : %s",
-                                      str(flow_message["data"]))
+                    # ベストエフォートの場合のみ
+                    if self.config["service_type"] == "BE":
+                        # TODO p-out(Report)をルータへ
+                        flowlist.append(self.create_flowmod(
+                            datapath=target_switch,
+                            in_port="p-out", out_port=ports[0], type_=143))
+                        # TODO それ以外のパケットはブリッジとして動作
+                        flowlist.append(self.create_flowmod(
+                            datapath=target_switch,
+                            in_port="", out_port="", type_=0))
+                        flow_message = message(
+                            type_=mld_const.CON_FLOW_MOD,
+                            datapath=0, data=flowlist)
+                        self.logger.debug("flow_message[data] : %s",
+                                          str(flow_message["data"]))
 
-                    self.send_packet_to_ryu(flow_message)
+                        self.send_packet_to_ryu(flow_message)
 
                 if sw_name == "sw1" or sw_name == "sw2":
                     # 収容SWのFlowMod
@@ -447,26 +448,26 @@ class mld_process():
                                   str(flow_message["data"]))
                 self.send_packet_to_ryu(flow_message)
 
-                # TODO BEの時のみp-out
-                # if self.conf.service_type == "be":
-                # エッジスイッチへ投げるReportを作成
-                # (ALLOW_NEW_SOURCESおよびCHANGE_TO_INCLUDE_MODE)
-                report_types = [icmpv6.ALLOW_NEW_SOURCES,
-                                icmpv6.CHANGE_TO_INCLUDE_MODE]
-                mld_report = self.create_mldreport(
-                    mc_address=report.address,
-                    mc_serv_ip=report.srcs[0], 
-                    report_types=report_types)
-                packet = self.create_packet(self.addressinfo, mld_report)
-                pout = self.create_packetout(
-                    datapath=self.edge_switch["datapath"],
-                    packet=packet)
-                pout_message = message(
-                    type_=mld_const.CON_PACKET_OUT,
-                    datapath=0, data=pout)
-#                self.logger.debug("pout_message[data] : %s",
-#                                  pout_message["data"])
-                self.send_packet_to_ryu(pout_message)
+                # ベストエフォートの場合のみ
+                if self.config["service_type"] == "BE":
+                    # エッジスイッチへ投げるReportを作成
+                    report_types = [icmpv6.ALLOW_NEW_SOURCES,
+                                    icmpv6.CHANGE_TO_INCLUDE_MODE]
+                    mld_report = self.create_mldreport(
+                        mc_address=report.address,
+                        mc_serv_ip=report.srcs[0], 
+                        report_types=report_types)
+                    packet = self.create_packet(
+                        self.addressinfo, mld_report)
+                    pout = self.create_packetout(
+                        datapath=self.edge_switch["datapath"],
+                        packet=packet)
+                    pout_message = message(
+                        type_=mld_const.CON_PACKET_OUT,
+                        datapath=0, data=pout)
+#                    self.logger.debug("pout_message[data] : %s",
+#                                      pout_message["data"])
+                    self.send_packet_to_ryu(pout_message)
 
             elif reply_type == mld_const.CON_REPLY_DEL_FLOW_MOD:
                 self.logger.debug("reply_type : %d", reply_type)
@@ -499,24 +500,24 @@ class mld_process():
                                   str(flow_message["data"]))
                 self.send_packet_to_ryu(flow_message)
 
-                # TODO BEの時のみp-out
-                # if self.conf.service_type == "be":
-                # エッジスイッチへ投げるReportを作成(BLOCK_OLD_SOURCES)
-                report_types = [icmpv6.BLOCK_OLD_SOURCES]
-                mld_report = self.create_mldreport(
-                    mc_address=report.address,
-                    mc_serv_ip=report.srcs[0], 
-                    report_types=report_types)
-                packet = self.create_packet(self.addressinfo, mld_report)
-                pout = self.create_packetout(
-                    datapath=self.edge_switch["datapath"],
-                    packet=packet)
-                pout_message = message(
-                    type_=mld_const.CON_PACKET_OUT,
-                    datapath=0, data=pout)
-#                self.logger.debug("pout_message[data] : %s",
-#                                  str(pout_message["data"]))
-                self.send_packet_to_ryu(pout_message)
+                # ベストエフォートの場合のみ
+                if self.config["service_type"] == "BE":
+                    # エッジスイッチへ投げるReportを作成
+                    report_types = [icmpv6.BLOCK_OLD_SOURCES]
+                    mld_report = self.create_mldreport(
+                        mc_address=report.address,
+                        mc_serv_ip=report.srcs[0], 
+                        report_types=report_types)
+                    packet = self.create_packet(self.addressinfo, mld_report)
+                    pout = self.create_packetout(
+                        datapath=self.edge_switch["datapath"],
+                        packet=packet)
+                    pout_message = message(
+                        type_=mld_const.CON_PACKET_OUT,
+                        datapath=0, data=pout)
+#                    self.logger.debug("pout_message[data] : %s",
+#                                      str(pout_message["data"]))
+                    self.send_packet_to_ryu(pout_message)
             else:
                 # 何もしない
                 self.logger.debug("reply_type : %d", reply_type)
