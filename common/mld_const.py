@@ -1,0 +1,7 @@
+#ryu-mld
+CON_SWITCH_FEATURE = 11
+CON_PACKET_IN = 12
+
+#mld-ryu
+CON_FLOW_MOD = 21
+CON_PACKET_OUT = 22
