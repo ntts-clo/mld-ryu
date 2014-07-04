@@ -122,10 +122,12 @@ class mld_process():
     def send_mldquey_regularly(self):
         self.logger.debug("")
 
+        # TODO 定期送信QueryのVIDの値
+        vid = 100
         if self.config["reguraly_query_type"] == "GQ":
             while True:
                 mld = self.create_mldquery(("::", None))
-                sendpkt = self.create_packet(self.addressinfo, mld)
+                sendpkt = self.create_packet(self.addressinfo, vid, mld)
                 self.send_packet_to_sw(sendpkt)
                 hub.sleep(self.WAIT_TIME)
         elif self.config["reguraly_query_type"] == "SQ":
@@ -144,9 +146,14 @@ class mld_process():
             while True:
                 for mc_info in mc_service_info_list:
                     mld = self.create_mldquery(mc_info[0], mc_info[1])
-                    sendpkt = self.create_packet(self.addressinfo, mld)
+                    sendpkt = self.create_packet(
+                        self.addressinfo, vid, mld)
                     self.send_packet_to_sw(sendpkt)
+                    # TODO mcグループ毎の送信待ち時間を設定ファイルより取得
                     hub.sleep(self.WAIT_TIME)
+
+                # TODO 全体の待ち時間を設定ファイルより定義
+                # hub.sleep(self.WAIT_TIME)
 
     # ==================================================================
     # create_mldquery
@@ -177,20 +184,19 @@ class mld_process():
     # ==================================================================
     # create_packet
     # ==================================================================
-    def create_packet(self, addressinfo, mld):
+    def create_packet(self, addressinfo, vid, mld):
         self.logger.debug("")
 
         # ETHER
         eth = ethernet.ethernet(
-#            ethertype=ether.ETH_TYPE_8021Q,
-            ethertype=ether.ETH_TYPE_IPV6, 
+            ethertype=ether.ETH_TYPE_8021Q,
+#            ethertype=ether.ETH_TYPE_IPV6, 
             src=addressinfo[0], dst=addressinfo[1])
 
-# TODO
-        """
         # VLAN
-        vln = vlan.vlan(vid=100, ethertype=ether.ETH_TYPE_IPV6)
-        """
+        # TODO 2重タギングをどうするか？
+        vln = vlan.vlan(vid=vid, ethertype=ether.ETH_TYPE_IPV6)
+
         # IPV6 with Hop-By-Hop
         ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6,
             data=[ipv6.option(type_=5, len_=2, data="\x00\x00"),
@@ -255,6 +261,9 @@ class mld_process():
         elif receive_type == mld_const.CON_PACKET_IN:
             pkt_icmpv6 = dispatch["data"]
             self.logger.debug("pkt_icmpv6 : " + str(pkt_icmpv6))
+
+            # TODO 視聴情報のタイマ更新※ここでやるべきかどうかも検討
+            # TODO 視聴情報のタイムアウト判定→オーバーしているものは削除
 
             # MLDv2 Query
             if pkt_icmpv6.type_ == icmpv6.MLD_LISTENER_QUERY:
@@ -366,13 +375,15 @@ class mld_process():
             self.logger.info("No one shows any channels.")
 
         else:
+            # TODO 代理応答ReportのVIDの値
+            vid = 200
             # 視聴中のMCグループ毎にレポートを作成
             for mc_info in self.ch_info.channel_info.keys():
                 report_type = [icmpv6.MODE_IS_INCLUDE]
                 mld = self.create_mldreport(
                     mc_info[0], mc_info[1], report_type)
                 # packetのsrcはMLD処理部のものを使用する
-                sendpkt = self.create_packet(self.addressinfo, mld)
+                sendpkt = self.create_packet(self.addressinfo, vid, mld)
                 # エッジスイッチにp-out
                 pout = self.create_packetout(
                     datapathid=self.edge_switch["datapathid"],
@@ -407,6 +418,10 @@ class mld_process():
                 reply_type = self.ch_info.remove_info(
                     mc_addr=report.address, serv_ip=report.srcs[0],
                     data_path=target_switch, port_no=in_port, cid=cid)
+                # TODO SpecificQueryを生成し、ESWに投げる
+
+            # TODO MODE_IS_INCLUDE：視聴情報に存在するか確認
+            # TODO  存在しなければ追加
 
             else:
                 self.logger.debug("report.type : %s", report.type_)
@@ -457,7 +472,7 @@ class mld_process():
                         mc_serv_ip=report.srcs[0], 
                         report_types=report_types)
                     packet = self.create_packet(
-                        self.addressinfo, mld_report)
+                        self.addressinfo, cid, mld_report)
                     pout = self.create_packetout(
                         datapathid=self.edge_switch["datapathid"],
                         packet=packet)
@@ -508,7 +523,7 @@ class mld_process():
                         mc_serv_ip=report.srcs[0], 
                         report_types=report_types)
                     packet = self.create_packet(
-                        self.addressinfo, mld_report)
+                        self.addressinfo, cid, mld_report)
                     pout = self.create_packetout(
                         datapathid=self.edge_switch["datapathid"],
                         packet=packet)
@@ -521,8 +536,6 @@ class mld_process():
             else:
                 # 何もしない
                 self.logger.debug("reply_type : %d", reply_type)
-
-        # TODO タイムアウト処理
 
     # ==================================================================
     # receive_from_ryu
