@@ -13,8 +13,6 @@ from ryu.controller.handler import set_ev_cls
 from icmpv6_extend import icmpv6_extend
 import cPickle
 import zmq
-#TODO
-from zmq.eventloop import ioloop, zmqstream
 from eventlet import patcher
 import logging
 import os
@@ -83,13 +81,6 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         self.recv_sock.connect(self.IPC_PATH_RECV)
         self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
         self.logger.debug("[RecvSocket]IPC %s", self.IPC_PATH_RECV)
-        """
-        # ZMQStream
-        self.recv_stream = zmqstream.ZMQStream(self.recv_sock)
-        self.recv_stream.on_recv(callback=self.receive_from_mld)
-        ioloop.IOLoop.instance().start()
-        self.loop.add_handler(self.recv_sock, self.backend_handler, zmq.POLLIN)
-        """
 
         # ReceiveThread
         recv_thread = self.org_thread.Thread(
@@ -125,16 +116,6 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         msg = ev.msg
         pkt = packet.Packet(msg.data)
 
-        """
-        ### DEBUG
-        srcip = "fe80::200:ff:fe00:1"
-        dstip = "fe80::200:ff:fe00:2"
-        pkt_eth = pkt.get_protocols(ethernet.ethernet)[0]
-        dst = pkt_eth.dst
-        src = pkt_eth.src
-        pkt = self.createPacket(src, dst, srcip, dstip)
-        ### DEBUG
-        """
         # CHECK ETH
         pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
         if not pkt_ethernet:
@@ -192,16 +173,6 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     # =========================================================================
     # receive_from_mld
     # =========================================================================
-#TODO
-    """
-    def receive_from_mld(self, msgs):
-        self.logger.debug("")
-        for msg in msgs:
-            packet = msg
-            #packet = cPickle.loads(msg)
-            self.logger.debug("### recv packet: %s \n", str(packet))
-            self.analyse_receive_packet(packet)
-    """
     def receive_from_mld(self):
         self.logger.debug("")
         while True:
@@ -335,10 +306,3 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                 f.close()
                 self.logger.info("create dir[%s], file[%s]",
                                  dirpath, filename)
-
-    """
-    def backend_handler(self, sock, events):
-        self.logger.debug("#####")
-        message = sock.recv()
-        self.logger.debug("#### backend_handler : " + str(message))
-    """
