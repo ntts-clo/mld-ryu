@@ -4,7 +4,7 @@
 #  /tmp/feeds/1
 
 from ryu.ofproto import ofproto_v1_3
-from ryu.lib.packet import packet, ethernet, ipv6, icmpv6, vlan
+from ryu.lib.packet import packet, ethernet, icmpv6, vlan
 from ryu.app import simple_switch_13
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
@@ -85,7 +85,6 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
         self.logger.debug("[RecvSocket]IPC %s", self.IPC_PATH_RECV)
 
-
     # =========================================================================
     # _switch_features_handler
     # =========================================================================
@@ -122,6 +121,12 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
             self.logger.debug("# check ethernet : None \n")
             return
 
+        # CHECK VLAN
+        pkt_vlan = pkt.get_protocol(vlan.vlan)
+        if not pkt_vlan:
+            self.logger.debug("# check vlan : None \n")
+            return
+
         # CHECK ICMPV6
         pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
         if not pkt_icmpv6:
@@ -156,6 +161,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
 
         dispatch_ = dispatch(type_=mld_const.CON_PACKET_IN,
                                datapathid=msg.datapath.id,
+                               cid=pkt_vlan.vid,
                                in_port=msg.match["in_port"],
                                data=pkt_icmpv6)
 
