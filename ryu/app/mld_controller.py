@@ -125,7 +125,6 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         pkt_vlan = pkt.get_protocol(vlan.vlan)
         if not pkt_vlan:
             self.logger.debug("# check vlan : None \n")
-            return
 
         # CHECK ICMPV6
         pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
@@ -204,7 +203,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         self.logger.debug("###ryu received dispatch : %s \n", str(dispatch))
 
         msgbase = None
-        datapathid = None
+        datapathid = dispatch["datapathid"]
 
         items = self.dic_msg.items()
         self.logger.debug("【dic_msg】 %s", items)
