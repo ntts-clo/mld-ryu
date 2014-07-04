@@ -31,7 +31,6 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     WAIT_TIME = 1
     SOCKET_TIME_OUT = 1000
     SOCKET_FLG = 1
-    PACKET_CHECK_FLG = "OFF" #"ON"/"OFF"
 
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
@@ -116,7 +115,6 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         self.logger.debug("dispatch_[SWITCH_FEATURE] : %s \n", dispatch_)
         self.send_to_mld(dispatch_)
 
-
     # =========================================================================
     # packet_in_handler
     # =========================================================================
@@ -127,40 +125,45 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         msg = ev.msg
         pkt = packet.Packet(msg.data)
 
+        """
         ### DEBUG
         srcip = "fe80::200:ff:fe00:1"
         dstip = "fe80::200:ff:fe00:2"
-        ### DEBUG
         pkt_eth = pkt.get_protocols(ethernet.ethernet)[0]
         dst = pkt_eth.dst
         src = pkt_eth.src
         pkt = self.createPacket(src, dst, srcip, dstip)
-
+        ### DEBUG
+        """
         # CHECK ETH
         pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
-        if self.PACKET_CHECK_FLG == "ON" and not pkt_ethernet:
-            self.logger.debug("### check ethernet : %s \n", str(pkt))
+        if not pkt_ethernet:
+            self.logger.debug("# check ethernet : %s \n", str(pkt))
             return
 
         # CHECK ICMPV6
         pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
-        if self.PACKET_CHECK_FLG == "ON" and not pkt_icmpv6:
-            self.logger.debug("### check icmpv6 : %s \n", str(pkt))
+        if not pkt_icmpv6:
+            self.logger.debug("# check icmpv6 : %s \n", str(pkt))
             return
 
         # CHECK MLD TYPE
-        if self.PACKET_CHECK_FLG == "ON" and not pkt_icmpv6.type_ in [
-                                             icmpv6.MLDV2_LISTENER_REPORT,
-                                             icmpv6.ICMPV6_MEMBERSHIP_QUERY]:
-            self.logger.debug("### check icmpv6.TYPE : %s \n", str(pkt))
+        if not pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT,
+                                    icmpv6.ICMPV6_MEMBERSHIP_QUERY]:
+            self.logger.debug("# check icmpv6.TYPE : %s \n", str(pkt))
             return
 
-        # CHECK MLD TYPE
-        if self.PACKET_CHECK_FLG == "ON" and not pkt_icmpv6.type_ in [
-                                             icmpv6.MLDV2_LISTENER_REPORT,
-                                             icmpv6.ICMPV6_MEMBERSHIP_QUERY]:
-            self.logger.debug("### check icmpv6.TYPE : %s \n", str(pkt))
-            return
+        # CHECK FILTER_MODE
+        if pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT]:
+            for mldv2_report_group in pkt_icmpv6.data.records:
+                if not mldv2_report_group.type_ \
+                                        in [icmpv6.MODE_IS_INCLUDE,
+                                            icmpv6.CHANGE_TO_INCLUDE_MODE,
+                                            icmpv6.ALLOW_NEW_SOURCES,
+                                            icmpv6.BLOCK_OLD_SOURCES]:
+                    self.logger.debug("# check report_group.[type_] : %s \n",
+                                      str(mldv2_report_group.type_))
+                    return
 
         self.logger.debug("msg.datapath.id : %s \n",
                           str(msg.datapath.id))
