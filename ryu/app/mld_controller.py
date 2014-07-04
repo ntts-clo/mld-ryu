@@ -111,7 +111,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         self.dic_msg[datapath.id] = msg
 
         dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
-                                datapath=datapath.id)
+                                datapathid=datapath.id)
 
         self.logger.debug("dispatch_[SWITCH_FEATURE] : %s \n", dispatch_)
         self.send_to_mld(dispatch_)
@@ -231,16 +231,16 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
 
         # CHECK DICTIONARY[msg]
         if 0 < len(self.dic_msg) and datapathid in self.dic_msg:
-            datapathid = self.dic_msg[datapathid]
-            self.logger.debug("DICTIONARY[dic_msg] : %s \n", datapathid)
             msgbase = self.dic_msg[datapathid]
+            self.logger.debug("DICTIONARY[dic_msg] : %s \n", msgbase)
 
             # CHECK dispatch[type_]
             if dispatch["type_"] == mld_const.CON_FLOW_MOD:
+
                 flowmodlist = dispatch["data"]
+                self.logger.debug("FLOW_MOD[data] : %s \n", dispatch["data"])
 
                 for flowmod in flowmodlist:
-                    self.logger.debug("FLOW_MOD[data] : %s \n", flowmod)
                     self.send_msg_to_flowmod(msgbase, flowmod)
 
             elif dispatch["type_"] == mld_const.CON_PACKET_OUT:
