@@ -20,7 +20,7 @@ import cPickle
 import zmq
 import sys
 sys.path.append('../../common')
-from message import message
+from zmq_dispatch import dispatch
 from read_json import read_json
 import mld_const
 hub.patch()
@@ -30,9 +30,6 @@ hub.patch()
 # mld_process
 # ======================================================================
 class mld_process():
-
-    # send interval(sec)
-    WAIT_TIME = 25
 
     IPC = "ipc://"
     SEND_PATH = "/tmp/feeds/mld-ryu"
@@ -61,6 +58,7 @@ class mld_process():
         config = read_json("../../common/config.json")
         self.logger.info("config_info : %s", str(config.data))
         self.config = config.data["settings"]
+        self.WAIT_TIME = self.config["reguraly_query_interval"]
 
         for line in open(self.ADDRESS_INFO, "r"):
             if line[0] == "#":
@@ -244,18 +242,18 @@ class mld_process():
     # ==================================================================
     def analyse_receive_packet(self, recvpkt):
         self.logger.debug("")
-        message = recvpkt.message
-        self.logger.debug("received message [type_]: %s",
-                          str(message["type_"]))
-        self.logger.debug("received message [data]: %s",
-                          str(message["data"]))
-        receive_type = message["type_"]
+        dispatch = recvpkt.dispatch
+        self.logger.debug("received [type_]: %s",
+                          str(dispatch["type_"]))
+        self.logger.debug("received [data]: %s",
+                          str(dispatch["data"]))
+        receive_type = dispatch["type_"]
 
         if receive_type == mld_const.CON_SWITCH_FEATURE:
-            self.set_switch_config(message)
+            self.set_switch_config(dispatch)
 
         elif receive_type == mld_const.CON_PACKET_IN:
-            pkt_icmpv6 = message["data"]
+            pkt_icmpv6 = dispatch["data"]
             self.logger.debug("pkt_icmpv6 : " + str(pkt_icmpv6))
 
             # MLDv2 Query
@@ -268,22 +266,22 @@ class mld_process():
             if pkt_icmpv6.type_ == icmpv6.MLDV2_LISTENER_REPORT:
                 self.logger.debug("MLDv2 Report : %s",
                                   str(pkt_icmpv6.data))
-                self.manage_user(message)
+                self.manage_user(dispatch)
 
         else:
-            self.logger.debug("received type : %s", message["type_"])
+            self.logger.debug("received type : %s", dispatch["type_"])
 
     # ==================================================================
     # set_switch_config
     # ==================================================================
-    def set_switch_config(self, receive_message):
+    def set_switch_config(self, dispatch_):
         self.logger.debug("")
 
         # ファイルから読み込んだSWの情報から接続元SWがエッジか収容か判定し、
         # 初期設定をFlowModする
-        target_switch = receive_message["datapath"]
+        target_switch = dispatch_["datapathid"]
         for switch in self.switches:
-            if target_switch == switch["datapath"]:
+            if target_switch == switch["datapathid"]:
                 sw_name = switch["sw_name"]
                 ports = switch["ports"]
                 flowlist = []
@@ -292,67 +290,67 @@ class mld_process():
                     self.logger.debug("sw_name : %s", sw_name)
                     # TODO ルータからのQueryをp-inする
                     flowlist.append(self.create_flowmod(
-                        datapath=target_switch,
+                        datapathid=target_switch,
                         in_port=ports[0], out_port="p-in", type_=130))
                     # MLDからのQueryを収容SWへ
                     flowlist.append(self.create_flowmod(
-                        datapath=target_switch,
+                        datapathid=target_switch,
                         in_port=ports[3], out_port=ports[1:3], type_=130))
                     # ベストエフォートの場合のみ
                     if self.config["service_type"] == "BE":
                         # TODO p-out(Report)をルータへ
                         flowlist.append(self.create_flowmod(
-                            datapath=target_switch,
+                            datapathid=target_switch,
                             in_port="p-out", out_port=ports[0], type_=143))
                         # TODO それ以外のパケットはブリッジとして動作
                         flowlist.append(self.create_flowmod(
-                            datapath=target_switch,
+                            datapathid=target_switch,
                             in_port="", out_port="", type_=0))
-                        flow_message = message(
+                        flowmod = dispatch(
                             type_=mld_const.CON_FLOW_MOD,
-                            datapath=0, data=flowlist)
-                        self.logger.debug("flow_message[data] : %s",
-                                          str(flow_message["data"]))
+                            datapathid=1, data=flowlist)
+                        self.logger.debug("flowmod[data] : %s",
+                                          str(flowmod["data"]))
 
-                        self.send_packet_to_ryu(flow_message)
+                        self.send_packet_to_ryu(flowmod)
 
                 if sw_name == "sw1" or sw_name == "sw2":
                     # 収容SWのFlowMod
                     self.logger.debug("sw_name : %s", sw_name)
                     # TODO ホストからReportがきたらp-in
                     flowlist.append(self.create_flowmod(
-                        datapath=target_switch,
+                        datapathid=target_switch,
                         in_port=ports[0], out_port="p-in", type_=0))
                     # TODO それ以外のパケットはブリッジとして動作
                     flowlist.append(self.create_flowmod(
-                        datapath=target_switch,
+                        datapathid=target_switch,
                         in_port="", out_port="", type_=0))
-                    flow_message = message(
+                    flowmod = dispatch(
                         type_=mld_const.CON_FLOW_MOD,
-                        datapath=0, data=flowlist)
-                    self.logger.debug("flow_message[data] : %s",
-                                      str(flow_message["data"]))
+                        datapathid=1, data=flowlist)
+                    self.logger.debug("flowmod[data] : %s",
+                                      str(flowmod["data"]))
 
-                    self.send_packet_to_ryu(flow_message)
+                    self.send_packet_to_ryu(flowmod)
 
     # ==================================================================
     # create_flowmod
     # ==================================================================
-    def create_flowmod(self, datapath, in_port, out_port, type_):
+    def create_flowmod(self, datapathid, in_port, out_port, type_):
         self.logger.debug("")
         # TODO 引数を元にFlowmodを生成し、返却する
 
-        return parser.OFPFlowMod(datapath=datapath)
+        return parser.OFPFlowMod(datapath=datapathid)
 
     # ==================================================================
     # create_packetout
     # ==================================================================
-    def create_packetout(self, datapath, packet):
+    def create_packetout(self, datapathid, packet):
         self.logger.debug("")
         actions = [
             parser.OFPActionOutput(port=self.edge_switch["ports"][0])]
         pout = parser.OFPPacketOut(
-            datapath=datapath, in_port=ofproto_v1_3.OFPP_CONTROLLER,
+            datapathid=datapathid, in_port=ofproto_v1_3.OFPP_CONTROLLER,
             buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
             actions=actions, data=packet)
         return pout
@@ -377,24 +375,24 @@ class mld_process():
                 sendpkt = self.create_packet(self.addressinfo, mld)
                 # エッジスイッチにp-out
                 pout = self.create_packetout(
-                    datapath=self.edge_switch["datapath"],
+                    datapathid=self.edge_switch["datapathid"],
                     packet=sendpkt)
-                pout_message = message(
+                packetout = dispatch(
                     type_=mld_const.CON_PACKET_OUT,
-                    datapath=0, data=pout)
-                self.logger.debug("pout_message: %s", str(pout_message))
-                self.send_packet_to_ryu(pout_message)
+                    datapathid=1, data=pout)
+                self.logger.debug("packetout: %s", str(packetout))
+                self.send_packet_to_ryu(packetout)
 
     # ==================================================================
     # manage_user
     # ==================================================================
-    def manage_user(self, receive_message):
+    def manage_user(self, dispatch):
         self.logger.debug("")
 
-        mldv2_report = receive_message["data"].data
-        target_switch = receive_message["datapath"]
-        in_port = receive_message["in_port"]
-        cid = receive_message["cid"]
+        mldv2_report = dispatch["data"].data
+        target_switch = dispatch["datapathid"]
+        in_port = dispatch["in_port"]
+        cid = dispatch["cid"]
 
         for report in mldv2_report.records:
             self.logger.debug("report : %s", str(report))
@@ -421,32 +419,32 @@ class mld_process():
                 self.logger.debug("reply_type : %d", reply_type)
                 # packet-inしてきた収容スイッチへFlowMod
                 flowlist.append(self.create_flowmod(
-                    datapath=target_switch, in_port="esw",
+                    datapathid=target_switch, in_port="esw",
                     out_port=in_port, type_=0))
-                flow_message = message(
+                flowmod = dispatch(
                     type_=mld_const.CON_FLOW_MOD,
-                    datapath=0, data=flowlist)
-                self.logger.debug("flow_message[data] : %s",
-                                  str(flow_message["data"]))
-                self.send_packet_to_ryu(flow_message)
+                    datapathid=1, data=flowlist)
+                self.logger.debug("flowmod[data] : %s",
+                                  str(flowmod["data"]))
+                self.send_packet_to_ryu(flowmod)
 
             elif reply_type == \
                 mld_const.CON_REPLY_ADD_FLOW_MOD_AND_PACKET_OUT:
                 self.logger.debug("reply_type : %d", reply_type)
                 # エッジスイッチとpacket-inしてきた収容スイッチへFlowMod
                 flowlist.append(self.create_flowmod(
-                    datapath=self.edge_switch["datapath"],
+                    datapathid=self.edge_switch["datapathid"],
                     in_port=self.edge_switch["ports"][0],
                     out_port="接続元sw", type_=0))
                 flowlist.append(self.create_flowmod(
-                    datapath=target_switch, in_port="esw",
+                    datapathid=target_switch, in_port="esw",
                     out_port=in_port, type_=0))
-                flow_message = message(
+                flowmod = dispatch(
                     type_=mld_const.CON_FLOW_MOD,
-                    datapath=0, data=flowlist)
-                self.logger.debug("flow_message[data] : %s",
-                                  str(flow_message["data"]))
-                self.send_packet_to_ryu(flow_message)
+                    datapathid=1, data=flowlist)
+                self.logger.debug("flowmod[data] : %s",
+                                  str(flowmod["data"]))
+                self.send_packet_to_ryu(flowmod)
 
                 # ベストエフォートの場合のみ
                 if self.config["service_type"] == "BE":
@@ -460,45 +458,45 @@ class mld_process():
                     packet = self.create_packet(
                         self.addressinfo, mld_report)
                     pout = self.create_packetout(
-                        datapath=self.edge_switch["datapath"],
+                        datapathid=self.edge_switch["datapathid"],
                         packet=packet)
-                    pout_message = message(
+                    packetout = dispatch(
                         type_=mld_const.CON_PACKET_OUT,
-                        datapath=0, data=pout)
-#                    self.logger.debug("pout_message[data] : %s",
-#                                      pout_message["data"])
-                    self.send_packet_to_ryu(pout_message)
+                        datapathid=1, data=pout)
+#                    self.logger.debug("packetout[data] : %s",
+#                                      packetout["data"])
+                    self.send_packet_to_ryu(packetout)
 
             elif reply_type == mld_const.CON_REPLY_DEL_FLOW_MOD:
                 self.logger.debug("reply_type : %d", reply_type)
                 # packet-inしてきた収容スイッチへFlowMod
                 flowlist.append(self.create_flowmod(
-                    datapath=target_switch, in_port="esw",
+                    datapathid=target_switch, in_port="esw",
                     out_port=in_port, type_=0))
-                flow_message = message(
+                flowmod = dispatch(
                     type_=mld_const.CON_FLOW_MOD,
-                    datapath=0, data=flowlist)
-                self.logger.debug("flow_message[data] : %s",
-                                  str(flow_message["data"]))
-                self.send_packet_to_ryu(flow_message)
+                    datapathid=1, data=flowlist)
+                self.logger.debug("flowmod[data] : %s",
+                                  str(flowmod["data"]))
+                self.send_packet_to_ryu(flowmod)
 
             elif reply_type == \
                 mld_const.CON_REPLY_DEL_FLOW_MOD_AND_PACKET_OUT:
                 self.logger.debug("reply_type : %d", reply_type)
                 # エッジスイッチとpacket-inしてきた収容スイッチへFlowMod
                 flowlist.append(self.create_flowmod(
-                    datapath=self.edge_switch["datapath"],
+                    datapathid=self.edge_switch["datapathid"],
                     in_port=self.edge_switch["ports"][0],
                     out_port="接続元sw", type_=0))
                 flowlist.append(self.create_flowmod(
-                    datapath=target_switch, in_port="esw",
+                    datapathid=target_switch, in_port="esw",
                     out_port=in_port, type_=0))
-                flow_message = message(
+                flowmod = dispatch(
                     type_=mld_const.CON_FLOW_MOD,
-                    datapath=0, data=flowlist)
-                self.logger.debug("flow_message[data] : %s",
-                                  str(flow_message["data"]))
-                self.send_packet_to_ryu(flow_message)
+                    datapathid=1, data=flowlist)
+                self.logger.debug("flowmod[data] : %s",
+                                  str(flowmod["data"]))
+                self.send_packet_to_ryu(flowmod)
 
                 # ベストエフォートの場合のみ
                 if self.config["service_type"] == "BE":
@@ -508,16 +506,17 @@ class mld_process():
                         mc_address=report.address,
                         mc_serv_ip=report.srcs[0], 
                         report_types=report_types)
-                    packet = self.create_packet(self.addressinfo, mld_report)
+                    packet = self.create_packet(
+                        self.addressinfo, mld_report)
                     pout = self.create_packetout(
-                        datapath=self.edge_switch["datapath"],
+                        datapathid=self.edge_switch["datapathid"],
                         packet=packet)
-                    pout_message = message(
+                    packetout = dispatch(
                         type_=mld_const.CON_PACKET_OUT,
-                        datapath=0, data=pout)
-#                    self.logger.debug("pout_message[data] : %s",
-#                                      str(pout_message["data"]))
-                    self.send_packet_to_ryu(pout_message)
+                        datapathid=1, data=pout)
+#                    self.logger.debug("packetout[data] : %s",
+#                                      str(packetout["data"]))
+                    self.send_packet_to_ryu(packetout)
             else:
                 # 何もしない
                 self.logger.debug("reply_type : %d", reply_type)
