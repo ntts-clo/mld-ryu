@@ -1,25 +1,25 @@
 {
     "switches": [
         {
-            "_comment": "エッジスイッチ",
-            "sw_name" : "esw",
-            "datapath": 1,
-            "_comment": "エッジルータ、収容スイッチ１、２、MLD処理部との接続ポート",
-            "ports"   :  [1, 2, 3, 4]
+            "_comment"  : "エッジスイッチ",
+            "sw_name"   : "esw",
+            "datapathid": 1,
+            "_comment"  : "エッジルータ、収容スイッチ１、２、MLD処理部との接続ポート",
+            "ports"     :  [1, 2, 3, 4]
         },
         {
-            "_comment": "収容スイッチ1",
-            "sw_name" : "sw1",
-            "datapath": 2,
-            "_comment": "エッジスイッチとの接続ポート",
-            "ports"   : [1]
+            "_comment"  : "収容スイッチ1",
+            "sw_name"   : "sw1",
+            "datapathid": 2,
+            "_comment"  : "エッジスイッチとの接続ポート",
+            "ports"     : [1]
         },
         {
-            "_comment": "収容スイッチ2",
-            "sw_name" : "sw2",
-            "datapath": 3,
-            "_comment": "エッジスイッチとの接続ポート",
-            "ports"   : [1]
+            "_comment"  : "収容スイッチ2",
+            "sw_name"   : "sw2",
+            "datapathid": 3,
+            "_comment"  : "エッジスイッチとの接続ポート",
+            "ports"     : [1]
         }
     ]
 }
