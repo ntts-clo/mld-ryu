@@ -3,11 +3,10 @@
 #  /tmp/feeds/0
 #  /tmp/feeds/1
 
-from ryu.ofproto import ofproto_v1_3, ether, inet
+from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet, ethernet, ipv6, icmpv6, vlan
 from ryu.app import simple_switch_13
 from ryu.controller import ofp_event
-from ryu.controller import controller
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from icmpv6_extend import icmpv6_extend
@@ -33,7 +32,6 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     dic_msg = {}
 
     def __init__(self, *args, **kwargs):
-
         # ログ設定ファイル読み込み
         logging.config.fileConfig("../../common/logconf.ini")
         self.logger = logging.getLogger(__name__)
@@ -53,11 +51,22 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         self.IPC_PATH_SEND = self.IPC + self.SEND_PATH
         self.IPC_PATH_RECV = self.IPC + self.RECV_PATH
 
+        # システムモジュールのソケットに対しパッチを適用
         patcher.monkey_patch()
 
-        # ====================================================================
-        # CRETATE SCOKET
-        # ====================================================================
+        # ソケット生成
+        self.cretate_scoket()
+
+        # ReceiveThread
+        recv_thread = self.org_thread.Thread(
+                                    target=self.receive_from_mld,
+                                    name="ReceiveThread")
+        recv_thread.start()
+
+    # =========================================================================
+    # CRETATE SCOKET
+    # =========================================================================
+    def cretate_scoket(self):
         # CHECK TMP FILE(SEND)
         self.check_exists_tmp(self.SEND_PATH)
 
@@ -76,11 +85,6 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
         self.logger.debug("[RecvSocket]IPC %s", self.IPC_PATH_RECV)
 
-        # ReceiveThread
-        recv_thread = self.org_thread.Thread(
-                                    target=self.receive_from_mld,
-                                    name="ReceiveThread")
-        recv_thread.start()
 
     # =========================================================================
     # _switch_features_handler
@@ -110,27 +114,32 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         msg = ev.msg
         pkt = packet.Packet(msg.data)
 
+        self.logger.debug("# PACKET_IN[data] : %s \n", str(pkt))
+
         # CHECK ETH
         pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
         if not pkt_ethernet:
-            self.logger.debug("# check ethernet : %s \n", str(pkt))
+            self.logger.debug("# check ethernet : None \n")
             return
 
         # CHECK ICMPV6
         pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
         if not pkt_icmpv6:
-            self.logger.debug("# check icmpv6 : %s \n", str(pkt))
+            self.logger.debug("# check icmpv6 : None \n")
             return
 
         # CHECK MLD TYPE
         if not pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT,
                                     icmpv6.ICMPV6_MEMBERSHIP_QUERY]:
-            self.logger.debug("# check icmpv6.TYPE : %s \n", str(pkt))
+            self.logger.debug("# check icmpv6.TYPE : %s \n",
+                              str(pkt_icmpv6.type_))
             return
 
         # CHECK FILTER_MODE
         if pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT]:
+
             for mldv2_report_group in pkt_icmpv6.data.records:
+
                 if not mldv2_report_group.type_ \
                                         in [icmpv6.MODE_IS_INCLUDE,
                                             icmpv6.CHANGE_TO_INCLUDE_MODE,
@@ -140,9 +149,9 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                                       str(mldv2_report_group.type_))
                     return
 
-        self.logger.debug("msg.datapath.id : %s \n",
+        self.logger.debug("datapath.id : %s \n",
                           str(msg.datapath.id))
-        self.logger.debug("msg.match[""in_port""] : %s \n",
+        self.logger.debug("match[""in_port""] : %s \n",
                           str(msg.match["in_port"]))
 
         dispatch_ = dispatch(type_=mld_const.CON_PACKET_IN,
@@ -188,17 +197,17 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         dispatch = recvpkt.dispatch
         self.logger.debug("###ryu received dispatch : %s \n", str(dispatch))
 
-        #### DEBUG
         msgbase = None
         datapathid = None
-        datapathid = 1
-        #### DEBUG
 
         items = self.dic_msg.items()
         self.logger.debug("【dic_msg】 %s", items)
 
         # CHECK DICTIONARY[msg]
-        if 0 < len(self.dic_msg) and datapathid in self.dic_msg:
+        if not datapathid in self.dic_msg:
+            self.logger.info("DICTIONARY[datapathid] = None \n")
+            return
+        else:
             msgbase = self.dic_msg[datapathid]
             self.logger.debug("DICTIONARY[dic_msg] : %s \n", msgbase)
 
@@ -221,10 +230,6 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                                  dispatch["type_"])
                 return
 
-        else:
-            self.logger.debug("DICTIONARY[datapathid] = None \n")
-            return
-
     # =========================================================================
     # send_msg_to_flowmod
     # =========================================================================
@@ -242,51 +247,17 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         self.logger.info("sent 1 packet to PacketOut. ")
 
     # =========================================================================
-    # createPacket
-    # =========================================================================
-    def createPacket(self, src, dst, srcip, dstip):
-        self.logger.debug("")
-
-        # ETHER
-        eth = ethernet.ethernet(
-#            ethertype=ether.ETH_TYPE_8021Q, dst=dst, src=src)
-            ethertype=ether.ETH_TYPE_IPV6, dst=dst, src=src)
-
-# TODO
-        """
-        # VLAN
-        vln = vlan.vlan(vid=100, ethertype=ether.ETH_TYPE_IPV6)
-        """
-        # IPV6 with HopByHop
-        ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6,
-                    data=[ipv6.option(type_=5, len_=2, data="\x00\x00"),
-                          ipv6.option(type_=1, len_=0)])]
-        ip6 = ipv6.ipv6(src=srcip, dst=dstip, hop_limit=1,
-                        nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
-
-        # MLDV2
-        icmp6 = icmpv6_extend(type_=icmpv6.ICMPV6_MEMBERSHIP_QUERY,
-                            data=icmpv6.mldv2_query(address="ff38::1"))
-
-        # ether  vlan  ipv6  icmpv6(mldv2)
-#        sendpkt = eth / vln / ip6 / icmp6
-        sendpkt = eth / ip6 / icmp6
-        self.logger.debug("### created packet : %s \n", str(sendpkt))
-
-        sendpkt.serialize()
-
-        return sendpkt
-
-    # =========================================================================
     # check_exists_tmp
     # =========================================================================
     def check_exists_tmp(self, filename):
-        self.logger.debug("")
+        self.logger.debug(filename)
 
+        # ファイルの存在チェック
         if os.path.exists(filename):
             return
 
         else:
+            # ディレクトリの存在チェック
             dirpath = os.path.dirname(filename)
             if os.path.isdir(dirpath):
                 f = open(filename, "w")
@@ -298,5 +269,4 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                 f = open(filename, "w")
                 f.write("")
                 f.close()
-                self.logger.info("create dir[%s], file[%s]",
-                                 dirpath, filename)
+                self.logger.info("create dir[%s], file[%s]", dirpath, filename)
