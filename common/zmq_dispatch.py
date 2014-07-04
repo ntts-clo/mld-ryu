@@ -1,24 +1,25 @@
-class message():
-    def __init__(self, type_, datapath, in_port=-1, cid=0, data=None):
-        print("message __init__")
-        self.message = {}
+class dispatch():
+    def __init__(self, type_, datapathid, in_port=-1, cid=0, data=None):
+        print("dispatch __init__")
+        self.dispatch = {}
 
-        self.message["type_"] = type_
-        self.message["datapath"] = datapath
-        self.message["in_port"] = in_port
-        self.message["cid"] = cid
-        self.message["data"] = data
-        print("message : %s", self.message)
+        self.dispatch["type_"] = type_
+        self.dispatch["datapathid"] = datapathid
+        self.dispatch["in_port"] = in_port
+        self.dispatch["cid"] = cid
+        self.dispatch["data"] = data
+        print("dispatch : %s \n", self.dispatch)
 
     def __getitem__(self, key):
-        return self.message[key]
+        print("dispatch __getitem__")
+        return self.dispatch[key]
 
     def __getstate__(self):
-        print("message __getstate__")
-#        print("get self.message : %s" , str(self.message))
-        return self.message.copy()
+        print("dispatch __getstate__")
+#        print("get self.dispatch : %s", str(self.dispatch))
+        return self.dispatch.copy()
 
     def __setstate__(self, data):
-        print("message __setstate__")
-        self.message = data
-        print("set self.message : %s" , str(self.message))
+        print("dispatch __setstate__")
+        self.dispatch = data
+        print("set self.dispatch : %s \n", str(self.dispatch))
