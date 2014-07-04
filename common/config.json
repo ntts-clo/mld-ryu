@@ -4,7 +4,14 @@
         "service_type": "BE",
         "_comment"           : "定期送信クエリのタイプ。GQ(GeneralQuery) or SQ(SpecificQuery)",
         "reguraly_query_type": "SQ",
-        "_comment"               : "定期送信クエリのの送信間隔",
-        "reguraly_query_interval": 125
+        "_comment"               : "定期送信クエリの送信間隔",
+        "reguraly_query_interval": 125,
+        "_comment"       : "ソケットのタイムアウト時間",
+        "socket_time_out": 1000,
+        "_comment" : "IPCのURL",
+        "ipc_url": "ipc://",
+        "_comment" : "IPCのテンポラリファイルPATH",
+        "ipc_ryu-mld": "/tmp/feeds/ryu-mld",
+        "ipc_mld-ryu": "/tmp/feeds/mld-ryu"
     }
 }
