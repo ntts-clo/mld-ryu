@@ -168,7 +168,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                           str(msg.match["in_port"]))
 
         dispatch_ = dispatch(type_=mld_const.CON_PACKET_IN,
-                               datapath=msg.datapath.id,
+                               datapathid=msg.datapath.id,
                                in_port=msg.match["in_port"],
                                data=pkt_icmpv6)
 
