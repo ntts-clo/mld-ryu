@@ -31,12 +31,6 @@ hub.patch()
 # ======================================================================
 class mld_process():
 
-    IPC = "ipc://"
-    SEND_PATH = "/tmp/feeds/mld-ryu"
-    RECV_PATH = "/tmp/feeds/ryu-mld"
-    IPC_PATH_SEND = IPC + SEND_PATH
-    IPC_PATH_RECV = IPC + RECV_PATH
-
     BASEPATH = os.path.dirname(os.path.abspath(__file__))
     MULTICAST_SERVICE_INFO = os.path.normpath(
         os.path.join(BASEPATH, "./multicast_service_info.csv"))
@@ -58,7 +52,13 @@ class mld_process():
         config = read_json("../../common/config.json")
         self.logger.info("config_info : %s", str(config.data))
         self.config = config.data["settings"]
+
         self.WAIT_TIME = self.config["reguraly_query_interval"]
+        self.IPC = self.config["ipc_url"]
+        self.SEND_PATH = self.config["ipc_ryu-mld"]
+        self.RECV_PATH = self.config["ipc_mld-ryu"]
+        self.IPC_PATH_SEND = self.IPC + self.SEND_PATH
+        self.IPC_PATH_RECV = self.IPC + self.RECV_PATH
 
         for line in open(self.ADDRESS_INFO, "r"):
             if line[0] == "#":
@@ -350,7 +350,7 @@ class mld_process():
         actions = [
             parser.OFPActionOutput(port=self.edge_switch["ports"][0])]
         pout = parser.OFPPacketOut(
-            datapathid=datapathid, in_port=ofproto_v1_3.OFPP_CONTROLLER,
+            datapath=datapathid, in_port=ofproto_v1_3.OFPP_CONTROLLER,
             buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
             actions=actions, data=packet)
         return pout
@@ -386,13 +386,13 @@ class mld_process():
     # ==================================================================
     # manage_user
     # ==================================================================
-    def manage_user(self, dispatch):
+    def manage_user(self, dispatch_):
         self.logger.debug("")
 
-        mldv2_report = dispatch["data"].data
-        target_switch = dispatch["datapathid"]
-        in_port = dispatch["in_port"]
-        cid = dispatch["cid"]
+        mldv2_report = dispatch_["data"].data
+        target_switch = dispatch_["datapathid"]
+        in_port = dispatch_["in_port"]
+        cid = dispatch_["cid"]
 
         for report in mldv2_report.records:
             self.logger.debug("report : %s", str(report))
@@ -412,7 +412,8 @@ class mld_process():
                 self.logger.debug("report.type : %s", report.type_)
                 reply_type = mld_const.CON_REPLY_NOTHING
 
-            self.logger.debug("channel_info : %s", self.ch_info.channel_info)
+            self.logger.debug(
+                "channel_info : %s", self.ch_info.channel_info)
 
             flowlist = []
             if reply_type == mld_const.CON_REPLY_ADD_FLOW_MOD:
