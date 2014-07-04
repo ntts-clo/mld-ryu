@@ -18,47 +18,41 @@ import logging
 import os
 os.sys.path.append("../../common")
 from zmq_dispatch import dispatch
+from read_json import read_json
 import mld_const
 
 
 class mld_controller(simple_switch_13.SimpleSwitch13):
-
-    LOG_LEVEL = logging.DEBUG
-
-    # send interval(sec)
-    WAIT_TIME = 1
-    SOCKET_TIME_OUT = 1000
     SOCKET_FLG = 1
 
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
-    IPC = "ipc://"
-    SEND_PATH = "/tmp/feeds/ryu-mld"
-    RECV_PATH = "/tmp/feeds/mld-ryu"
-#    RECV_PATH = "/tmp/feeds/test1"
-    IPC_PATH_SEND = IPC + SEND_PATH
-    IPC_PATH_RECV = IPC + RECV_PATH
-
     org_thread = patcher.original("threading")
     org_thread_time = patcher.original("time")
-
-    loop = ioloop.IOLoop.instance()
 
     dic_msg = {}
 
     def __init__(self, *args, **kwargs):
+
+        # ログ設定ファイル読み込み
+        logging.config.fileConfig("../../common/logconf.ini")
+        self.logger = logging.getLogger(__name__)
+        self.logger.debug("")
+
         super(mld_controller, self).__init__(*args, **kwargs)
 
-        stream_log = logging.StreamHandler()
-        stream_log.setFormatter(logging.Formatter(
-                                "%(asctime)s [%(levelname)s] - "
-                                "%(threadName)s(%(funcName)s) - "
-                                "%(message)s"
-                                ))
-        self.logger = logging.getLogger(type(self).__name__)
-        self.logger.addHandler(stream_log)
-        self.logger.setLevel(self.LOG_LEVEL)
-        self.logger.debug("")
+        # 設定情報読み込み
+        config = read_json("../../common/config.json")
+        self.logger.info("config_info : %s", str(config.data))
+        self.config = config.data["settings"]
+        self.SOCKET_TIME_OUT = self.config["socket_time_out"]
+
+        self.IPC = self.config["ipc_url"]
+        self.SEND_PATH = self.config["ipc_ryu-mld"]
+        self.RECV_PATH = self.config["ipc_mld-ryu"]
+        self.IPC_PATH_SEND = self.IPC + self.SEND_PATH
+        self.IPC_PATH_RECV = self.IPC + self.RECV_PATH
+
         patcher.monkey_patch()
 
         # ====================================================================
@@ -184,7 +178,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                 recvpkt = self.recv_sock.recv()
                 packet = cPickle.loads(recvpkt)
                 self.analyse_receive_packet(packet)
-                self.org_thread_time.sleep(self.WAIT_TIME)
+                self.org_thread_time.sleep(1)
 
     # ==================================================================
     # analyse_receive_packet
