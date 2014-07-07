@@ -92,11 +92,13 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
 
         msg = ev.msg
         datapath = ev.msg.datapath
-        # set msg to Dictionary
-        self.dic_msg[datapath.id] = msg
 
         # CHECK Already send
         if not datapath.id in self.dic_msg:
+
+            # set msg to Dictionary
+            self.dic_msg[datapath.id] = msg
+
             dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
                                     datapathid=datapath.id)
 
