@@ -55,8 +55,8 @@ class mld_process():
 
         self.WAIT_TIME = self.config["reguraly_query_interval"]
         self.IPC = self.config["ipc_url"]
-        self.SEND_PATH = self.config["ipc_ryu-mld"]
-        self.RECV_PATH = self.config["ipc_mld-ryu"]
+        self.SEND_PATH = self.config["ipc_mld-ryu"]
+        self.RECV_PATH = self.config["ipc_ryu-mld"]
         self.IPC_PATH_SEND = self.IPC + self.SEND_PATH
         self.IPC_PATH_RECV = self.IPC + self.RECV_PATH
 
