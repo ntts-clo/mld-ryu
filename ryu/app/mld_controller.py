@@ -83,6 +83,137 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
         self.logger.debug("[RecvSocket]IPC %s", self.IPC_PATH_RECV)
 
+    # ==================================================================
+    # analyse_receive_packet
+    # ==================================================================
+    def analyse_receive_packet(self, recvpkt):
+        self.logger.debug("")
+        dispatch = recvpkt.dispatch
+        self.logger.debug("ryu received dispatch : %s \n", str(dispatch))
+
+        datapathid = dispatch["datapathid"]
+
+        items = self.dic_msg.items()
+        self.logger.debug("【dic_msg】 %s", items)
+
+        # CHECK DICTIONARY[msg]
+        if not datapathid in self.dic_msg:
+            self.logger.info("DICTIONARY[datapathid] = None \n")
+            return
+        else:
+            self.msgbase = self.dic_msg[datapathid]
+            self.logger.debug("DICTIONARY[dic_msg] : %s \n", self.msgbase)
+
+            # CHECK dispatch[type_]
+            if dispatch["type_"] == mld_const.CON_FLOW_MOD:
+
+                flowmodlist = dispatch["data"]
+                self.logger.debug("FLOW_MOD[data] : %s \n", dispatch["data"])
+
+                for flowmod in flowmodlist:
+                    # FLOW_MOD送信
+                    self.logger.debug("FLOW_MOD[buffer_id] : %s \n",
+                                      flowmod.buffer_id)
+                    self.send_msg_to_flowmod(self.msgbase, flowmod)
+                    # BARRIER_REQUEST送信
+                    self.send_msg_to_barrier_request(self.msgbase)
+
+            elif dispatch["type_"] == mld_const.CON_PACKET_OUT:
+                recvpkt = dispatch["data"]
+                self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt.data)
+                # PACKET_OUT送信
+                self.send_msg_to_packetout(self.msgbase, recvpkt)
+
+            else:
+                self.logger.info("dispatch[type_] = Not exist(%s) \n",
+                                 dispatch["type_"])
+                return
+
+    # =========================================================================
+    # send_to_mld
+    # =========================================================================
+    def send_to_mld(self, dispatch_):
+        self.logger.debug("")
+
+        # send of zeromq
+        self.send_sock.send(cPickle.dumps(dispatch_, protocol=0))
+        self.logger.info("sent 1 to mld_process.")
+
+    # =========================================================================
+    # receive_from_mld
+    # =========================================================================
+    def receive_from_mld(self):
+        self.logger.debug("")
+        while True:
+            if self.SOCKET_FLG == 0:
+                self.logger.debug("### EXIT LOOP")
+                break
+            else:
+                # receive of zeromq
+                recvpkt = self.recv_sock.recv()
+                packet = cPickle.loads(recvpkt)
+                self.analyse_receive_packet(packet)
+                self.org_thread_time.sleep(1)
+
+    # =========================================================================
+    # send_msg_to_flowmod
+    # =========================================================================
+    def send_msg_to_flowmod(self, msgbase, flowmod):
+        self.logger.debug("")
+
+        msgbase.datapath.send(flowmod)
+
+        self.logger.info("sent 1 packet to FlowMod. ")
+
+    # =========================================================================
+    # send_msg_to_flowmod
+    # =========================================================================
+    def send_msg_to_barrier_request(self, msgbase):
+        self.logger.debug("")
+
+        datapath = msgbase.datapath
+        ofp_parser = datapath.ofproto_parser
+
+        req = ofp_parser.OFPBarrierRequest(datapath)
+        datapath.send(req)
+
+        self.logger.info("sent 1 packet to BarrierRequest. ")
+
+    # =========================================================================
+    # send_msg_to_packetout
+    # =========================================================================
+    def send_msg_to_packetout(self, msgbase, packetout):
+        self.logger.debug("")
+
+        msgbase.datapath.send(packetout)
+
+        self.logger.info("sent 1 packet to PacketOut. ")
+
+    # =========================================================================
+    # check_exists_tmp
+    # =========================================================================
+    def check_exists_tmp(self, filename):
+        self.logger.debug(filename)
+
+        # ファイルの存在チェック
+        if os.path.exists(filename):
+            return
+
+        else:
+            # ディレクトリの存在チェック
+            dirpath = os.path.dirname(filename)
+            if os.path.isdir(dirpath):
+                f = open(filename, "w")
+                f.write("")
+                f.close()
+                self.logger.info("create file[%s]", filename)
+            else:
+                os.makedirs(dirpath)
+                f = open(filename, "w")
+                f.write("")
+                f.close()
+                self.logger.info("create dir[%s], file[%s]", dirpath, filename)
+
     # =========================================================================
     # _switch_features_handler
     # =========================================================================
@@ -103,7 +234,13 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                                     datapathid=datapath.id)
 
             self.logger.debug("dispatch_[SWITCH_FEATURE] : %s \n", dispatch_)
-            self.send_to_mld(dispatch_)
+
+    # =========================================================================
+    # barrier_reply_handler
+    # =========================================================================
+    @set_ev_cls(ofp_event.EventOFPBarrierReply, MAIN_DISPATCHER)
+    def _barrier_reply_handler(self, ev):
+        self.logger.debug("")
 
     # =========================================================================
     # packet_in_handler
@@ -170,109 +307,3 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
 
         self.send_to_mld(dispatch_)
 
-    # =========================================================================
-    # send_to_mld
-    # =========================================================================
-    def send_to_mld(self, dispatch_):
-        self.logger.debug("")
-
-        # send of zeromq
-        self.send_sock.send(cPickle.dumps(dispatch_, protocol=0))
-        self.logger.info("sent 1 to mld_process.")
-
-    # =========================================================================
-    # receive_from_mld
-    # =========================================================================
-    def receive_from_mld(self):
-        self.logger.debug("")
-        while True:
-            if self.SOCKET_FLG == 0:
-                self.logger.debug("### EXIT LOOP")
-                break
-            else:
-                # receive of zeromq
-                recvpkt = self.recv_sock.recv()
-                packet = cPickle.loads(recvpkt)
-                self.analyse_receive_packet(packet)
-                self.org_thread_time.sleep(1)
-
-    # ==================================================================
-    # analyse_receive_packet
-    # ==================================================================
-    def analyse_receive_packet(self, recvpkt):
-        self.logger.debug("")
-        dispatch = recvpkt.dispatch
-        self.logger.debug("ryu received dispatch : %s \n", str(dispatch))
-
-        datapathid = dispatch["datapathid"]
-
-        items = self.dic_msg.items()
-        self.logger.debug("【dic_msg】 %s", items)
-
-        # CHECK DICTIONARY[msg]
-        if not datapathid in self.dic_msg:
-            self.logger.info("DICTIONARY[datapathid] = None \n")
-            return
-        else:
-            self.msgbase = self.dic_msg[datapathid]
-            self.logger.debug("DICTIONARY[dic_msg] : %s \n", self.msgbase)
-
-            # CHECK dispatch[type_]
-            if dispatch["type_"] == mld_const.CON_FLOW_MOD:
-
-                flowmodlist = dispatch["data"]
-                self.logger.debug("FLOW_MOD[data] : %s \n", dispatch["data"])
-
-                for flowmod in flowmodlist:
-                    self.send_msg_to_flowmod(self.msgbase, flowmod)
-
-            elif dispatch["type_"] == mld_const.CON_PACKET_OUT:
-                recvpkt = dispatch["data"]
-                self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt.data)
-                self.send_msg_to_packetout(self.msgbase, recvpkt)
-
-            else:
-                self.logger.info("dispatch[type_] = Not exist(%s) \n",
-                                 dispatch["type_"])
-                return
-
-    # =========================================================================
-    # send_msg_to_flowmod
-    # =========================================================================
-    def send_msg_to_flowmod(self, msgbase, flowmod):
-        self.logger.debug("")
-        msgbase.datapath.send(flowmod)
-        self.logger.info("sent 1 packet to FlowMod. ")
-
-    # =========================================================================
-    # send_msg_to_packetout
-    # =========================================================================
-    def send_msg_to_packetout(self, messagebase, packetout):
-        self.logger.debug("")
-        messagebase.datapath.send(packetout)
-        self.logger.info("sent 1 packet to PacketOut. ")
-
-    # =========================================================================
-    # check_exists_tmp
-    # =========================================================================
-    def check_exists_tmp(self, filename):
-        self.logger.debug(filename)
-
-        # ファイルの存在チェック
-        if os.path.exists(filename):
-            return
-
-        else:
-            # ディレクトリの存在チェック
-            dirpath = os.path.dirname(filename)
-            if os.path.isdir(dirpath):
-                f = open(filename, "w")
-                f.write("")
-                f.close()
-                self.logger.info("create file[%s]", filename)
-            else:
-                os.makedirs(dirpath)
-                f = open(filename, "w")
-                f.write("")
-                f.close()
-                self.logger.info("create dir[%s], file[%s]", dirpath, filename)
