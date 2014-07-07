@@ -1,7 +1,4 @@
 # coding: utf-8
-# create_file(zmp tmp file)
-#  /tmp/feeds/0
-#  /tmp/feeds/1
 
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet, ethernet, icmpv6, vlan
@@ -32,6 +29,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     dic_msg = {}
 
     def __init__(self, *args, **kwargs):
+
         # ログ設定ファイル読み込み
         logging.config.fileConfig("../../common/logconf.ini")
         self.logger = logging.getLogger(__name__)
@@ -97,11 +95,13 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         # set msg to Dictionary
         self.dic_msg[datapath.id] = msg
 
-        dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
-                                datapathid=datapath.id)
+        # CHECK Already send
+        if not datapath.id in self.dic_msg:
+            dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
+                                    datapathid=datapath.id)
 
-        self.logger.debug("dispatch_[SWITCH_FEATURE] : %s \n", dispatch_)
-        self.send_to_mld(dispatch_)
+            self.logger.debug("dispatch_[SWITCH_FEATURE] : %s \n", dispatch_)
+            self.send_to_mld(dispatch_)
 
     # =========================================================================
     # packet_in_handler
@@ -200,9 +200,8 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     def analyse_receive_packet(self, recvpkt):
         self.logger.debug("")
         dispatch = recvpkt.dispatch
-        self.logger.debug("###ryu received dispatch : %s \n", str(dispatch))
+        self.logger.debug("ryu received dispatch : %s \n", str(dispatch))
 
-        msgbase = None
         datapathid = dispatch["datapathid"]
 
         items = self.dic_msg.items()
@@ -213,8 +212,8 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
             self.logger.info("DICTIONARY[datapathid] = None \n")
             return
         else:
-            msgbase = self.dic_msg[datapathid]
-            self.logger.debug("DICTIONARY[dic_msg] : %s \n", msgbase)
+            self.msgbase = self.dic_msg[datapathid]
+            self.logger.debug("DICTIONARY[dic_msg] : %s \n", self.msgbase)
 
             # CHECK dispatch[type_]
             if dispatch["type_"] == mld_const.CON_FLOW_MOD:
@@ -223,12 +222,12 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                 self.logger.debug("FLOW_MOD[data] : %s \n", dispatch["data"])
 
                 for flowmod in flowmodlist:
-                    self.send_msg_to_flowmod(msgbase, flowmod)
+                    self.send_msg_to_flowmod(self.msgbase, flowmod)
 
             elif dispatch["type_"] == mld_const.CON_PACKET_OUT:
                 recvpkt = dispatch["data"]
                 self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt.data)
-                self.send_msg_to_packetout(msgbase, recvpkt)
+                self.send_msg_to_packetout(self.msgbase, recvpkt)
 
             else:
                 self.logger.info("dispatch[type_] = Not exist(%s) \n",
