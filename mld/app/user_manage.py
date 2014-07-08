@@ -116,18 +116,18 @@ class ChannelInfo(BaseInfo):
         return ret
 
     def get_channel_info(self):
-        info = "\n"
+        info = "{\n"
         for key in self.channel_info.keys():
-            info += "multicast address : (%s, %s)\n" % (key[0], key[1])
-            info += "switches : [\n"
+            info += "  multicast address : (%s, %s)\n" % (key[0], key[1])
+            info += "  switches : [\n"
             switch_info = self.channel_info[key]
             for datapath in switch_info.keys():
-                info += "  datapath : %s\n" % datapath
-                info += "  ports : [\n"
+                info += "    datapath : %s\n" % datapath
+                info += "    ports : [\n"
                 sw_info = switch_info[datapath]
                 info += sw_info.get_switch_info()
-            info += "]"
-
+            info += "  ]\n"
+        info += "}"
 #        logger.debug(info)
         return info
 
@@ -220,12 +220,12 @@ class ChannelSwitchInfo(BaseInfo):
     def get_switch_info(self):
         info = ""
         for port in self.port_info.keys():
-            info += "    port : %s\n" % port
-            info += "    users : [\n"
+            info += "      port : %s\n" % port
+            info += "      users : [\n"
             user_info = self.port_info[port]
             for ch_user_info in user_info:
                 info += ch_user_info.get_user_info()
-        info += "  ]\n"
+        info += "    ]\n"
         return info
 
 class ChannelUserInfo(BaseInfo):
@@ -237,8 +237,8 @@ class ChannelUserInfo(BaseInfo):
 
     def get_user_info(self):
         info = ""
-        info += "      cid  : %s\n" % self.cid
-        info += "      time : %f\n" % self.time
+        info += "        cid  : %s\n" % self.cid
+        info += "        time : %f\n" % self.time
         return info
 
 

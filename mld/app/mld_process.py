@@ -70,7 +70,6 @@ class mld_process():
                 columns = list(line[:-1].split(","))
                 for column in columns:
                     self.addressinfo.append(column)
-
         self.logger.info("addressinfo : %s", str(self.addressinfo))
 
         # スイッチ情報読み込み
@@ -413,20 +412,26 @@ class mld_process():
         cid = dispatch_["cid"]
 
         for report in mldv2_report.records:
+            self.logger.debug("self.ch_info : %s",
+                              self.ch_info.get_channel_info())
             self.logger.debug("report : %s", str(report))
             # ALLOW_NEW_SOURCES：視聴情報に追加
             if report.type_ == icmpv6.ALLOW_NEW_SOURCES:
                 self.logger.debug("ALLOW_NEW_SOURCES")
                 reply_type = self.ch_info.add_ch_info(
                     mc_addr=report.address, serv_ip=report.srcs[0],
-                    data_path=target_switch, port_no=in_port, cid=cid)
+                    detapathid=target_switch, port_no=in_port, cid=cid)
+                self.logger.debug("added self.ch_info : %s",
+                                  self.ch_info.get_channel_info())
 
             # BLOCK_OLD_SOURCES：視聴情報から削除
             elif report.type_ == icmpv6.BLOCK_OLD_SOURCES:
                 self.logger.debug("BLOCK_OLD_SOURCES")
                 reply_type = self.ch_info.remove_ch_info(
                     mc_addr=report.address, serv_ip=report.srcs[0],
-                    data_path=target_switch, port_no=in_port, cid=cid)
+                    detapathid=target_switch, port_no=in_port, cid=cid)
+                self.logger.debug("removed self.ch_info : %s",
+                                  self.ch_info.get_channel_info())
 
                 # SpecificQueryを生成し、エッジスイッチに送信
                 query = self.create_mldquery(report.address, report.srcs[0])
@@ -443,7 +448,7 @@ class mld_process():
                     # 存在しなければ追加
                     reply_type = self.ch_info.add_ch_info(
                         mc_addr=report.address, serv_ip=report.srcs[0],
-                        data_path=target_switch, port_no=in_port, cid=cid)
+                        detapathid=target_switch, port_no=in_port, cid=cid)
                 else:
                     # 存在する場合は何もしない
                     reply_type = mld_const.CON_REPLY_NOTHING
@@ -451,9 +456,6 @@ class mld_process():
             else:
                 self.logger.debug("report.type : %s", report.type_)
                 reply_type = mld_const.CON_REPLY_NOTHING
-
-            self.logger.debug(
-                "channel_info : %s", self.ch_info.channel_info)
 
             flowlist = []
             if reply_type == mld_const.CON_REPLY_ADD_FLOW_MOD:
