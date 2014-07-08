@@ -112,17 +112,17 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
 
                 for flowmod in flowmodlist:
                     # FLOW_MOD送信
-                    self.logger.debug("FLOW_MOD[buffer_id] : %s \n",
-                                      flowmod.buffer_id)
                     self.send_msg_to_flowmod(self.msgbase, flowmod)
+
                     # BARRIER_REQUEST送信
-                    self.send_msg_to_barrier_request(self.msgbase)
+                    result = self.send_msg_to_barrier_request(self.msgbase)
+                    self.logger.debug("Barrier_Request[xid] : %s \n ", result)
 
             elif dispatch["type_"] == mld_const.CON_PACKET_OUT:
                 recvpkt = dispatch["data"]
                 self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt.data)
                 # PACKET_OUT送信
-                self.send_msg_to_packetout(self.msgbase, recvpkt)
+                self.send_msg_to_packetout(self.dic_msg[datapathid], recvpkt)
 
             else:
                 self.logger.info("dispatch[type_] = Not exist(%s) \n",
@@ -171,13 +171,11 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     def send_msg_to_barrier_request(self, msgbase):
         self.logger.debug("")
 
-        datapath = msgbase.datapath
-        ofp_parser = datapath.ofproto_parser
+        ofp_parser = msgbase.datapath.ofproto_parser
+        barrier = ofp_parser.OFPBarrierRequest(msgbase.datapath)
 
-        req = ofp_parser.OFPBarrierRequest(datapath)
-        datapath.send(req)
-
-        self.logger.info("sent 1 packet to BarrierRequest. ")
+        self.logger.info("sent 1 packet to BarrierRequest.")
+        return msgbase.datapath.send_msg(barrier)
 
     # =========================================================================
     # send_msg_to_packetout
@@ -233,6 +231,8 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
             dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
                                     datapathid=datapath.id)
 
+            self.send_to_mld(dispatch_)
+
             self.logger.debug("dispatch_[SWITCH_FEATURE] : %s \n", dispatch_)
 
     # =========================================================================
@@ -240,7 +240,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     # =========================================================================
     @set_ev_cls(ofp_event.EventOFPBarrierReply, MAIN_DISPATCHER)
     def _barrier_reply_handler(self, ev):
-        self.logger.debug("")
+        self.logger.debug('OFPBarrierReply received')
 
     # =========================================================================
     # packet_in_handler
@@ -306,4 +306,3 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         self.logger.debug("dispatch_data[PACKET_IN] : %s \n", dispatch_)
 
         self.send_to_mld(dispatch_)
-
