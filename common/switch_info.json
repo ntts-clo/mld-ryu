@@ -5,24 +5,35 @@
             "sw_name"   : "esw",
             "sw_type"   : 12000,
             "datapathid": 1,
-            "_comment"  : "エッジルータ、収容スイッチ１、２、MLD処理部との接続ポート",
-            "ports"     :  [1, 2, 3, 4]
+            "sw_bmac"   : "00:00:00:00:00:01"
+            "_comment"  : "エッジルータとの接続ポート",
+            "edge_router_port" :  2
+            "_comment"  : "MLD処理部との接続ポート",
+            "mld_port"  : 1
+            "_comment"  : "収容スイッチとの接続ポート",
+            "container_sw_ports" :  [49, 50]
         },
         {
             "_comment"  : "収容スイッチ1",
             "sw_name"   : "sw1",
             "sw_type"   : 12000,
             "datapathid": 2,
+            "sw_bmac"   : "00:00:00:00:00:02"
             "_comment"  : "エッジスイッチとの接続ポート",
-            "ports"     : [1]
+            "edge_switch_port" : 50
+            "_comment"  : "OLTとの接続ポート",
+            "olt_ports" : [1]
         },
         {
             "_comment"  : "収容スイッチ2",
             "sw_name"   : "sw2",
             "sw_type"   : 12000,
             "datapathid": 3,
+            "sw_bmac"   : "00:00:00:00:00:03"
             "_comment"  : "エッジスイッチとの接続ポート",
-            "ports"     : [1]
+            "edge_switch_port" : 50
+            "_comment"  : "OLTとの接続ポート",
+            "olt_ports" : [1]
         }
     ]
 }
