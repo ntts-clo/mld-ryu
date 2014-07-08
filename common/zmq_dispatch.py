@@ -1,6 +1,8 @@
+# coding: utf-8
 import os
 import logging
 import logging.config
+from ryu.ofproto import ofproto_v1_3
 
 logging.config.fileConfig(
     os.path.abspath(os.path.dirname(__file__)) + "/logconf.ini")
@@ -37,10 +39,11 @@ FlowModの転送用データクラス
 '''
 class FlowModData(object):
 
-    def __init__(self, datapathid, table_id, priority, match, instructions):
+    def __init__(self, datapathid, command=ofproto_v1_3.OFPFC_ADD, table_id, priority, match, instructions):
         logger.debug("")
 
         self.datapathid = datapathid
+        self.command = command
         self.table_id = table_id
         self.priority = priority
         self.match = match
