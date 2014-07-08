@@ -48,3 +48,4 @@ class FlowModData(object):
         self.priority = priority
         self.match = match
         self.instructions = instructions
+
