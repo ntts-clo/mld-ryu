@@ -3,17 +3,18 @@
 
 import cPickle
 import bisect
-import os
 import logging
 import logging.config
 import sys
 import time
 sys.path.append('../../common')
 import mld_const
-#from pymongo import MongoClient
+# from pymongo import MongoClient
 
 logging.config.fileConfig("../../common/logconf.ini")
+# logger = logging.getLogger("ChannelInfo")
 logger = logging.getLogger(__name__)
+
 
 class BaseInfo():
     def dump_self(self):
@@ -27,11 +28,11 @@ class ChannelInfo(BaseInfo):
         self.channel_info = {}
 #        self.accessor = DatabaseAccessor()
 
-    def add_info(self, mc_addr, serv_ip, data_path, port_no, cid):
+    def add_ch_info(self, mc_addr, serv_ip, detapathid, port_no, cid):
         logger.debug(
-            "mc_addr, serv_ip, data_path, port_no, cid : %s, %s, %s, %s, %s" % 
-            (mc_addr, serv_ip, str(data_path), str(port_no), str(cid)))
-        logger.debug("self.channel_info : %s" % self.channel_info)
+            "mc_addr, serv_ip, detapathid, port_no, cid : %s, %s, %s, %s, %s",
+             mc_addr, serv_ip, str(detapathid), str(port_no), str(cid))
+        logger.debug("self.channel_info : %s", self.get_channel_info())
         """
           視聴端末を追加。さらに、
             1. ch視聴ユーザが当該swにおける最初の視聴ユーザだった場合、エッジルータへ
@@ -47,31 +48,35 @@ class ChannelInfo(BaseInfo):
         if (mc_addr, serv_ip) not in self.channel_info:
             # 当該チャンネルが存在しない場合
             sw_info = ChannelSwitchInfo(port_no, cid)
-            self.channel_info[(mc_addr, serv_ip)] = {data_path: sw_info}
-            logger.debug("added self.channel_info : %s" % self.channel_info) 
+            self.channel_info[(mc_addr, serv_ip)] = {detapathid: sw_info}
+            logger.debug("added self.channel_info : %s",
+                         self.get_channel_info())
             # エッジSW、収容SW両方へのFlowMod、およびエッジルータへのReport
             return mld_const.CON_REPLY_ADD_FLOW_MOD_AND_PACKET_OUT
 
         # 当該チャンネルが既に存在する場合
         # DataPath存在チェック
         sw_info = self.channel_info[(mc_addr, serv_ip)]
-        if data_path not in sw_info:
+        if detapathid not in sw_info:
             new_sw_info = ChannelSwitchInfo(port_no, cid)
-            sw_info[data_path] = new_sw_info
-            logger.debug("added self.channel_info : %s" % self.channel_info) 
+            sw_info[detapathid] = new_sw_info
+            logger.debug("added self.channel_info : %s",
+                         self.get_channel_info())
             # 収容SWへのFlowMod
             return mld_const.CON_REPLY_ADD_FLOW_MOD
 
         # 当該チャンネルにこの収容SWの情報がある場合
-        ch_sw_info = sw_info[data_path]  # ChannelSwitchInfoクラスのインスタンス
-        logger.debug("added self.channel_info : %s" % self.channel_info) 
-        return ch_sw_info.add_info(port_no, cid)
+        ch_sw_info = sw_info[detapathid]  # ChannelSwitchInfoクラスのインスタンス
+        ret = ch_sw_info.add_sw_info(port_no, cid)
+        logger.debug("added self.channel_info : %s",
+                     self.get_channel_info())
+        return ret
 
-    def remove_info(self, mc_addr, serv_ip, data_path, port_no, cid):
+    def remove_ch_info(self, mc_addr, serv_ip, detapathid, port_no, cid):
         logger.debug(
-            "mc_addr, serv_ip, data_path, port_no, cid : %s, %s, %s, %s, %s" % 
-            (mc_addr, serv_ip, str(data_path), str(port_no), str(cid)))
-        logger.debug("self.channel_info : %s" % self.channel_info)
+            "mc_addr, serv_ip, detapathid, port_no, cid : %s, %s, %s, %s, %s",
+             mc_addr, serv_ip, str(detapathid), str(port_no), str(cid))
+        logger.debug("self.channel_info : %s", self.get_channel_info())
         """
           視聴端末を削除。さらに、
             1. 当該sw、当該ポートの視聴ユーザが0になった場合、
@@ -86,49 +91,62 @@ class ChannelInfo(BaseInfo):
         # チャンネルおよびDataPath存在チェック
         # 存在しなければ何もしない
         if (mc_addr, serv_ip) not in self.channel_info \
-            or data_path not in self.channel_info[(mc_addr, serv_ip)]:
-                logger.debug("remove target is nothing.")
-                # FlowModの必要なし
-                return mld_const.CON_REPLY_NOTHING
+                or detapathid not in self.channel_info[(mc_addr, serv_ip)]:
+            logger.debug("remove target is nothing.")
+            # FlowModの必要なし
+            return mld_const.CON_REPLY_NOTHING
 
         # 存在する場合
-        ch_sw_info = self.channel_info[(mc_addr, serv_ip)][data_path]
-        ret = ch_sw_info.remove_info(port_no, cid)
+        ch_sw_info = self.channel_info[(mc_addr, serv_ip)][detapathid]
+        ret = ch_sw_info.remove_sw_info(port_no, cid)
         if ret == mld_const.CON_REPLY_DEL_FLOW_MOD \
-            and len(ch_sw_info.port_info.keys()) == 0:
+                and len(ch_sw_info.port_info.keys()) == 0:
 
             # 当該SWの視聴ユーザが0の場合、DataPathに対応する情報を削除する
-            self.channel_info[(mc_addr, serv_ip)].pop(data_path)
-            logger.debug("removed datapath : %s" % data_path) 
-            logger.debug("removed self.channel_info[(mc_addr, serv_ip)] : %s" 
-                   % self.channel_info[(mc_addr, serv_ip)]) 
-            
+            self.channel_info[(mc_addr, serv_ip)].pop(detapathid)
+            logger.debug("removed datapath : %s",  detapathid)
+
             if len(self.channel_info[(mc_addr, serv_ip)]) == 0:
                 # 当該mcグループの視聴ユーザが0の場合、mcグループに対応する情報を削除する
                 self.channel_info.pop((mc_addr, serv_ip))
                 ret = mld_const.CON_REPLY_DEL_FLOW_MOD_AND_PACKET_OUT
 
-        logger.debug("removed self.channel_info : %s" % self.channel_info) 
+        logger.debug("removed self.channel_info : %s",
+                     self.get_channel_info())
         return ret
+
+    def get_channel_info(self):
+        info = "\n"
+        for key in self.channel_info.keys():
+            info += "multicast address : (%s, %s)\n" % (key[0], key[1])
+            info += "switches : [\n"
+            switch_info = self.channel_info[key]
+            for datapath in switch_info.keys():
+                info += "  datapath : %s\n" % datapath
+                info += "  ports : [\n"
+                sw_info = switch_info[datapath]
+                info += sw_info.get_switch_info()
+            info += "]"
+
+#        logger.debug(info)
+        return info
 
 
 class ChannelSwitchInfo(BaseInfo):
-    def __init__(self, port_no, cid):
+    def __init__(self, port_no=None, cid=None):
         logger.debug("")
         self.port_info = {}
-        """
-        if cid != -1:
-            self.port_info[port_no] = [ChnnelUserInfo(cid, time.time())]
-        """
+        if not port_no == None and not cid == None:
+            self.port_info[port_no] = [ChannelUserInfo(cid, time.time())]
 
-    def add_info(self, port_no, cid):
-        logger.debug("port_no, cid : %s, %s" % (str(port_no), str(cid)))
-        logger.debug("self.port_info : %s" % self.port_info)
+    def add_sw_info(self, port_no, cid):
+        logger.debug("port_no, cid : %s, %s", str(port_no), str(cid))
+        logger.debug("self.port_info : %s", self.get_switch_info())
         # port_infoにユーザ情報を追加
         if port_no not in self.port_info:
             # 当該ポートに視聴ユーザが存在しない場合
-            self.port_info[port_no] = [ChnnelUserInfo(cid, time.time())]
-            logger.debug("added self.port_info : %s" % self.port_info)
+            self.port_info[port_no] = [ChannelUserInfo(cid, time.time())]
+            logger.debug("added self.port_info : %s", self.get_switch_info())
             # 収容SWへのFlowMod
             return mld_const.CON_REPLY_ADD_FLOW_MOD
         else:
@@ -136,28 +154,29 @@ class ChannelSwitchInfo(BaseInfo):
             # 当該CIDが存在しない場合はCIDを追加
             # ソートを維持して挿入しておく(探索時にbinary searchを使いたい)
             user_list = self.port_info[port_no]
-            cid_list = [cid for cid in user_list.keys()]
+            cid_list = [user.cid for user in user_list]
             if self.find(cid_list, cid) == -1:
                 # CIDの追加
-                self.port_info[port_no].appned(
-                    ChnnelUserInfo(cid, time.time()))
-                """ TODO オブジェクトに対し使用できるか確認
+                self.port_info[port_no].append(
+                    ChannelUserInfo(cid, time.time()))
+                # TODO オブジェクトに対し使用できるか確認
+                """
                 pos = bisect.bisect(cid_list, cid)
                 bisect.insort(cid_list, cid)
                 """
-            # Todo: 既にCIDが存在する場合に無視する処理でよいか精査
+            # TODO: 既にCIDが存在する場合に無視する処理でよいか精査
             # FlowMod必要なし
             return mld_const.CON_REPLY_NOTHING
 
-    def remove_info(self, port_no, cid):
-        logger.debug("%s, %s" % (str(port_no), str(cid)))
-        logger.debug("self.port_info : %s" % self.port_info)
+    def remove_sw_info(self, port_no, cid):
+        logger.debug("%s, %s", str(port_no), str(cid))
+        logger.debug("self.port_info : %s", self.get_switch_info())
         # port_infoから当該ユーザ情報を検索し削除
         # ch_infoを更新
         #   当該chを視聴しているユーザがいなくなった場合
         if port_no not in self.port_info:
             # 当該ポートにユーザがそもそも存在しない場合
-            # 何もせず抜ける Todo: 本当にそれでよいか精査
+            # 何もせず抜ける TODO: 本当にそれでよいか精査
             # FlowMod必要なし
             return mld_const.CON_REPLY_NOTHING
 
@@ -165,10 +184,11 @@ class ChannelSwitchInfo(BaseInfo):
         # cidを探索し、存在すれば削除
         # ユーザが0になればポート情報も削除
         user_list = self.port_info[port_no]
-        cid_list = [cid for cid in user_list.keys()]
+        cid_list = [user.cid for user in user_list]
+        logger.debug("cid_list : %s", str(cid_list))
         idx = self.find(cid_list, cid)
         if idx == -1:
-            # 指定されたCIDが存在しなければ何もせず抜ける Todo: 本当にそれでよいか精査
+            # 指定されたCIDが存在しなければ何もせず抜ける TODO: 本当にそれでよいか精査
             logger.debug("remove target is nothing.")
             # FlowMod必要なし
             return mld_const.CON_REPLY_NOTHING
@@ -176,8 +196,9 @@ class ChannelSwitchInfo(BaseInfo):
         user_list.pop(idx)
         if len(user_list) == 0:
             self.port_info.pop(port_no)
-            logger.debug("removed self.port_info : %s" % self.port_info)
-            logger.debug("removed cid_list : %s, return 1" % cid_list)
+            logger.debug("removed self.port_info : %s",
+                         self.get_switch_info())
+            logger.debug("removed cid_list : %s, return 1", cid_list)
             # 収容SWへのFlowModが必要
             return mld_const.CON_REPLY_DEL_FLOW_MOD
         else:
@@ -187,7 +208,7 @@ class ChannelSwitchInfo(BaseInfo):
     """
     ソート済み配列からキー値を探索
     arrayはソート済みであること
-    Todo: 共通クラスに移動すべきか検討
+    TODO: 共通クラスに移動すべきか検討
     """
     def find(self, array, value):
         logger.debug("")
@@ -196,24 +217,75 @@ class ChannelSwitchInfo(BaseInfo):
             return idx
         return -1
 
+    def get_switch_info(self):
+        info = ""
+        for port in self.port_info.keys():
+            info += "    port : %s\n" % port
+            info += "    users : [\n"
+            user_info = self.port_info[port]
+            for ch_user_info in user_info:
+                info += ch_user_info.get_user_info()
+        info += "  ]\n"
+        return info
 
 class ChannelUserInfo(BaseInfo):
     def __init__(self, cid, time):
         logger.debug("")
         self.cid = cid
         self.time = time
+        logger.debug("created user_info : cid:%s, time:%d", cid, time)
 
+    def get_user_info(self):
+        info = ""
+        info += "      cid  : %s\n" % self.cid
+        info += "      time : %f\n" % self.time
+        return info
+
+
+if __name__ == "__main__":
+    print "**** init"
+    ch_info = ChannelInfo()
+    print "**** <1>"
+    ch_info.add_ch_info("ff38::1:1", "2001::1:20", 1, 1, 110)
+    print
+    print "**** <1> add cid"
+    ch_info.add_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
+#    print
+#    print "**** <1> add port"
+#    ch_info.add_ch_info("ff38::1:1", "2001::1:20", 1, 2, 120)
+#    print
+#    print "**** <1> add datapath"
+#    ch_info.add_ch_info("ff38::1:1", "2001::1:20", 2, 1, 210)
+#    print
+#    print "**** <2>"
+#    ch_info.add_ch_info("ff38::1:2", "2001::1:20", 1, 1, 1110)
+#    ch_info.get_channel_info()
+#    print
+#    print "**** remove <1> cid 111"
+#    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
+#    print
+#    print "**** remove <1> datapath 2"
+#    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 2, 1, 210)
+#    print
+#    print "**** remove <1> port 1"
+#    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 1, 110)
+#    print
+#    print "**** remove <1> port 2"
+#    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 2, 120)
+#    print
+#    print "**** remove <2>"
+#    ch_info.remove_ch_info("ff38::1:2", "2001::1:20", 1, 1, 1110)
 
 """
 class DatabaseAccessor:
     def __init__(self, connect_str):
         self.client = MongoClient(connect_str)
-        # Todo: DB名、コレクション名は別途検討
+        # TODO: DB名、コレクション名は別途検討
         self.db = self.client.viewerdb
         self.col = self.db.serialized_data
 
     def insert(self, key, inserted_obj):
-        # Todo: DB上のデータ形式は別途検討
+        # TODO: DB上のデータ形式は別途検討
         dump = inserted_obj.dump_self(inserted_obj)
         self.col.update({key: dump})
 
