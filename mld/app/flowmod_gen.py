@@ -48,8 +48,8 @@ class flow_mod_generator(object):
     '''
     初期フロー
     '''
-    def initialize_flows(self, datapathid, pbb_isid, bvid):
-        return self.all_switch[datapathid].initialize_flows(pbb_isid, bvid)
+    def initialize_flows(self, datapathid, ivid, pbb_isid, bvid):
+        return self.all_switch[datapathid].initialize_flows(ivid, pbb_isid, bvid)
     
     '''
     試聴開始(初回ユーザ参加)/試聴開始(MGで初回ユーザ)
@@ -149,13 +149,11 @@ class flow_mod_gen_impl(object):
 Apresia 12000 シリーズ
 '''
 class apresia_12k(flow_mod_gen_impl):
-    
-    MDL_QUERY_VLAN_VID = 2001
-    
+
     TAG2PBB = 0xffff0001
     PBB2TAG = 0xffff0002
     
-    def initialize_flows(self, pbb_isid, bvid):
+    def initialize_flows(self, ivid, pbb_isid, bvid):
         flow_mod_datas = []
         
         datapathid = self.switch_info['datapathid']
@@ -198,7 +196,7 @@ class apresia_12k(flow_mod_gen_impl):
             table_id = 3
             priority = PRIORITY_NORMAL
             match = parser.OFPMatch(in_port=apresia_12k.TAG2PBB,
-                                    vlan_vid=apresia_12k.MDL_QUERY_VLAN_VID)
+                                    vlan_vid=ivid)
             actions = [OFPActionPopVlan(),
                        OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
                        OFPActionSetField(pbb_isid=pbb_isid),
@@ -217,7 +215,7 @@ class apresia_12k(flow_mod_gen_impl):
                 table_id = 4
                 priority = PRIORITY_NORMAL
                 match = parser.OFPMatch(in_port=self.logical_port_pbb(container_sw_port),
-                                        vlan_vid=apresia_12k.MDL_QUERY_VLAN_VID)
+                                        vlan_vid=ivid)
                 actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                                      actions)]
@@ -246,7 +244,7 @@ class apresia_12k(flow_mod_gen_impl):
             table_id = 4
             priority = PRIORITY_NORMAL
             match = parser.OFPMatch(in_port=self.logical_port_pbb(edge_switch_port),
-                                    vlan_vid=apresia_12k.MDL_QUERY_VLAN_VID)
+                                    vlan_vid=ivid)
             actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                                  actions)]
@@ -263,7 +261,7 @@ class apresia_12k(flow_mod_gen_impl):
             actions = [OFPActionPopVlan(),
                        OFPActionPopPbb(),
                        OFPActionPushVlan(ethertype=ether.ETH_TYPE_8021Q),
-                       OFPActionSetField(vlan_vid=apresia_12k.MDL_QUERY_VLAN_VID),
+                       OFPActionSetField(vlan_vid=ivid),
                        parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                                  actions)]
@@ -275,7 +273,7 @@ class apresia_12k(flow_mod_gen_impl):
                 table_id = 4
                 priority = PRIORITY_LOW
                 match = parser.OFPMatch(in_port=self.logical_port_untag(olt_port),
-                                        vlan_vid=apresia_12k.MDL_QUERY_VLAN_VID)
+                                        vlan_vid=ivid)
                 actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                                      actions)]
