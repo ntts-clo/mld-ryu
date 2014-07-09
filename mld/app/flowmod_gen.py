@@ -115,7 +115,7 @@ class flow_mod_gen_impl(object):
         self.switch_info = switch_info
     
     
-    def initialize_flows(self, pbb_isid, bvid):
+    def initialize_flows(self, ivid, pbb_isid, bvid):
         raise flow_mod_gen_excepion('Unsupported Operation')
     
     
@@ -153,18 +153,21 @@ class apresia_12k(flow_mod_gen_impl):
     TAG2PBB = 0xffff0001
     PBB2TAG = 0xffff0002
     
+    def __init__(self, switch_info):
+        super(apresia_12k, self).__init__(switch_info)
+
     def initialize_flows(self, ivid, pbb_isid, bvid):
         flow_mod_datas = []
         
         datapathid = self.switch_info['datapathid']
         
         if self.switch_info['sw_name'] == 'esw':
-            
+
             edge_router_port = self.switch_info['edge_router_port']
-            mld_port = self.self.switch_info['mld_port']
+            mld_port = self.switch_info['mld_port']
             container_sw_ports = self.switch_info['container_sw_ports']
-                        
-            
+  
+  
             # table 0 エッジルータ(in_port=物理ポート2)からのMLD QueryのパケットIN
             table_id = 0
             priority = PRIORITY_NORMAL
@@ -281,6 +284,160 @@ class apresia_12k(flow_mod_gen_impl):
                                         match=match, instructions=inst))
         
         return flow_mod_datas
+
+    def start_mg_edge(self, multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas):
+
+        edge_router_port = self.switch_info['edge_router_port']
+        container_sw_ports = self.switch_info['container_sw_ports']
+        
+        table_id = 2 
+        priority = PRIORITY_NORMAL
+        match = parser.OFPMatch(in_port=edge_router_port,
+                                # IPマルチキャスト一時内部VIDは省略
+                                eth_type=ether.ETH_TYPE_IPV6,
+                                ipv6_dst=multicast_address)
+        actions = [OFPActionSetField(vlan_vid=ivid),
+                   parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                             actions)]
+        flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
+                                            match=match, instructions=inst))
+        table_id = 3
+        priority = PRIORITY_NORMAL
+        match = parser.OFPMatch(in_port=apresia_12k.TAG2PBB,
+                                pbb_isid=ivid)
+        actions = [OFPActionPopVlan(),
+                   OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
+                   OFPActionSetField(vlan_vid=apresia_12k.MDL_QUERY_VLAN_VID),
+                   OFPActionSetField(pbb_isid=pbb_isid),
+                   OFPActionSetField(eth_dst='00:00:00:00:00:00'),
+                   OFPActionSetField(eth_src=self.switch_info['sw_bmac']),
+                   OFPActionPushVlan(ethertype=ether.ETH_TYPE_8021AD),
+                   OFPActionSetField(vlan_vid=bvid),
+                   parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                             actions)]
+        flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
+                                            match=match, instructions=inst))        
+                
+        for container_sw_port in container_sw_ports:
+            table_id = 4
+            priority = PRIORITY_NORMAL
+            match = parser.OFPMatch(in_port=self.logical_port_pbb(container_sw_port),
+                                    vlan_vid=ivid)
+            actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                                 actions)]
+            flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
+                                                match=match, instructions=inst))
+            
+        return flow_mod_datas
+
+    def add_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas):
+        raise flow_mod_gen_excepion('Unsupported Operation')
+    
+    def remove_mg_edge(self, multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas):
+        
+        edge_router_port = self.switch_info['edge_router_port']
+        container_sw_ports = self.switch_info['container_sw_ports']
+        
+        table_id = 2 
+        priority = PRIORITY_NORMAL
+        match = parser.OFPMatch(in_port=edge_router_port,
+                                # IPマルチキャスト一時内部VIDは省略
+                                eth_type=ether.ETH_TYPE_IPV6,
+                                ipv6_dst=multicast_address)
+        inst = []
+        flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
+                                            match=match, instructions=inst))
+        table_id = 3
+        priority = PRIORITY_NORMAL
+        match = parser.OFPMatch(in_port=apresia_12k.TAG2PBB,
+                                pbb_isid=ivid)
+        actions = [OFPActionPopVlan(),
+                   OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
+                   OFPActionSetField(vlan_vid=apresia_12k.MDL_QUERY_VLAN_VID),
+                   OFPActionSetField(pbb_isid=pbb_isid),
+                   OFPActionSetField(eth_dst='00:00:00:00:00:00'),
+                   OFPActionSetField(eth_src=self.switch_info['sw_bmac']),
+                   OFPActionPushVlan(ethertype=ether.ETH_TYPE_8021AD),
+                   OFPActionSetField(vlan_vid=bvid),
+                   parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                             actions)]
+        flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
+                                            match=match, instructions=inst))        
+                
+        for container_sw_port in container_sw_ports:
+            table_id = 4
+            priority = PRIORITY_NORMAL
+            match = parser.OFPMatch(in_port=self.logical_port_pbb(container_sw_port),
+                                    vlan_vid=ivid)
+            actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                                 actions)]
+            flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
+                                                match=match, instructions=inst))
+            
+        return flow_mod_datas
+    
+    def remove_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas):
+        raise flow_mod_gen_excepion('Unsupported Operation')
+
+
+    def start_mg_container(self, datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas):
+        
+        edge_switch_port = self.switch_info['edge_switch_port']
+        olt_ports = self.switch_info['olt_ports']
+        
+        table_id = 4
+        priority = PRIORITY_NORMAL
+        match = parser.OFPMatch(in_port=self.logical_port_pbb(edge_switch_port),
+                                vlan_vid=ivid)
+        actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                             actions)]
+        flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
+                                            match=match, instructions=inst))
+        
+        table_id = 3
+        priority = PRIORITY_NORMAL
+        match = parser.OFPMatch(in_port=apresia_12k.PBB2TAG,
+                                vlan_id=bvid,
+                                eth_type=ether.ETH_TYPE_8021AH,
+                                pbb_isid=pbb_isid,
+                                eth_dst=self.switch_info['sw_bmac'])
+        actions = [OFPActionPopVlan(),
+                   OFPActionPopPbb(),
+                   OFPActionPushVlan(ethertype=ether.ETH_TYPE_8021Q),
+                   OFPActionSetField(vlan_vid=ivid),
+                   parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                             actions)]
+        flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
+                                            match=match, instructions=inst))
+        
+        for olt_port in olt_ports:
+            table_id = 4
+            priority = PRIORITY_LOW
+            match = parser.OFPMatch(in_port=self.logical_port_untag(olt_port),
+                                    vlan_vid=ivid)
+            actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                                 actions)]
+            flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
+                                                match=match, instructions=inst))
+        
+        return flow_mod_datas
+    
+    def add_port_container(self, datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas):
+        raise flow_mod_gen_excepion('Unsupported Operation')
+
+    def remove_mg_container(self, datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas):
+        raise flow_mod_gen_excepion('Unsupported Operation')
+
+    def remove_port_container(self, datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas):
+        raise flow_mod_gen_excepion('Unsupported Operation')
 
     def logical_port_untag(self, portno):
         return 0x00000000 | portno
