@@ -115,7 +115,7 @@ class flow_mod_gen_impl(object):
         self.switch_info = switch_info
     
     
-    def initialize_flows(self, pbb_isid, bvid):
+    def initialize_flows(self, ivid, pbb_isid, bvid):
         raise flow_mod_gen_excepion('Unsupported Operation')
     
     
@@ -153,18 +153,21 @@ class apresia_12k(flow_mod_gen_impl):
     TAG2PBB = 0xffff0001
     PBB2TAG = 0xffff0002
     
+    def __init__(self, switch_info):
+        super(apresia_12k, self).__init__(switch_info)
+
     def initialize_flows(self, ivid, pbb_isid, bvid):
         flow_mod_datas = []
         
         datapathid = self.switch_info['datapathid']
         
         if self.switch_info['sw_name'] == 'esw':
-            
+
             edge_router_port = self.switch_info['edge_router_port']
-            mld_port = self.self.switch_info['mld_port']
+            mld_port = self.switch_info['mld_port']
             container_sw_ports = self.switch_info['container_sw_ports']
-                        
-            
+  
+  
             # table 0 エッジルータ(in_port=物理ポート2)からのMLD QueryのパケットIN
             table_id = 0
             priority = PRIORITY_NORMAL
