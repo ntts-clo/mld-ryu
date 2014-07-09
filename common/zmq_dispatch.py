@@ -48,4 +48,3 @@ class flow_mod_data(object):
         self.priority = priority
         self.match = match
         self.instructions = instructions
-
