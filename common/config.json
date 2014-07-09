@@ -1,16 +1,20 @@
 {
     "settings" : {
-        "_comment"    : "ベストエフォートサービスか品質保証サービスか。BE or QA(QualityAssurance)",
-        "service_type": "BE",
         "_comment"           : "定期送信クエリのタイプ。GQ(GeneralQuery) or SQ(SpecificQuery)",
         "reguraly_query_type": "SQ",
         "_comment"               : "定期送信クエリの送信間隔",
         "reguraly_query_interval": 125,
+        "_comment"         : "マルチキャストアドレス毎の送信待ち間隔（reguraly_query_interval以下であること）",
+        "mc_query_interval": 10,
+        "_comment": "MLD処理部で定期Query、代理応答のReport生成時に使用するカスタマータグのID",
+        "c_tag_id": 200,
+        "_comment"     : "視聴ユーザーのタイムアウト時間",
+        "user_time_out": 250,
         "_comment"       : "ソケットのタイムアウト時間",
         "socket_time_out": 1000,
         "_comment" : "IPCのURL",
-        "ipc_url": "ipc://",
-        "_comment" : "IPCのテンポラリファイルPATH",
+        "ipc_url"  : "ipc://",
+        "_comment"   : "IPCのテンポラリファイルPATH",
         "ipc_ryu-mld": "/tmp/feeds/ryu-mld",
         "ipc_mld-ryu": "/tmp/feeds/mld-ryu"
     }
