@@ -37,7 +37,7 @@ class dispatch():
 '''
 FlowModの転送用データクラス
 '''
-class FlowModData(object):
+class flow_mod_data(object):
 
     def __init__(self, datapathid, command=ofproto_v1_3.OFPFC_ADD, table_id, priority, match, instructions):
         logger.debug("")
@@ -48,4 +48,3 @@ class FlowModData(object):
         self.priority = priority
         self.match = match
         self.instructions = instructions
-
