@@ -12,19 +12,19 @@ import mld_const
 # from pymongo import MongoClient
 
 logging.config.fileConfig("../../common/logconf.ini")
-# logger = logging.getLogger("ChannelInfo")
+# logger = logging.getLogger("channel_info")
 logger = logging.getLogger(__name__)
 
 
-class BaseInfo():
+class base_info():
     def dump_self(self):
         return cPickle.dumps(self)
 
 
-class ChannelInfo(BaseInfo):
+class channel_info(base_info):
     def __init__(self):
         logger.debug("")
-        # {["FF38::1:1", "2001:1::20"]: {"datapath1":ChannelSwitchInfoのインスタンス, ... } という形
+        # {["FF38::1:1", "2001:1::20"]: {"datapath1":channel_switch_infoのインスタンス, ... } という形
         self.channel_info = {}
 #        self.accessor = DatabaseAccessor()
 
@@ -40,36 +40,39 @@ class ChannelInfo(BaseInfo):
                また、エッジSWおよび収容SWへFlowMod
             2. ch視聴ユーザが当該swの当該ポートにおける最初の視聴ユーザだった場合
                (他ポートには既存ユーザがいる)、収容SWへFlowMod
-          FlowModは本関数の戻り値で返す？本関数内で送信までやりたくない。もっといえば
-          FlowModの組み立ても本関数外でやりたい。BEサービスか品質保証かの判定も外で。
         """
 
         # チャンネル存在チェック
         if (mc_addr, serv_ip) not in self.channel_info:
             # 当該チャンネルが存在しない場合
-            sw_info = ChannelSwitchInfo(port_no, cid)
+            sw_info = channel_switch_info(port_no, cid)
             self.channel_info[(mc_addr, serv_ip)] = {detapathid: sw_info}
             logger.debug("added self.channel_info : %s",
                          self.get_channel_info())
+            user_info = sw_info[detapathid][port_no][0]
             # エッジSW、収容SW両方へのFlowMod、およびエッジルータへのReport
-            return mld_const.CON_REPLY_ADD_FLOW_MOD_AND_PACKET_OUT
+            return mld_const.CON_REPLY_ADD_MC_GROUP
 
         # 当該チャンネルが既に存在する場合
         # DataPath存在チェック
         sw_info = self.channel_info[(mc_addr, serv_ip)]
         if detapathid not in sw_info:
-            new_sw_info = ChannelSwitchInfo(port_no, cid)
+            new_sw_info = channel_switch_info(port_no, cid)
             sw_info[detapathid] = new_sw_info
             logger.debug("added self.channel_info : %s",
                          self.get_channel_info())
+            user_info = new_sw_info[detapathid][port_no][0]
             # 収容SWへのFlowMod
-            return mld_const.CON_REPLY_ADD_FLOW_MOD
+            return mld_const.CON_REPLY_ADD_SWITCH
 
         # 当該チャンネルにこの収容SWの情報がある場合
-        ch_sw_info = sw_info[detapathid]  # ChannelSwitchInfoクラスのインスタンス
+        ch_sw_info = sw_info[detapathid]  # channel_switch_infoクラスのインスタンス
         ret = ch_sw_info.add_sw_info(port_no, cid)
         logger.debug("added self.channel_info : %s",
                      self.get_channel_info())
+        user_info_list = ch_sw_info[port_no]
+        for user_info in user_info_list:
+            if cid == user_info.cid:
         return ret
 
     def remove_ch_info(self, mc_addr, serv_ip, detapathid, port_no, cid):
@@ -84,8 +87,6 @@ class ChannelInfo(BaseInfo):
             2. 当該swの視聴ユーザが0になった場合
                エッジSW、収容SWへFlowMod
                エッジルータへReport(BLOCK_OLD_SOURCES)を投げる
-          FlowModは本関数の戻り値で返す？本関数内で送信までやりたくない。もっといえば
-          FlowModの組み立ても本関数外でやりたい。BEサービスか品質保証かの判定も外で。
         """
 
         # チャンネルおよびDataPath存在チェック
@@ -99,21 +100,34 @@ class ChannelInfo(BaseInfo):
         # 存在する場合
         ch_sw_info = self.channel_info[(mc_addr, serv_ip)][detapathid]
         ret = ch_sw_info.remove_sw_info(port_no, cid)
-        if ret == mld_const.CON_REPLY_DEL_FLOW_MOD \
+        if ret == mld_const.CON_REPLY_DEL_PORT \
                 and len(ch_sw_info.port_info.keys()) == 0:
 
             # 当該SWの視聴ユーザが0の場合、DataPathに対応する情報を削除する
             self.channel_info[(mc_addr, serv_ip)].pop(detapathid)
             logger.debug("removed datapath : %s",  detapathid)
+            ret = mld_const.CON_DEL_SWITCH
 
             if len(self.channel_info[(mc_addr, serv_ip)]) == 0:
                 # 当該mcグループの視聴ユーザが0の場合、mcグループに対応する情報を削除する
                 self.channel_info.pop((mc_addr, serv_ip))
-                ret = mld_const.CON_REPLY_DEL_FLOW_MOD_AND_PACKET_OUT
+                ret = mld_const.CON_REPLY_DEL_MC_GROUP
 
         logger.debug("removed self.channel_info : %s",
                      self.get_channel_info())
         return ret
+
+    def exsits_user(self, mc_addr, serv_ip, detapathid, port_no, cid):
+        logger.debug("")
+        if (mc_addr, serv_ip) in self.channel_info:
+            sw_info = self.channel_info[(mc_addr, serv_ip)]
+            if detapathid in sw_info:
+                port_info = sw_info[detapathid]
+                if port_no in port_info:
+                    user_list = port_info[port_no]
+                    if cid in [user.cid for user in user_list]:
+                        return True
+        return False
 
     def get_channel_info(self):
         info = "{\n"
@@ -132,12 +146,12 @@ class ChannelInfo(BaseInfo):
         return info
 
 
-class ChannelSwitchInfo(BaseInfo):
+class channel_switch_info(base_info):
     def __init__(self, port_no=None, cid=None):
         logger.debug("")
         self.port_info = {}
         if not port_no == None and not cid == None:
-            self.port_info[port_no] = [ChannelUserInfo(cid, time.time())]
+            self.port_info[port_no] = [channel_user_info(cid, time.time())]
 
     def add_sw_info(self, port_no, cid):
         logger.debug("port_no, cid : %s, %s", str(port_no), str(cid))
@@ -145,10 +159,10 @@ class ChannelSwitchInfo(BaseInfo):
         # port_infoにユーザ情報を追加
         if port_no not in self.port_info:
             # 当該ポートに視聴ユーザが存在しない場合
-            self.port_info[port_no] = [ChannelUserInfo(cid, time.time())]
+            self.port_info[port_no] = [channel_user_info(cid, time.time())]
             logger.debug("added self.port_info : %s", self.get_switch_info())
             # 収容SWへのFlowMod
-            return mld_const.CON_REPLY_ADD_FLOW_MOD
+            return mld_const.CON_REPLY_ADD_PORT
         else:
             # 当該ポートに視聴ユーザが存在する場合
             # 当該CIDが存在しない場合はCIDを追加
@@ -158,7 +172,7 @@ class ChannelSwitchInfo(BaseInfo):
             if self.find(cid_list, cid) == -1:
                 # CIDの追加
                 self.port_info[port_no].append(
-                    ChannelUserInfo(cid, time.time()))
+                    channel_user_info(cid, time.time()))
                 # TODO オブジェクトに対し使用できるか確認
                 """
                 pos = bisect.bisect(cid_list, cid)
@@ -200,7 +214,7 @@ class ChannelSwitchInfo(BaseInfo):
                          self.get_switch_info())
             logger.debug("removed cid_list : %s, return 1", cid_list)
             # 収容SWへのFlowModが必要
-            return mld_const.CON_REPLY_DEL_FLOW_MOD
+            return mld_const.CON_REPLY_DEL_PORT
         else:
             # FlowMod必要なし
             return mld_const.CON_REPLY_NOTHING
@@ -228,7 +242,7 @@ class ChannelSwitchInfo(BaseInfo):
         info += "    ]\n"
         return info
 
-class ChannelUserInfo(BaseInfo):
+class channel_user_info(base_info):
     def __init__(self, cid, time):
         logger.debug("")
         self.cid = cid
@@ -244,7 +258,7 @@ class ChannelUserInfo(BaseInfo):
 
 if __name__ == "__main__":
     print "**** init"
-    ch_info = ChannelInfo()
+    ch_info = channel_info()
     print "**** <1>"
     ch_info.add_ch_info("ff38::1:1", "2001::1:20", 1, 1, 110)
     print
