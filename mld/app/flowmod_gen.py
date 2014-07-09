@@ -213,7 +213,7 @@ class apresia_12k(flow_mod_gen_impl):
                                     match=match, instructions=inst))
             
             # table 4 コントローラからのMLD Queryを収容スイッチへ(PBB出力ポート側)
-            for container_sw_port in container_sw_ports:
+            for container_sw_port in container_sw_ports.values():
                 table_id = 4
                 priority = PRIORITY_NORMAL
                 match = parser.OFPMatch(in_port=self.logical_port_pbb(container_sw_port),
@@ -257,6 +257,7 @@ class apresia_12k(flow_mod_gen_impl):
             table_id = 3
             priority = PRIORITY_NORMAL
             match = parser.OFPMatch(in_port=apresia_12k.PBB2TAG,
+                                    # PBBデカプセル時のBVIDは省略可
                                     eth_type=ether.ETH_TYPE_8021AH,
                                     pbb_isid=pbb_isid,
                                     eth_dst=self.switch_info['sw_bmac'])
@@ -301,6 +302,7 @@ class apresia_12k(flow_mod_gen_impl):
                                              actions)]
         flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
                                             match=match, instructions=inst))
+
         table_id = 3
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=apresia_12k.TAG2PBB,
@@ -317,19 +319,18 @@ class apresia_12k(flow_mod_gen_impl):
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
         flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
-                                            match=match, instructions=inst))        
-                
-        for container_sw_port in container_sw_ports:
-            table_id = 4
-            priority = PRIORITY_NORMAL
-            match = parser.OFPMatch(in_port=self.logical_port_pbb(container_sw_port),
-                                    vlan_vid=ivid)
-            actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
-            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                            match=match, instructions=inst))
+
+        table_id = 4
+        priority = PRIORITY_NORMAL
+        match = parser.OFPMatch(in_port=self.logical_port_pbb(container_sw_ports[str(datapathid)]),
+                                vlan_vid=ivid)
+        actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                                  actions)]
-            flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
+        flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
                                                 match=match, instructions=inst))
-            
+
         return flow_mod_datas
 
     def add_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas):
@@ -387,7 +388,6 @@ class apresia_12k(flow_mod_gen_impl):
     def start_mg_container(self, datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas):
         
         edge_switch_port = self.switch_info['edge_switch_port']
-        olt_ports = self.switch_info['olt_ports']
         
         table_id = 4
         priority = PRIORITY_NORMAL
@@ -398,11 +398,11 @@ class apresia_12k(flow_mod_gen_impl):
                                              actions)]
         flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
                                             match=match, instructions=inst))
-        
+
         table_id = 3
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=apresia_12k.PBB2TAG,
-                                vlan_id=bvid,
+                                # PBBデカプセル時のBVIDは省略可
                                 eth_type=ether.ETH_TYPE_8021AH,
                                 pbb_isid=pbb_isid,
                                 eth_dst=self.switch_info['sw_bmac'])
@@ -416,17 +416,16 @@ class apresia_12k(flow_mod_gen_impl):
         flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
                                             match=match, instructions=inst))
         
-        for olt_port in olt_ports:
-            table_id = 4
-            priority = PRIORITY_LOW
-            match = parser.OFPMatch(in_port=self.logical_port_untag(olt_port),
-                                    vlan_vid=ivid)
-            actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
-            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-                                                 actions)]
-            flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
+        table_id = 4
+        priority = PRIORITY_LOW
+        match = parser.OFPMatch(in_port=self.logical_port_untag(portno),
+                                vlan_vid=ivid)
+        actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                             actions)]
+        flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
                                                 match=match, instructions=inst))
-        
+
         return flow_mod_datas
     
     def add_port_container(self, datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas):
