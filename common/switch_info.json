@@ -1,4 +1,9 @@
 {
+    "switch_init_info": {
+    	"pbb_isid": 10001,
+    	"bvid"    : 4000,
+    	"ivid"    : 2001
+    },
     "switches": [
         {
             "_comment"  : "エッジスイッチ",
