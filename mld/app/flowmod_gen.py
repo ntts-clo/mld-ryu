@@ -56,53 +56,53 @@ class flow_mod_generator(object):
     '''    
     def start_mg(self, multicast_address, datapathid, portno, ivid, pbb_isid, bvid):
         flow_mod_datas = []
-        self.edge_switch.start_mg_edge(multicast_address, datapathid, pbb_isid, bvid, flow_mod_datas)
-        self.container_switches[datapathid].start_mg_container(datapathid, portno, pbb_isid, bvid, flow_mod_datas)
+        self.edge_switch.start_mg_edge(multicast_address, datapathid, pbb_isid, ivid, bvid, flow_mod_datas)
+        self.container_switches[datapathid].start_mg_container(datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas)
         return flow_mod_datas;
     
     '''
     試聴開始(収納ポートで初回、同一収納SWにユーザ既存)
     '''  
-    def add_port(self, muticast_address, datapathid, portno, pbb_isid, bvid):
+    def add_port(self, muticast_address, datapathid, portno, ivid, pbb_isid, bvid):
         flow_mod_datas = []
-        self.container_switches[datapathid].add_port_container(datapathid, portno, pbb_isid, bvid, flow_mod_datas)
+        self.container_switches[datapathid].add_port_container(datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas)
         return flow_mod_datas;
 
     '''
     試聴開始(収納SWで初回ユーザ)
     '''
-    def add_datapath(self, multicast_address, datapathid, portno, pbb_isid, bvid):
+    def add_datapath(self, multicast_address, datapathid, portno, ivid, pbb_isid, bvid):
         flow_mod_datas = []
-        self.edge_switch.add_datapath_edge(multicast_address, datapathid, pbb_isid, bvid, flow_mod_datas)
+        self.edge_switch.add_datapath_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
         # 収容スイッチに設定するフローはstartMG時と同じ
-        self.container_switches[datapathid].start_mg_container(datapathid, portno, pbb_isid, bvid, flow_mod_datas)
+        self.container_switches[datapathid].start_mg_container(datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas)
         return flow_mod_datas;
 
     '''
     試聴終了(MGで最終ユーザ)/試聴終了(最終ユーザの離脱)
     '''
-    def remove_mg(self, multicast_address, datapathid, portno, pbb_isid, bvid):
+    def remove_mg(self, multicast_address, datapathid, portno, ivid, pbb_isid, bvid):
         flow_mod_datas = []
-        self.edge_switch.remove_mg_edge(multicast_address, datapathid, pbb_isid, bvid, flow_mod_datas)
-        self.container_switches[datapathid].remove_mg_container(datapathid, portno, pbb_isid, bvid, flow_mod_datas)
+        self.edge_switch.remove_mg_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
+        self.container_switches[datapathid].remove_mg_container(datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas)
         return flow_mod_datas;
 
     '''
     試聴終了(収納ポートで最終、同一収納SWにユーザ残存)
     '''
-    def remove_port(self, multicast_address, datapathid, portno, pbb_isid, bvid):
+    def remove_port(self, multicast_address, datapathid, portno, ivid, pbb_isid, bvid):
         flow_mod_datas = []
-        self.container_switches[datapathid].remove_port_container(datapathid, portno, pbb_isid, bvid, flow_mod_datas)
+        self.container_switches[datapathid].remove_port_container(datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas)
         return flow_mod_datas;
 
     '''
     試聴終了(収納SWで最終ユーザ)
     '''  
-    def remove_datapath(self, multicast_address, datapathid, portno, pbb_isid, bvid):
+    def remove_datapath(self, multicast_address, datapathid, portno, ivid, pbb_isid, bvid):
         flow_mod_datas = []
-        self.edge_switch.remove_datapath_edge(multicast_address, datapathid, pbb_isid, bvid, flow_mod_datas)
+        self.edge_switch.remove_datapath_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
         # 収容スイッチに設定するフローはremoveMG時と同じ
-        self.container_switches[datapathid].remove_mg_container(datapathid, portno, pbb_isid, bvid, flow_mod_datas)
+        self.container_switches[datapathid].remove_mg_container(datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas)
         return flow_mod_datas;
 
 
@@ -119,29 +119,29 @@ class flow_mod_gen_impl(object):
         raise flow_mod_gen_excepion('Unsupported Operation')
     
     
-    def start_mg_edge(self, multicast_address, datapathid, pbb_isid, bvid, flow_mod_datas):
+    def start_mg_edge(self, multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_excepion('Unsupported Operation')
     
-    def add_datapath_edge(self, multicast_address, datapathid, pbb_isid, bvid, flow_mod_datas):
+    def add_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_excepion('Unsupported Operation')
     
-    def remove_mg_edge(self, multicast_address, datapathid, pbb_isid, bvid, flow_mod_datas):
+    def remove_mg_edge(self, multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_excepion('Unsupported Operation')
     
-    def remove_datapath_edge(self, multicast_address, datapathid, pbb_isid, bvid, flow_mod_datas):
+    def remove_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_excepion('Unsupported Operation')
 
 
-    def start_mg_container(self, datapathid, portno, pbb_isid, bvid, flow_mod_datas):
+    def start_mg_container(self, datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_excepion('Unsupported Operation')
     
-    def add_port_container(self, datapathid, portno, pbb_isid, bvid, flow_mod_datas):
+    def add_port_container(self, datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_excepion('Unsupported Operation')
 
-    def remove_mg_container(self, datapathid, portno, pbb_isid, bvid, flow_mod_datas):
+    def remove_mg_container(self, datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_excepion('Unsupported Operation')
 
-    def remove_port_container(self, datapathid, portno, pbb_isid, bvid, flow_mod_datas):
+    def remove_port_container(self, datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_excepion('Unsupported Operation')
 
 
@@ -197,8 +197,8 @@ class apresia_12k(flow_mod_gen_impl):
             # table 3 コントローラからのMLD Queryを収容スイッチへ(PBBカプセル化)
             table_id = 3
             priority = PRIORITY_NORMAL
-            match = parser.OFPMatch(in_port=Apresia12K.TAG2PBB,
-                                    vlan_vid=Apresia12K.MDL_QUERY_VLAN_VID)
+            match = parser.OFPMatch(in_port=apresia_12k.TAG2PBB,
+                                    vlan_vid=apresia_12k.MDL_QUERY_VLAN_VID)
             actions = [OFPActionPopVlan(),
                        OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
                        OFPActionSetField(pbb_isid=pbb_isid),
@@ -217,7 +217,7 @@ class apresia_12k(flow_mod_gen_impl):
                 table_id = 4
                 priority = PRIORITY_NORMAL
                 match = parser.OFPMatch(in_port=self.logical_port_pbb(container_sw_port),
-                                        vlan_vid=Apresia12K.MDL_QUERY_VLAN_VID)
+                                        vlan_vid=apresia_12k.MDL_QUERY_VLAN_VID)
                 actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                                      actions)]
@@ -246,7 +246,7 @@ class apresia_12k(flow_mod_gen_impl):
             table_id = 4
             priority = PRIORITY_NORMAL
             match = parser.OFPMatch(in_port=self.logical_port_pbb(edge_switch_port),
-                                    vlan_vid=Apresia12K.MDL_QUERY_VLAN_VID)
+                                    vlan_vid=apresia_12k.MDL_QUERY_VLAN_VID)
             actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                                  actions)]
@@ -256,14 +256,14 @@ class apresia_12k(flow_mod_gen_impl):
             # table 3 エッジスイッチ(PBB)からのMLD Queryを端末(OLT)へ(PBBデカプセル化)
             table_id = 3
             priority = PRIORITY_NORMAL
-            match = parser.OFPMatch(in_port=Apresia12K.PBB2TAG,
+            match = parser.OFPMatch(in_port=apresia_12k.PBB2TAG,
                                     eth_type=ether.ETH_TYPE_8021AH,
                                     pbb_isid=pbb_isid,
                                     eth_dst=self.switch_info['sw_bmac'])
             actions = [OFPActionPopVlan(),
                        OFPActionPopPbb(),
                        OFPActionPushVlan(ethertype=ether.ETH_TYPE_8021Q),
-                       OFPActionSetField(vlan_vid=Apresia12K.MDL_QUERY_VLAN_VID),
+                       OFPActionSetField(vlan_vid=apresia_12k.MDL_QUERY_VLAN_VID),
                        parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                                  actions)]
@@ -275,7 +275,7 @@ class apresia_12k(flow_mod_gen_impl):
                 table_id = 4
                 priority = PRIORITY_LOW
                 match = parser.OFPMatch(in_port=self.logical_port_untag(olt_port),
-                                        vlan_vid=Apresia12K.MDL_QUERY_VLAN_VID)
+                                        vlan_vid=apresia_12k.MDL_QUERY_VLAN_VID)
                 actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                                      actions)]
