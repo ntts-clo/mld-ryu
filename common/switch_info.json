@@ -16,7 +16,10 @@
             "_comment"  : "MLD処理部との接続ポート",
             "mld_port"  : 1,
             "_comment"  : "収容スイッチとの接続ポート",
-            "container_sw_ports" :  [49, 50]
+            "container_sw_ports": {
+                "2": 49,
+                "3": 50
+            }
         },
         {
             "_comment"  : "収容スイッチ1",
