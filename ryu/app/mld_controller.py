@@ -13,7 +13,7 @@ from eventlet import patcher
 import logging
 import os
 os.sys.path.append("../../common")
-from zmq_dispatch import dispatch
+from zmq_dispatch import dispatch, flow_mod_data
 from read_json import read_json
 import mld_const
 
@@ -91,43 +91,81 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         dispatch = recvpkt.dispatch
         self.logger.debug("ryu received dispatch : %s \n", str(dispatch))
 
-        datapathid = dispatch["datapathid"]
+        # CHECK dispatch[type_]
+        if dispatch["type_"] == mld_const.CON_FLOW_MOD:
+            flowmodlist = dispatch["data"]
+            self.logger.debug("FLOW_MOD[data] : %s \n", dispatch["data"])
 
+            for flowmoddata in flowmodlist:
+                # flowmoddata["datapathid"]に紐付くmsgbaseを取得する
+                ### TODO Debug mld_processの修正が完了したタイミングでflowmoddata["datapathid"]を実装する
+                #msgbase = self.get_msgbase(flowmoddata["datapathid"])
+                msgbase = self.get_msgbase(dispatch["datapathid"])
+                if msgbase == None:
+                    return
+
+                # FLOW_MOD生成
+                flowmod = self.create_flow_mod(msgbase.datapath,
+                                               flowmoddata)
+
+                # FLOW_MOD送信
+                self.send_msg_to_flowmod(msgbase, flowmod)
+
+                # BARRIER_REQUEST送信
+                result = self.send_msg_to_barrier_request(msgbase)
+                self.logger.debug("Barrier_Request[xid] : %s \n ", result)
+
+        elif dispatch["type_"] == mld_const.CON_PACKET_OUT:
+            # dispatch["datapathid"]に紐付くmsgbaseを取得する
+            msgbase = self.get_msgbase(dispatch["datapathid"])
+            if msgbase == None:
+                return
+
+            recvpkt = dispatch["data"]
+            self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt.data)
+            # PACKET_OUT送信
+            self.send_msg_to_packetout(msgbase.datapath, recvpkt)
+
+        else:
+            self.logger.info("dispatch[type_] = Not exist(%s) \n",
+                             dispatch["type_"])
+            return
+
+    # =========================================================================
+    # get_msgbase
+    # =========================================================================
+    def get_msgbase(self, datapathid):
         items = self.dic_msg.items()
-        self.logger.debug("【dic_msg】 %s", items)
+        self.logger.debug("【datapathid】 : %s【dic_msg】 : %s",
+                          datapathid, items)
 
         # CHECK DICTIONARY[msg]
         if not datapathid in self.dic_msg:
             self.logger.info("DICTIONARY[datapathid] = None \n")
-            return
+            return None
         else:
-            self.msgbase = self.dic_msg[datapathid]
-            self.logger.debug("DICTIONARY[dic_msg] : %s \n", self.msgbase)
+            self.logger.debug("DICTIONARY[dic_msg] : %s \n",
+                              self.dic_msg[datapathid])
+            return self.dic_msg[datapathid]
 
-            # CHECK dispatch[type_]
-            if dispatch["type_"] == mld_const.CON_FLOW_MOD:
+    # =========================================================================
+    # create_flow_mod
+    # =========================================================================
+    def create_flow_mod(self, datapath, flowmoddata):
+        self.logger.info("")
 
-                flowmodlist = dispatch["data"]
-                self.logger.debug("FLOW_MOD[data] : %s \n", dispatch["data"])
-
-                for flowmod in flowmodlist:
-                    # FLOW_MOD送信
-                    self.send_msg_to_flowmod(self.msgbase, flowmod)
-
-                    # BARRIER_REQUEST送信
-                    result = self.send_msg_to_barrier_request(self.msgbase)
-                    self.logger.debug("Barrier_Request[xid] : %s \n ", result)
-
-            elif dispatch["type_"] == mld_const.CON_PACKET_OUT:
-                recvpkt = dispatch["data"]
-                self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt.data)
-                # PACKET_OUT送信
-                self.send_msg_to_packetout(self.dic_msg[datapathid], recvpkt)
-
-            else:
-                self.logger.info("dispatch[type_] = Not exist(%s) \n",
-                                 dispatch["type_"])
-                return
+        # Create flow mod message.
+        ofproto = datapath.ofproto
+        flowmod = datapath.ofproto_parser.OFPFlowMod(datapath, 0, 0,
+                                                      flowmoddata.table_id,
+                                                      ofproto.OFPFC_ADD, 0, 0,
+                                                      flowmoddata.priority,
+                                                      ofproto.OFPCML_NO_BUFFER,
+                                                      ofproto.OFPP_ANY,
+                                                      ofproto.OFPG_ANY, 0,
+                                                      flowmoddata.match,
+                                                      flowmoddata.instructions)
+        return flowmod
 
     # =========================================================================
     # send_to_mld
@@ -161,7 +199,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     def send_msg_to_flowmod(self, msgbase, flowmod):
         self.logger.debug("")
 
-        msgbase.datapath.send(flowmod)
+        msgbase.datapath.send_msg(flowmod)
 
         self.logger.info("sent 1 packet to FlowMod. ")
 
