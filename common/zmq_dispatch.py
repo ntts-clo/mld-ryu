@@ -39,7 +39,7 @@ FlowModの転送用データクラス
 '''
 class flow_mod_data(object):
 
-    def __init__(self, datapathid, command=ofproto_v1_3.OFPFC_ADD, table_id, priority, match, instructions):
+    def __init__(self, datapathid, table_id, priority, match, instructions, command=ofproto_v1_3.OFPFC_ADD):
         logger.debug("")
 
         self.datapathid = datapathid
