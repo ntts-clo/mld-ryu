@@ -17,7 +17,6 @@ PRIORITY_LOW = 0
 '''
 FlowModのジェネレータ
 '''
-# TODO マルチキャストアドレスと内部VIDの紐付け
 class flow_mod_generator(object):
 
     def __init__(self, switch_infos):
