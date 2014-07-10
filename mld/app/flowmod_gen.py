@@ -462,7 +462,7 @@ class apresia_12k(flow_mod_gen_impl):
                                 vlan_vid=ivid)
         flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
                                             match=match,
-                                            command=command_delete, out_port=out_port_any, out_gourp=out_group_any))
+                                            command=command_delete, out_port=out_port_any, out_group=out_group_any))
         
         return flow_mod_datas
 
