@@ -83,7 +83,7 @@ class flow_mod_generator(object):
     '''
     試聴開始(収納ポートで初回、同一収納SWにユーザ既存)
     '''  
-    def add_port(self, muticast_address, datapathid, portno, ivid, pbb_isid, bvid):
+    def add_port(self, multicast_address, datapathid, portno, ivid, pbb_isid, bvid):
         flow_mod_datas = []
         self.container_switches[datapathid].add_port_container(datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas)
         return flow_mod_datas;
