@@ -6,7 +6,7 @@
 from ryu.ofproto import ether, inet
 from ryu.ofproto import ofproto_v1_3
 from ryu.ofproto import ofproto_v1_3_parser as parser
-from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan, packet
+from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan  #, packet
 from ryu.lib import hub
 from scapy import sendrecv
 from scapy import packet as scapy_packet
@@ -437,8 +437,8 @@ class mld_process():
 
                 # 視聴中のユーザーかチェック
                 if not self.ch_info.exsits_user(
-                    mc_addr=report.address, serv_ip=report.srcs[0],
-                    detapathid=target_switch, port_no=in_port, cid=cid):
+                        mc_addr=report.address, serv_ip=report.srcs[0],
+                        detapathid=target_switch, port_no=in_port, cid=cid):
 
                     # 存在しなければ追加
                     reply_type = self.ch_info.add_ch_info(
@@ -472,7 +472,7 @@ class mld_process():
                 (report.address, report.srcs[0])].keys()
             bvid_key = ":".join(map(str, listening_switch))
             for bvid_variation in self.bvid_variation:
-                bvid_key == bvid_variation["key"]:
+                if bvid_key == bvid_variation["key"]:
                     bvid = bvid_variation["bvid"]
                     break
 
@@ -614,8 +614,8 @@ class mld_process():
             self.logger.debug("waiting packet...")
             # receive of zeromq
             recvpkt = self.recv_sock.recv()
-            packet = cPickle.loads(recvpkt)
-            self.analyse_receive_packet(packet)
+#            packet = cPickle.loads(recvpkt)
+            self.analyse_receive_packet(cPickle.loads(recvpkt))
 
             self.org_thread_time.sleep(1)
 
