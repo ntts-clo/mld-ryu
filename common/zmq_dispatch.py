@@ -5,7 +5,8 @@ import logging.config
 from ryu.ofproto import ofproto_v1_3
 
 logging.config.fileConfig(
-    os.path.abspath(os.path.dirname(__file__)) + "/logconf.ini")
+    os.path.abspath(os.path.dirname(__file__)) + "/logconf.ini",
+    disable_existing_loggers = False)
 logger = logging.getLogger(__name__)
 
 

@@ -46,7 +46,8 @@ class mld_process():
 
     def __init__(self):
         # ロガーの設定
-        logging.config.fileConfig("../../common/logconf.ini")
+        logging.config.fileConfig("../../common/logconf.ini",
+                                  disable_existing_loggers = False)
         self.logger = logging.getLogger(__name__)
         self.logger.debug("")
 
