@@ -33,7 +33,7 @@ class mld_controller(app_manager.RyuApp):
     org_thread = patcher.original("threading")
     org_thread_time = patcher.original("time")
 
-    dic_msg = {}
+    dict_msg = {}
 
     def __init__(self, *args, **kwargs):
 
@@ -98,7 +98,9 @@ class mld_controller(app_manager.RyuApp):
         self.logger.debug("")
 
         dispatch = recvpkt.dispatch
+
         self.logger.debug("ryu received dispatch : %s \n", str(dispatch))
+        self.logger.debug("dict_msg : %s \n", self.dict_msg.items())
 
         # CHECK dispatch[type_]
         if dispatch["type_"] == mld_const.CON_FLOW_MOD:
@@ -106,36 +108,45 @@ class mld_controller(app_manager.RyuApp):
             self.logger.debug("FLOW_MOD[data] : %s \n", dispatch["data"])
 
             for flowmoddata in flowmodlist:
-                # flowmoddata["datapathid"]に紐付くmsgbaseを取得する
-                ### TODO Debug mld_processの修正が完了したタイミングで
-                ### flowmoddata["datapathid"]を実装する
-                #msgbase = self.get_msgbase(flowmoddata["datapathid"])
-                msgbase = self.get_msgbase(dispatch["datapathid"])
-                if msgbase == None:
-                    return False
+                self.logger.debug("[flowmoddata] : %s \n", flowmoddata)
 
-                # FLOW_MOD生成
-                flowmod = self.create_flow_mod(msgbase.datapath,
-                                               flowmoddata)
+                # CHECK dict_msg.datapathid=flowmoddata.datapathid
+                if not flowmoddata.datapathid in self.dict_msg:
+                    self.logger.info("dict_msg[datapathid:%s] = None \n",
+                                     flowmoddata.datapathid)
+                    return None
 
-                # FLOW_MOD送信
-                self.send_msg_to_flowmod(msgbase, flowmod)
+                else:
+                    # flowmoddata.datapathidに紐付くmsgbaseを取得する
+                    msgbase = self.dict_msg[flowmoddata.datapathid]
 
-                # BARRIER_REQUEST送信
-                result = self.send_msg_to_barrier_request(msgbase)
-                self.logger.debug("Barrier_Request[xid] : %s \n ", result)
+                    # FLOW_MOD生成
+                    flowmod = self.create_flow_mod(msgbase.datapath,
+                                                   flowmoddata)
+
+                    # FLOW_MOD送信
+                    self.send_msg_to_flowmod(msgbase, flowmod)
+
+                    # BARRIER_REQUEST送信
+                    result = self.send_msg_to_barrier_request(msgbase)
+                    self.logger.debug("Barrier_Request[xid] : %s \n ", result)
 
         elif dispatch["type_"] == mld_const.CON_PACKET_OUT:
-            # dispatch["datapathid"]に紐付くmsgbaseを取得する
-            msgbase = self.get_msgbase(dispatch["datapathid"])
-            if msgbase == None:
-                return False
 
-            recvpkt = dispatch["data"]
-            self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt.data)
+            # CHECK dict_msg.datapathid=dispatch["datapathid"]
+            if not dispatch["datapathid"] in self.dict_msg:
+                self.logger.info("dict_msg[datapathid:%s] = None \n",
+                                 dispatch["datapathid"])
+                return None
 
-            # PACKET_OUT送信
-            self.send_msg_to_packetout(msgbase.datapath, recvpkt)
+            else:
+                # dispatch["datapathid"]に紐付くmsgbaseを取得する
+                msgbase = self.dicf_msg[dispatch["datapathid"]]
+                recvpkt = dispatch["data"]
+                self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt.data)
+
+                # PACKET_OUT送信
+                self.send_msg_to_packetout(msgbase.datapath, recvpkt)
 
         else:
             self.logger.info("dispatch[type_] = Not exist(%s) \n",
@@ -145,22 +156,23 @@ class mld_controller(app_manager.RyuApp):
     # =========================================================================
     # get_msgbase
     # =========================================================================
+    """
     def get_msgbase(self, datapathid):
         self.logger.debug("")
 
-        self.logger.debug("【datapathid】 : %s【dic_msg】 : %s",
-                          datapathid, self.dic_msg.items())
+        self.logger.debug("【datapathid】 : %s【dict_msg】 : %s",
+                          datapathid, self.dict_msg.items())
 
         # CHECK DICTIONARY[msg]
-        if not datapathid in self.dic_msg:
+        if not datapathid in self.dict_msg:
             self.logger.info("DICTIONARY[datapathid] = None \n")
             return None
 
         else:
-            self.logger.debug("DICTIONARY[dic_msg] : %s \n",
-                              self.dic_msg[datapathid])
-            return self.dic_msg[datapathid]
-
+            self.logger.debug("DICTIONARY[dict_msg] : %s \n",
+                              self.dict_msg[datapathid])
+            return self.dict_msg[datapathid]
+    """
     # =========================================================================
     # create_flow_mod
     # =========================================================================
@@ -285,10 +297,10 @@ class mld_controller(app_manager.RyuApp):
         datapath = ev.msg.datapath
 
         # CHECK Already send
-        if not datapath.id in self.dic_msg:
+        if not datapath.id in self.dict_msg:
 
             # set msg to Dictionary
-            self.dic_msg[datapath.id] = msg
+            self.dict_msg[datapath.id] = msg
 
             dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
                                     datapathid=datapath.id)
@@ -335,7 +347,7 @@ class mld_controller(app_manager.RyuApp):
 
         # CHECK MLD TYPE
         if not pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT,
-                                    icmpv6.ICMPV6_MEMBERSHIP_QUERY]:
+                                    icmpv6.MLD_LISTENER_QUERY]:
             self.logger.debug("# check icmpv6.TYPE : %s \n",
                               str(pkt_icmpv6.type_))
             return False
