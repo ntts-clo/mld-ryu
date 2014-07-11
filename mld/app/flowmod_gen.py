@@ -81,7 +81,7 @@ class flow_mod_generator(object):
     '''
     def start_mg(self, multicast_address, datapathid, portno, ivid, pbb_isid, bvid):
         flow_mod_datas = []
-        self.edge_switch.start_mg_edge(multicast_address, datapathid, pbb_isid, ivid, bvid, flow_mod_datas)
+        self.edge_switch.start_mg_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
         self.container_switches[datapathid].start_mg_container(datapathid, portno, ivid, pbb_isid, bvid, flow_mod_datas)
         return flow_mod_datas;
 
@@ -335,7 +335,7 @@ class apresia_12k(flow_mod_gen_impl):
         table_id = 3
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=apresia_12k.TAG2PBB,
-                                pbb_isid=ivid)
+                                vlan_vid=ivid)
         actions = [OFPActionPopVlan(),
                    OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
                    OFPActionSetField(pbb_isid=pbb_isid),
@@ -371,7 +371,7 @@ class apresia_12k(flow_mod_gen_impl):
         table_id = 3
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=apresia_12k.TAG2PBB,
-                                pbb_isid=ivid)
+                                vlan_vid=ivid)
         actions = [OFPActionPopVlan(),
                    OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
                    OFPActionSetField(pbb_isid=pbb_isid),
@@ -419,7 +419,7 @@ class apresia_12k(flow_mod_gen_impl):
         table_id = 3
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=apresia_12k.TAG2PBB,
-                                pbb_isid=ivid)
+                                vlan_vid=ivid)
         flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority, match=match,
                                             command=command_delete, out_port=out_port_any, out_group=out_group_any))
 
@@ -446,7 +446,7 @@ class apresia_12k(flow_mod_gen_impl):
         table_id = 3
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=apresia_12k.TAG2PBB,
-                                pbb_isid=ivid)
+                                vlan_vid=ivid)
         actions = [OFPActionPopVlan(),
                    OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
                    OFPActionSetField(pbb_isid=pbb_isid),
