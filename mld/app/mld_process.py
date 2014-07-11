@@ -6,19 +6,20 @@
 from ryu.ofproto import ether, inet
 from ryu.ofproto import ofproto_v1_3
 from ryu.ofproto import ofproto_v1_3_parser as parser
-from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan  #, packet
+from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from ryu.lib import hub
 from scapy import sendrecv
 from scapy import packet as scapy_packet
 from eventlet import patcher
 from icmpv6_extend import icmpv6_extend
-from user_manage import channel_info
+from user_manage import channel_info, channel_user_info
 import os
 import logging
 import logging.config
 import cPickle
 import zmq
 import sys
+import time
 sys.path.append('../../common')
 from zmq_dispatch import dispatch
 from read_json import read_json
@@ -47,7 +48,7 @@ class mld_process():
     def __init__(self):
         # ロガーの設定
         logging.config.fileConfig("../../common/logconf.ini",
-                                  disable_existing_loggers = False)
+                                  disable_existing_loggers=False)
         self.logger = logging.getLogger(__name__)
         self.logger.debug("")
 
@@ -151,20 +152,22 @@ class mld_process():
         # Specific Query
         elif self.config["reguraly_query_type"] == "SQ":
             while True:
+                self.send_mldquery(self.mc_info_list,
+                                   self.config["mc_query_interval"])
                 # TODO スレッド化
-                send_thre = self.org_thread.Thread(
-                    target=mld_proc.send_mldquery, name="SendThread",
-                    args=(self.mc_info_list,
-                          self.config["mc_query_interval"]))
-                send_thre.setDaemon(True)
-                send_thre.start()
-                self.org_thread_time.sleep(1)
+#                send_thre = self.org_thread.Thread(
+#                    target=mld_proc.send_mldquery, name="SendThread",
+#                    args=(self.mc_info_list,
+#                          self.config["mc_query_interval"]))
+#                send_thre.setDaemon(True)
+#                send_thre.start()
+#                self.org_thread_time.sleep(1)
 
                 self.logger.debug("waiting %d sec...",
                                   self.config["reguraly_query_interval"])
                 hub.sleep(self.config["reguraly_query_interval"])
 
-                send_thre.kill()
+#                send_thre.kill()
 
     # ==================================================================
     # send_mldquery
@@ -293,8 +296,6 @@ class mld_process():
             pkt_icmpv6 = dispatch_["data"]
             self.logger.debug("pkt_icmpv6 : " + str(pkt_icmpv6))
 
-            self.check_user_timeout(dispatch_)
-
             # MLDv2 Query
             if pkt_icmpv6.type_ == icmpv6.MLD_LISTENER_QUERY:
                 self.logger.debug("MLDv2 Query : %s", str(pkt_icmpv6.data))
@@ -305,6 +306,9 @@ class mld_process():
                 self.logger.debug("MLDv2 Report : %s",
                                   str(pkt_icmpv6.data))
                 self.manage_user(dispatch_)
+
+            # タイムアウトチェック
+            self.check_user_timeout()
 
         else:
             self.logger.debug("received type : %s", dispatch_["type_"])
@@ -350,17 +354,38 @@ class mld_process():
     # ==================================================================
     # check_user_timeout
     # ==================================================================
-    def check_user_timeout(self, dispatch_):
+    def check_user_timeout(self):
         self.logger.debug("")
+        self.logger.debug("ch_info : \n%s", self.ch_info.get_channel_info())
+        self.logger.debug("user_info_list : \n%s",
+                          self.ch_info.get_user_info_list())
 
-        mldv2_report = dispatch_["data"].data
-        target_switch = dispatch_["datapathid"]
-        in_port = dispatch_["in_port"]
-        cid = dispatch_["cid"]
+        if self.ch_info.channel_info:
+            # 視聴情報のタイムアウト判定→オーバーしているものは削除
+            timeout = time.time() - self.config["user_time_out"]
+            self.logger.debug("timeout : %f", timeout)
 
-#        user_info_list = self.ch_info.user_info_list
+            dummy_user_info = channel_user_info("", "", 0, 0, 0, timeout)
+            idx = self.ch_info.find(
+                self.ch_info.user_info_list, dummy_user_info, True)
+            if not idx == 0:
+                for i in range(idx):
+                    del_user_info = self.ch_info.user_info_list[idx - i - 1]
+                    keys = del_user_info.user_info.keys()[0]
+                    self.ch_info.remove_ch_info(
+                        keys[0], keys[1], keys[2], keys[3], keys[4])
 
-        # TODO 視聴情報のタイムアウト判定→オーバーしているものは削除
+                    # TODO 削除後のQuery送信が必要か要確認
+
+                self.logger.debug("ch_info : \n%s",
+                                  self.ch_info.get_channel_info())
+                self.logger.debug("user_info_list : \n%s",
+                                  self.ch_info.get_user_info_list())
+            else:
+                self.logger.debug("timeout users are nothing.")
+
+        else:
+            self.logger.debug("ch_info is nothing.")
 
     # ==================================================================
     # send_reply
@@ -432,16 +457,21 @@ class mld_process():
 
                 # SpecificQueryを生成し、エッジスイッチに送信
                 mc_info = {"mc_addr": address, "serv_ip": src}
-#                self.send_mldquery([mc_info], 0)
+                self.send_mldquery([mc_info], 0)
 
             # MODE_IS_INCLUDE：視聴情報に存在するか確認
             elif report.type_ == icmpv6.MODE_IS_INCLUDE:
                 self.logger.debug("MODE_IS_INCLUDE")
 
-                # TODO 視聴情報のタイマ更新
+                # 視聴情報のタイマ更新
+                self.ch_info.update_user_info_list(
+                    mc_addr=address, serv_ip=src,
+                    datapathid=target_switch, port_no=in_port, cid=cid)
+                self.logger.debug("user_info_list : %s",
+                                  self.ch_info.get_user_info_list())
 
                 # 視聴中のユーザーかチェック
-                if not self.ch_info.exsits_user(
+                if not self.ch_info.exists_user(
                         mc_addr=address, serv_ip=src,
                         datapathid=target_switch, port_no=in_port, cid=cid):
 
@@ -521,6 +551,7 @@ class mld_process():
                         mc_address=address,
                         mc_serv_ip=src,
                         report_types=report_types)
+                        # TODO vid
                     packet = self.create_packet(
                         self.addressinfo, cid, mld_report)
                     pout = self.create_packetout(
@@ -570,6 +601,7 @@ class mld_process():
                         mc_address=address,
                         mc_serv_ip=src,
                         report_types=report_types)
+                        # TODO vid
                     packet = self.create_packet(
                         self.addressinfo, cid, mld_report)
                     pout = self.create_packetout(
@@ -633,7 +665,6 @@ class mld_process():
             self.logger.debug("waiting packet...")
             # receive of zeromq
             recvpkt = self.recv_sock.recv()
-#            packet = cPickle.loads(recvpkt)
             self.analyse_receive_packet(cPickle.loads(recvpkt))
 
             self.org_thread_time.sleep(1)
