@@ -1,24 +1,24 @@
 # coding: utf-8
 
+import os
+import cPickle
+import zmq
+import logging
+
+from ryu.base import app_manager
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet, ethernet, icmpv6, vlan
-from ryu.app import simple_switch_13
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from ryu.controller.handler import set_ev_cls
-from icmpv6_extend import icmpv6_extend
-import cPickle
-import zmq
 from eventlet import patcher
-import logging
-import os
-os.sys.path.append("../../common")
-from zmq_dispatch import dispatch, flow_mod_data
-from read_json import read_json
-import mld_const
+from common.zmq_dispatch import dispatch
+from common.zmq_dispatch import flow_mod_data
+from common.mld_const import mld_const
+from common.read_json import read_json
 
 
-class mld_controller(simple_switch_13.SimpleSwitch13):
+class mld_controller(app_manager.RyuApp):
     SOCKET_FLG = 1
 
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -29,6 +29,9 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     dic_msg = {}
 
     def __init__(self, *args, **kwargs):
+
+        # システムモジュールのソケットに対しパッチを適用
+        patcher.monkey_patch()
 
         # ログ設定ファイル読み込み
         logging.config.fileConfig("../../common/logconf.ini")
@@ -43,17 +46,18 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         self.config = config.data["settings"]
         self.SOCKET_TIME_OUT = self.config["socket_time_out"]
 
-        self.IPC = self.config["ipc_url"]
-        self.SEND_PATH = self.config["ipc_ryu-mld"]
-        self.RECV_PATH = self.config["ipc_mld-ryu"]
-        self.IPC_PATH_SEND = self.IPC + self.SEND_PATH
-        self.IPC_PATH_RECV = self.IPC + self.RECV_PATH
+        ipc = self.config["ipc_url"]
+        send_path = self.config["ipc_ryu-mld"]
+        recv_path = self.config["ipc_mld-ryu"]
 
-        # システムモジュールのソケットに対しパッチを適用
-        patcher.monkey_patch()
+        # CHECK TMP FILE(SEND)
+        self.check_exists_tmp(send_path)
+
+        # CHECK TMP FILE(RECV)
+        self.check_exists_tmp(recv_path)
 
         # ソケット生成
-        self.cretate_scoket()
+        self.cretate_scoket(ipc + send_path, ipc + recv_path)
 
         # ReceiveThread
         recv_thread = self.org_thread.Thread(
@@ -64,30 +68,28 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     # =========================================================================
     # CRETATE SCOKET
     # =========================================================================
-    def cretate_scoket(self):
-        # CHECK TMP FILE(SEND)
-        self.check_exists_tmp(self.SEND_PATH)
-
-        # CHECK TMP FILE(RECV)
-        self.check_exists_tmp(self.RECV_PATH)
+    def cretate_scoket(self, sendpath, recvpath):
+        self.logger.debug("")
 
         ctx = zmq.Context()
+
         # SEND SOCKET CREATE
         self.send_sock = ctx.socket(zmq.PUB)
-        self.send_sock.bind(self.IPC_PATH_SEND)
-        self.logger.debug("[SendSocket]IPC %s", self.IPC_PATH_SEND)
+        self.send_sock.bind(sendpath)
+        self.logger.debug("[SendSocket]IPC %s", sendpath)
 
         # RECV SOCKET CREATE
         self.recv_sock = ctx.socket(zmq.SUB) 
-        self.recv_sock.connect(self.IPC_PATH_RECV)
+        self.recv_sock.connect(recvpath)
         self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
-        self.logger.debug("[RecvSocket]IPC %s", self.IPC_PATH_RECV)
+        self.logger.debug("[RecvSocket]IPC %s", recvpath)
 
     # ==================================================================
     # analyse_receive_packet
     # ==================================================================
     def analyse_receive_packet(self, recvpkt):
         self.logger.debug("")
+
         dispatch = recvpkt.dispatch
         self.logger.debug("ryu received dispatch : %s \n", str(dispatch))
 
@@ -98,11 +100,12 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
 
             for flowmoddata in flowmodlist:
                 # flowmoddata["datapathid"]に紐付くmsgbaseを取得する
-                ### TODO Debug mld_processの修正が完了したタイミングでflowmoddata["datapathid"]を実装する
+                ### TODO Debug mld_processの修正が完了したタイミングで
+                ### flowmoddata["datapathid"]を実装する
                 #msgbase = self.get_msgbase(flowmoddata["datapathid"])
                 msgbase = self.get_msgbase(dispatch["datapathid"])
                 if msgbase == None:
-                    return
+                    return False
 
                 # FLOW_MOD生成
                 flowmod = self.create_flow_mod(msgbase.datapath,
@@ -119,30 +122,33 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
             # dispatch["datapathid"]に紐付くmsgbaseを取得する
             msgbase = self.get_msgbase(dispatch["datapathid"])
             if msgbase == None:
-                return
+                return False
 
             recvpkt = dispatch["data"]
             self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt.data)
+
             # PACKET_OUT送信
             self.send_msg_to_packetout(msgbase.datapath, recvpkt)
 
         else:
             self.logger.info("dispatch[type_] = Not exist(%s) \n",
                              dispatch["type_"])
-            return
+            return False
 
     # =========================================================================
     # get_msgbase
     # =========================================================================
     def get_msgbase(self, datapathid):
-        items = self.dic_msg.items()
+        self.logger.debug("")
+
         self.logger.debug("【datapathid】 : %s【dic_msg】 : %s",
-                          datapathid, items)
+                          datapathid, self.dic_msg.items())
 
         # CHECK DICTIONARY[msg]
         if not datapathid in self.dic_msg:
             self.logger.info("DICTIONARY[datapathid] = None \n")
             return None
+
         else:
             self.logger.debug("DICTIONARY[dic_msg] : %s \n",
                               self.dic_msg[datapathid])
@@ -151,20 +157,30 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     # =========================================================================
     # create_flow_mod
     # =========================================================================
-    def create_flow_mod(self, datapath, flowmoddata):
+    def create_flow_mod(self, datapath, flowdata):
         self.logger.info("")
+
+        self.logger.debug("flowdata [datapathid] : %s", flowdata.datapathid)
+        self.logger.debug("flowdata [command] : %s", flowdata.command)
+        self.logger.debug("flowdata [out_port] : %s", flowdata.out_port)
+        self.logger.debug("flowdata [out_group] : %s", flowdata.out_group)
+        self.logger.debug("flowdata [table_id] : %s", flowdata.table_id)
+        self.logger.debug("flowdata [priority] : %s", flowdata.priority)
+        self.logger.debug("flowdata [match] : %s", flowdata.match)
+        self.logger.debug("flowdata [instructions] : %s",
+                          flowdata.instructions)
 
         # Create flow mod message.
         ofproto = datapath.ofproto
         flowmod = datapath.ofproto_parser.OFPFlowMod(datapath, 0, 0,
-                                                      flowmoddata.table_id,
+                                                      flowdata.table_id,
                                                       ofproto.OFPFC_ADD, 0, 0,
-                                                      flowmoddata.priority,
+                                                      flowdata.priority,
                                                       ofproto.OFPCML_NO_BUFFER,
                                                       ofproto.OFPP_ANY,
                                                       ofproto.OFPG_ANY, 0,
-                                                      flowmoddata.match,
-                                                      flowmoddata.instructions)
+                                                      flowdata.match,
+                                                      flowdata.instructions)
         return flowmod
 
     # =========================================================================
@@ -182,6 +198,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     # =========================================================================
     def receive_from_mld(self):
         self.logger.debug("")
+
         while True:
             if self.SOCKET_FLG == 0:
                 self.logger.debug("### EXIT LOOP")
@@ -204,7 +221,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         self.logger.info("sent 1 packet to FlowMod. ")
 
     # =========================================================================
-    # send_msg_to_flowmod
+    # send_msg_to_barrier_request
     # =========================================================================
     def send_msg_to_barrier_request(self, msgbase):
         self.logger.debug("")
@@ -221,7 +238,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     def send_msg_to_packetout(self, msgbase, packetout):
         self.logger.debug("")
 
-        msgbase.datapath.send(packetout)
+        msgbase.datapath.send_msg(packetout)
 
         self.logger.info("sent 1 packet to PacketOut. ")
 
@@ -286,7 +303,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         self.logger.debug("")
-        #self.loop.start()
+
         msg = ev.msg
         pkt = packet.Packet(msg.data)
 
@@ -296,7 +313,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
         if not pkt_ethernet:
             self.logger.debug("# check ethernet : None \n")
-            return
+            return False
 
         # CHECK VLAN
         pkt_vlan = pkt.get_protocol(vlan.vlan)
@@ -307,14 +324,14 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
         if not pkt_icmpv6:
             self.logger.debug("# check icmpv6 : None \n")
-            return
+            return False
 
         # CHECK MLD TYPE
         if not pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT,
                                     icmpv6.ICMPV6_MEMBERSHIP_QUERY]:
             self.logger.debug("# check icmpv6.TYPE : %s \n",
                               str(pkt_icmpv6.type_))
-            return
+            return False
 
         # CHECK FILTER_MODE
         if pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT]:
@@ -328,7 +345,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                                             icmpv6.BLOCK_OLD_SOURCES]:
                     self.logger.debug("# check report_group.[type_] : %s \n",
                                       str(mldv2_report_group.type_))
-                    return
+                    return False
 
         self.logger.debug("datapath.id : %s \n",
                           str(msg.datapath.id))
