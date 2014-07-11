@@ -12,10 +12,17 @@ from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from eventlet import patcher
+os.sys.path.append("../../common")
+from zmq_dispatch import dispatch
+from zmq_dispatch import flow_mod_data
+from read_json import read_json
+"""
 from common.zmq_dispatch import dispatch
 from common.zmq_dispatch import flow_mod_data
-from common.mld_const import mld_const
 from common.read_json import read_json
+"""
+#from mld_const import mld_const
+import mld_const
 
 
 class mld_controller(app_manager.RyuApp):
