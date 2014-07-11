@@ -582,6 +582,7 @@ class apresia_12k(flow_mod_gen_impl):
         return flow_mod_datas
 
 
+
     def logical_port_untag(self, portno):
         return 0x00000000 | portno
 
