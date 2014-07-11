@@ -499,6 +499,7 @@ class mld_process():
             ivid = ""
             mc_info_type = ""
             bvid = ""
+            vid = self.config["c_tag_id"]
 
             if not reply_type == mld_const.CON_REPLY_NOTHING:
                 # マルチキャストアドレスに対応するpbb_isidとividを抽出
@@ -551,9 +552,8 @@ class mld_process():
                         mc_address=address,
                         mc_serv_ip=src,
                         report_types=report_types)
-                        # TODO vid
                     packet = self.create_packet(
-                        self.addressinfo, cid, mld_report)
+                        self.addressinfo, vid, mld_report)
                     pout = self.create_packetout(
                         datapathid=self.edge_switch["datapathid"],
                         packet=packet)
@@ -601,9 +601,8 @@ class mld_process():
                         mc_address=address,
                         mc_serv_ip=src,
                         report_types=report_types)
-                        # TODO vid
                     packet = self.create_packet(
-                        self.addressinfo, cid, mld_report)
+                        self.addressinfo, vid, mld_report)
                     pout = self.create_packetout(
                         datapathid=self.edge_switch["datapathid"],
                         packet=packet)
