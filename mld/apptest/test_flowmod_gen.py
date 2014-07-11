@@ -148,7 +148,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
             "edge_switch_port" : 50,
-            "olt_ports" : [1,2]
+            "olt_ports" : [1, 2]
         },
         {
             "sw_name"   : "sw2",
@@ -264,7 +264,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
             "edge_switch_port" : 50,
-            "olt_ports" : [1,2]
+            "olt_ports" : [1, 2]
         },
         {
             "sw_name"   : "sw2",
@@ -374,7 +374,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
             "edge_switch_port" : 50,
-            "olt_ports" : [1,2]
+            "olt_ports" : [1, 2]
         },
         {
             "sw_name"   : "sw2",
@@ -419,7 +419,7 @@ class test_flow_mod_genrator(unittest.TestCase):
         self.assertEquals(len(self.mfg[1].instructions[0].actions), 1)
         self.assertEquals(self.mfg[1].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
-        #table 3
+        # table 3
         self.assertEquals(self.mfg[2].datapathid, datapathid)
         self.assertEquals(self.mfg[2].table_id, 3)
         self.assertEquals(self.mfg[2].priority, PRIORITY_NORMAL)
@@ -456,10 +456,12 @@ class test_flow_mod_genrator(unittest.TestCase):
     '''
     def test_start_mg_001(self):
 
+        edge_datapathid = 1
+
         switch_infos = [{
             "sw_name"   : "esw",
             "sw_type"   : 12000,
-            "datapathid": 1,
+            "datapathid": edge_datapathid,
             "sw_bmac"   : "00:00:00:00:00:01",
             "edge_router_port" :  2,
             "mld_port"  : 1,
@@ -474,7 +476,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
             "edge_switch_port" : 50,
-            "olt_ports" : [1,2]
+            "olt_ports" : [1, 2]
         },
         {
             "sw_name"   : "sw2",
@@ -503,7 +505,7 @@ class test_flow_mod_genrator(unittest.TestCase):
 
         # 以下、エッジSWのFlowMod
         # table 2
-        self.assertEquals(self.fmg[0].datapathid, datapathid)
+        self.assertEquals(self.fmg[0].datapathid, edge_datapathid)
         self.assertEquals(self.fmg[0].table_id, 2)
         self.assertEquals(self.fmg[0].priority, PRIORITY_NORMAL)
         self.assertEquals(self.fmg[0].match['in_port'], 2)
@@ -517,7 +519,7 @@ class test_flow_mod_genrator(unittest.TestCase):
         self.assertEquals(self.fmg[0].instructions[0].actions[1].port, ofproto.OFPP_NORMAL)
 
         # table 3
-        self.assertEquals(self.fmg[1].datapathid, datapathid)
+        self.assertEquals(self.fmg[1].datapathid, edge_datapathid)
         self.assertEquals(self.fmg[1].table_id, 3)
         self.assertEquals(self.fmg[1].priority, PRIORITY_NORMAL)
         self.assertEquals(self.fmg[1].match['in_port'], apresia_12k.TAG2PBB)
@@ -540,7 +542,7 @@ class test_flow_mod_genrator(unittest.TestCase):
         self.assertEquals(self.fmg[1].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
 
         # table 4
-        self.assertEquals(self.fmg[2].datapathid, datapathid)
+        self.assertEquals(self.fmg[2].datapathid, edge_datapathid)
         self.assertEquals(self.fmg[2].table_id, 4)
         self.assertEquals(self.fmg[2].priority, PRIORITY_NORMAL)
         self.assertEquals(self.fmg[2].match['in_port'], 0x02000000 | 49)
@@ -600,10 +602,12 @@ class test_flow_mod_genrator(unittest.TestCase):
     '''
     def test_start_mg_002(self):
 
+        edge_datapathid = 1
+
         switch_infos = [{
             "sw_name"   : "esw",
             "sw_type"   : 12000,
-            "datapathid": 1,
+            "datapathid": edge_datapathid,
             "sw_bmac"   : "00:00:00:00:00:01",
             "edge_router_port" :  2,
             "mld_port"  : 1,
@@ -618,7 +622,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
             "edge_switch_port" : 50,
-            "olt_ports" : [1,2]
+            "olt_ports" : [1, 2]
         },
         {
             "sw_name"   : "sw2",
@@ -647,7 +651,7 @@ class test_flow_mod_genrator(unittest.TestCase):
 
         # 以下、エッジSWのFlowMod
         # table 2
-        self.assertEquals(self.fmg[0].datapathid, datapathid)
+        self.assertEquals(self.fmg[0].datapathid, edge_datapathid)
         self.assertEquals(self.fmg[0].table_id, 2)
         self.assertEquals(self.fmg[0].priority, PRIORITY_NORMAL)
         self.assertEquals(self.fmg[0].match['in_port'], 2)
@@ -661,7 +665,7 @@ class test_flow_mod_genrator(unittest.TestCase):
         self.assertEquals(self.fmg[0].instructions[0].actions[1].port, ofproto.OFPP_NORMAL)
 
         # table 3
-        self.assertEquals(self.fmg[1].datapathid, datapathid)
+        self.assertEquals(self.fmg[1].datapathid, edge_datapathid)
         self.assertEquals(self.fmg[1].table_id, 3)
         self.assertEquals(self.fmg[1].priority, PRIORITY_NORMAL)
         self.assertEquals(self.fmg[1].match['in_port'], apresia_12k.TAG2PBB)
@@ -684,7 +688,7 @@ class test_flow_mod_genrator(unittest.TestCase):
         self.assertEquals(self.fmg[1].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
 
         # table 4
-        self.assertEquals(self.fmg[2].datapathid, datapathid)
+        self.assertEquals(self.fmg[2].datapathid, edge_datapathid)
         self.assertEquals(self.fmg[2].table_id, 4)
         self.assertEquals(self.fmg[2].priority, PRIORITY_NORMAL)
         self.assertEquals(self.fmg[2].match['in_port'], 0x02000000 | 50)
@@ -743,7 +747,7 @@ class test_flow_mod_genrator(unittest.TestCase):
     SW1にport2を追加
     '''
     def test_add_port_001(self):
-         
+
         switch_infos = [{
             "sw_name"   : "esw",
             "sw_type"   : 12000,
@@ -762,7 +766,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
             "edge_switch_port" : 50,
-            "olt_ports" : [1,2,3]
+            "olt_ports" : [1, 2, 3]
         },
         {
             "sw_name"   : "sw2",
@@ -772,7 +776,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "edge_switch_port" : 50,
             "olt_ports" : [1]
         }]
- 
+
         multicast_address = 'ff38::1:1'
         datapathid = 2
         portno = 2
@@ -784,7 +788,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             .add_port(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
 
         self.assertEquals(len(self.mfg), 1)
-        
+
         # table 4
         self.assertEquals(self.mfg[0].datapathid, datapathid)
         self.assertEquals(self.mfg[0].table_id, 4)
@@ -801,7 +805,7 @@ class test_flow_mod_genrator(unittest.TestCase):
     SW1にport3を追加
     '''
     def test_add_port_002(self):
-         
+
         switch_infos = [{
             "sw_name"   : "esw",
             "sw_type"   : 12000,
@@ -820,7 +824,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
             "edge_switch_port" : 50,
-            "olt_ports" : [1,2,3]
+            "olt_ports" : [1, 2, 3]
         },
         {
             "sw_name"   : "sw2",
@@ -830,7 +834,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "edge_switch_port" : 50,
             "olt_ports" : [1]
         }]
- 
+
         multicast_address = 'ff38::1:1'
         datapathid = 2
         portno = 3
@@ -842,7 +846,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             .add_port(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
 
         self.assertEquals(len(self.mfg), 1)
-        
+
         # table 4
         self.assertEquals(self.mfg[0].datapathid, datapathid)
         self.assertEquals(self.mfg[0].table_id, 4)
@@ -859,11 +863,13 @@ class test_flow_mod_genrator(unittest.TestCase):
     SW1,port2を追加
     '''
     def test_add_datapath_001(self):
-         
+
+        edge_datapathid = 1
+
         switch_infos = [{
             "sw_name"   : "esw",
             "sw_type"   : 12000,
-            "datapathid": 1,
+            "datapathid": edge_datapathid,
             "sw_bmac"   : "00:00:00:00:00:01",
             "edge_router_port" :  2,
             "mld_port"  : 1,
@@ -878,7 +884,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
             "edge_switch_port" : 50,
-            "olt_ports" : [1,2,3]
+            "olt_ports" : [1, 2, 3]
         },
         {
             "sw_name"   : "sw2",
@@ -888,7 +894,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "edge_switch_port" : 50,
             "olt_ports" : [1]
         }]
- 
+
         multicast_address = 'ff38::1:1'
         datapathid = 2
         portno = 2
@@ -903,10 +909,10 @@ class test_flow_mod_genrator(unittest.TestCase):
             .add_datapath(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
 
         self.assertEquals(len(self.mfg), 5)
-        
+
         # 以下、エッジSW
         # table 3
-        self.assertEquals(self.mfg[0].datapathid, datapathid)
+        self.assertEquals(self.mfg[0].datapathid, edge_datapathid)
         self.assertEquals(self.mfg[0].table_id, 3)
         self.assertEquals(self.mfg[0].priority, PRIORITY_NORMAL)
         self.assertEquals(self.mfg[0].match['in_port'], apresia_12k.TAG2PBB)
@@ -929,10 +935,10 @@ class test_flow_mod_genrator(unittest.TestCase):
         self.assertEquals(self.mfg[0].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
 
         # table 4
-        self.assertEquals(self.mfg[1].datapathid, datapathid)
+        self.assertEquals(self.mfg[1].datapathid, edge_datapathid)
         self.assertEquals(self.mfg[1].table_id, 4)
         self.assertEquals(self.mfg[1].priority, PRIORITY_NORMAL)
-        self.assertEquals(self.mfg[1].match['in_port'], 0x02000000|49)
+        self.assertEquals(self.mfg[1].match['in_port'], 0x02000000 | 49)
         self.assertEquals(self.mfg[1].match['vlan_vid'], ivid)
         self.assertEquals(len(self.mfg[1].instructions), 1)
         self.assertEquals(self.mfg[1].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
@@ -944,7 +950,7 @@ class test_flow_mod_genrator(unittest.TestCase):
         self.assertEquals(self.mfg[2].datapathid, datapathid)
         self.assertEquals(self.mfg[2].table_id, 4)
         self.assertEquals(self.mfg[2].priority, PRIORITY_NORMAL)
-        self.assertEquals(self.mfg[2].match['in_port'], 0x02000000|50)
+        self.assertEquals(self.mfg[2].match['in_port'], 0x02000000 | 50)
         self.assertEquals(self.mfg[2].match['vlan_vid'], ivid)
         self.assertEquals(len(self.mfg[2].instructions), 1)
         self.assertEquals(self.mfg[2].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
@@ -970,12 +976,12 @@ class test_flow_mod_genrator(unittest.TestCase):
         self.assertEquals(self.mfg[3].instructions[0].actions[3].key, 'vlan_vid')
         self.assertEquals(self.mfg[3].instructions[0].actions[3].value, ivid)
         self.assertEquals(self.mfg[3].instructions[0].actions[4].port, ofproto.OFPP_NORMAL)
-        
+
         # table 4
         self.assertEquals(self.mfg[4].datapathid, datapathid)
         self.assertEquals(self.mfg[4].table_id, 4)
         self.assertEquals(self.mfg[4].priority, PRIORITY_LOW)
-        self.assertEquals(self.mfg[4].match['in_port'], 0x00000000|portno)
+        self.assertEquals(self.mfg[4].match['in_port'], 0x00000000 | portno)
         self.assertEquals(self.mfg[4].match['vlan_vid'], ivid)
         self.assertEquals(len(self.mfg[4].instructions), 1)
         self.assertEquals(self.mfg[4].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
