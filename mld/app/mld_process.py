@@ -46,7 +46,8 @@ class mld_process():
 
     def __init__(self):
         # ロガーの設定
-        logging.config.fileConfig("../../common/logconf.ini")
+        logging.config.fileConfig("../../common/logconf.ini",
+                                  disable_existing_loggers = False)
         self.logger = logging.getLogger(__name__)
         self.logger.debug("")
 
@@ -87,7 +88,7 @@ class mld_process():
         self.mc_info_list = mc_info.data["mc_info"]
 
         # bvidパターン読み込み
-        bvid_variation = read_json("./multicast_service_info.json")
+        bvid_variation = read_json("../../common/bvid_variation.json")
         self.logger.info("bvid_variation : %s", str(bvid_variation.data))
         self.bvid_variation = bvid_variation.data["bvid_variation"]
 
@@ -338,8 +339,8 @@ class mld_process():
     # ==================================================================
     def create_packetout(self, datapathid, packet):
         self.logger.debug("")
-        actions = [
-            parser.OFPActionOutput(port=self.edge_switch["ports"][0])]
+        actions = [parser.OFPActionOutput(
+            port=self.edge_switch["edge_router_port"])]
         pout = parser.OFPPacketOut(
             datapath=datapathid, in_port=ofproto_v1_3.OFPP_CONTROLLER,
             buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
@@ -357,8 +358,7 @@ class mld_process():
         in_port = dispatch_["in_port"]
         cid = dispatch_["cid"]
 
-        user_time_list = self.ch_info.user_time_list
-        user_time_list = sorted(user_time_list, key=lambda time: time[5])
+#        user_info_list = self.ch_info.user_info_list
 
         # TODO 視聴情報のタイムアウト判定→オーバーしているものは削除
 
@@ -403,15 +403,20 @@ class mld_process():
         cid = dispatch_["cid"]
 
         for report in mldv2_report.records:
+            address = report.address
+            src = report.srcs[0]
+            self.logger.debug("report : %s", str(report))
+            self.logger.debug("datapath, in_port, cid : %s, %s, %s",
+                              target_switch, in_port, cid)
             self.logger.debug("self.ch_info : %s",
                               self.ch_info.get_channel_info())
-            self.logger.debug("report : %s", str(report))
             # ALLOW_NEW_SOURCES：視聴情報に追加
             if report.type_ == icmpv6.ALLOW_NEW_SOURCES:
                 self.logger.debug("ALLOW_NEW_SOURCES")
                 reply_type = self.ch_info.add_ch_info(
-                    mc_addr=report.address, serv_ip=report.srcs[0],
-                    detapathid=target_switch, port_no=in_port, cid=cid)
+                    mc_addr=address, serv_ip=src,
+                    datapathid=target_switch, port_no=in_port, cid=cid)
+                self.logger.debug("reply_type : %s", reply_type)
                 self.logger.debug("added self.ch_info : %s",
                                   self.ch_info.get_channel_info())
 
@@ -419,15 +424,15 @@ class mld_process():
             elif report.type_ == icmpv6.BLOCK_OLD_SOURCES:
                 self.logger.debug("BLOCK_OLD_SOURCES")
                 reply_type = self.ch_info.remove_ch_info(
-                    mc_addr=report.address, serv_ip=report.srcs[0],
-                    detapathid=target_switch, port_no=in_port, cid=cid)
+                    mc_addr=address, serv_ip=src,
+                    datapathid=target_switch, port_no=in_port, cid=cid)
+                self.logger.debug("reply_type : %s", reply_type)
                 self.logger.debug("removed self.ch_info : %s",
                                   self.ch_info.get_channel_info())
 
                 # SpecificQueryを生成し、エッジスイッチに送信
-                mc_info = {
-                    "mc_addr": report.address, "serv_ip": report.srcs[0]}
-                self.send_mldquery([mc_info], 0)
+                mc_info = {"mc_addr": address, "serv_ip": src}
+#                self.send_mldquery([mc_info], 0)
 
             # MODE_IS_INCLUDE：視聴情報に存在するか確認
             elif report.type_ == icmpv6.MODE_IS_INCLUDE:
@@ -437,13 +442,13 @@ class mld_process():
 
                 # 視聴中のユーザーかチェック
                 if not self.ch_info.exsits_user(
-                        mc_addr=report.address, serv_ip=report.srcs[0],
-                        detapathid=target_switch, port_no=in_port, cid=cid):
+                        mc_addr=address, serv_ip=src,
+                        datapathid=target_switch, port_no=in_port, cid=cid):
 
                     # 存在しなければ追加
                     reply_type = self.ch_info.add_ch_info(
-                        mc_addr=report.address, serv_ip=report.srcs[0],
-                        detapathid=target_switch, port_no=in_port, cid=cid)
+                        mc_addr=address, serv_ip=src,
+                        datapathid=target_switch, port_no=in_port, cid=cid)
                     self.logger.debug("added self.ch_info : %s",
                                       self.ch_info.get_channel_info())
                 else:
@@ -458,32 +463,46 @@ class mld_process():
                 self.logger.debug("report.type : %s", report.type_)
                 reply_type = mld_const.CON_REPLY_NOTHING
 
-            # マルチキャストアドレスに対応するpbb_isidとividを抽出
-            for mc_info in self.mc_info_list:
-                if mc_info["mc_addr"] == report.address \
-                        and mc_info["serv_ip"] == report.srcs[0]:
-                    pbb_isid = mc_info["pbb_isid"]
-                    ivid = mc_info["ivid"]
-                    mc_info_type = mc_info["type"]
-                    break
-
-            # 視聴情報からbvidを特定する
-            listening_switch = self.channel_info[
-                (report.address, report.srcs[0])].keys()
-            bvid_key = ":".join(map(str, listening_switch))
-            for bvid_variation in self.bvid_variation:
-                if bvid_key == bvid_variation["key"]:
-                    bvid = bvid_variation["bvid"]
-                    break
-
             # reply_typeにより、Flowmod、Packetoutを生成
             flowlist = []
+            pbb_isid = ""
+            ivid = ""
+            mc_info_type = ""
+            bvid = ""
+
+            if not reply_type == mld_const.CON_REPLY_NOTHING:
+                # マルチキャストアドレスに対応するpbb_isidとividを抽出
+                for mc_info in self.mc_info_list:
+                    if mc_info["mc_addr"] == address \
+                            and mc_info["serv_ip"] == src:
+                        pbb_isid = mc_info["pbb_isid"]
+                        ivid = mc_info["ivid"]
+                        mc_info_type = mc_info["type"]
+                        break
+
+                # 視聴情報からbvidを特定する
+                if self.ch_info.channel_info and \
+                        (address, src) in self.ch_info.channel_info:
+                    listening_switch = self.ch_info.channel_info[
+                        (address, src)].keys()
+                    bvid_key = ":".join(map(str, listening_switch))
+                    self.logger.debug("bvid_key : %s", bvid_key)
+                    for bvid_variation in self.bvid_variation:
+                        if bvid_key == bvid_variation["key"]:
+                            bvid = bvid_variation["bvid"]
+                            break
+                else:
+                    # 当該mcグループが視聴されていない場合
+                    bvid = -1
+
+            self.logger.debug("pbb_isid, ivid, bvid : %s, %s, %s",
+                              pbb_isid, ivid, bvid)
 
             # Flow追加の場合
             if reply_type == mld_const.CON_REPLY_ADD_MC_GROUP:
                 self.logger.debug("reply_type : %d", reply_type)
                 flowlist = self.flowmod_gen.start_mg(
-                    multicast_address=report.address,
+                    multicast_address=address,
                     datapathid=target_switch,
                     portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
                 flowmod = dispatch(
@@ -499,8 +518,8 @@ class mld_process():
                     report_types = [icmpv6.ALLOW_NEW_SOURCES,
                                     icmpv6.CHANGE_TO_INCLUDE_MODE]
                     mld_report = self.create_mldreport(
-                        mc_address=report.address,
-                        mc_serv_ip=report.srcs[0],
+                        mc_address=address,
+                        mc_serv_ip=src,
                         report_types=report_types)
                     packet = self.create_packet(
                         self.addressinfo, cid, mld_report)
@@ -517,7 +536,7 @@ class mld_process():
             elif reply_type == mld_const.CON_REPLY_ADD_SWITCH:
                 self.logger.debug("reply_type : %d", reply_type)
                 flowlist = self.flowmod_gen.add_datapath(
-                    multicast_address=report.address,
+                    multicast_address=address,
                     datapathid=target_switch,
                     portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
                 flowmod = dispatch(
@@ -530,7 +549,7 @@ class mld_process():
             elif reply_type == mld_const.CON_REPLY_ADD_PORT:
                 self.logger.debug("reply_type : %d", reply_type)
                 flowlist = self.flowmod_gen.add_port(
-                    multicast_address=report.address,
+                    multicast_address=address,
                     datapathid=target_switch,
                     portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
                 flowmod = dispatch(
@@ -543,24 +562,13 @@ class mld_process():
             # Flow削除の場合
             elif reply_type == mld_const.CON_REPLY_DEL_MC_GROUP:
                 self.logger.debug("reply_type : %d", reply_type)
-                flowlist = self.flowmod_gen.remove_mg(
-                    multicast_address=report.address,
-                    datapathid=target_switch,
-                    portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
-                flowmod = dispatch(
-                    type_=mld_const.CON_FLOW_MOD,
-                    datapathid=1, data=flowlist)
-                self.logger.debug("flowmod[data] : %s",
-                                  str(flowmod["data"]))
-                self.send_packet_to_ryu(flowmod)
-
                 # ベストエフォートの場合のみ
                 if mc_info_type == "BE":
                     # エッジスイッチへ投げるReportを作成
                     report_types = [icmpv6.BLOCK_OLD_SOURCES]
                     mld_report = self.create_mldreport(
-                        mc_address=report.address,
-                        mc_serv_ip=report.srcs[0],
+                        mc_address=address,
+                        mc_serv_ip=src,
                         report_types=report_types)
                     packet = self.create_packet(
                         self.addressinfo, cid, mld_report)
@@ -574,10 +582,21 @@ class mld_process():
 #                                      str(packetout["data"]))
                     self.send_packet_to_ryu(packetout)
 
+                flowlist = self.flowmod_gen.remove_mg(
+                    multicast_address=address,
+                    datapathid=target_switch,
+                    portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
+                flowmod = dispatch(
+                    type_=mld_const.CON_FLOW_MOD,
+                    datapathid=1, data=flowlist)
+                self.logger.debug("flowmod[data] : %s",
+                                  str(flowmod["data"]))
+                self.send_packet_to_ryu(flowmod)
+
             elif reply_type == mld_const.CON_REPLY_DEL_SWITCH:
                 self.logger.debug("reply_type : %d", reply_type)
                 flowlist = self.flowmod_gen.remove_datapath(
-                    multicast_address=report.address,
+                    multicast_address=address,
                     datapathid=target_switch,
                     portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
                 flowmod = dispatch(
@@ -590,7 +609,7 @@ class mld_process():
             elif reply_type == mld_const.CON_REPLY_DEL_PORT:
                 self.logger.debug("reply_type : %d", reply_type)
                 flowlist = self.flowmod_gen.remove_port(
-                    multicast_address=report.address,
+                    multicast_address=address,
                     datapathid=target_switch,
                     portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
                 flowmod = dispatch(
@@ -622,7 +641,7 @@ class mld_process():
 
 if __name__ == "__main__":
     mld_proc = mld_process()
-    hub.spawn(mld_proc.send_mldquey_regularly)
+#    hub.spawn(mld_proc.send_mldquey_regularly)
     recv_thre = mld_proc.org_thread.Thread(
         target=mld_proc.receive_from_ryu, name="ReceiveThread")
     recv_thre.start()

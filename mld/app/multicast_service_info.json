@@ -3,7 +3,7 @@
 		{
 	        "_comment": "配信マルチキャストアドレスと配信サーバのIPアドレス",
 			"mc_addr" : "ff38::1:1",
-			"serv_ip" : "2001::1:1",
+			"serv_ip" : "2001::1:20",
 	        "_comment": "ベストエフォートサービスか品質保証サービスか。BE(BestEffort) or QA(QualityAssurance)",
 	        "type"    : "BE",
 			"pbb_isid": 10001,
@@ -11,7 +11,7 @@
 		},
 		{
 			"mc_addr" : "ff38::1:2",
-			"serv_ip" : "2001::1:1",
+			"serv_ip" : "2001::1:20",
 	        "type"    : "BE",
 			"pbb_isid": 10002,
 			"ivid"    : 10012
