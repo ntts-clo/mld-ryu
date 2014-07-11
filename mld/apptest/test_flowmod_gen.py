@@ -1,6 +1,5 @@
 # coding: utf-8
 
-import sys
 import unittest
 
 from ryu.lib.packet import icmpv6
@@ -13,8 +12,7 @@ from ryu.ofproto.ofproto_v1_3_parser import OFPActionPopVlan, OFPActionPushPbb, 
 from mld.app.flowmod_gen import flow_mod_generator, apresia_12k, apresia_26k, flow_mod_gen_exception, \
     PRIORITY_NORMAL, PRIORITY_LOW
 from networkx.classes.function import set_edge_attributes
-sys.path.append('../../common')
-from zmq_dispatch import flow_mod_data
+from common.zmq_dispatch import flow_mod_data
 
 class test_flow_mod_genrator(unittest.TestCase):
 
@@ -103,7 +101,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 51,
             "olt_ports" : [1]
         },
         {
@@ -111,7 +109,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 26000,
             "datapathid": 3,
             "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 52,
             "olt_ports" : [1]
         }]
 
@@ -147,7 +145,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 51,
             "olt_ports" : [1, 2]
         },
         {
@@ -155,7 +153,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 3,
             "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 52,
             "olt_ports" : [1]
         }]
 
@@ -263,7 +261,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 51,
             "olt_ports" : [1, 2]
         },
         {
@@ -271,7 +269,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 3,
             "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 52,
             "olt_ports" : [1]
         }]
 
@@ -302,7 +300,7 @@ class test_flow_mod_genrator(unittest.TestCase):
         self.assertEquals(self.mfg[1].datapathid, datapathid)
         self.assertEquals(self.mfg[1].table_id, 4)
         self.assertEquals(self.mfg[1].priority, PRIORITY_NORMAL)
-        self.assertEquals(self.mfg[1].match['in_port'], 0x02000000 | 50)
+        self.assertEquals(self.mfg[1].match['in_port'], 0x02000000 | 51)
         self.assertEquals(self.mfg[1].match['vlan_vid'], ivid)
         self.assertEquals(len(self.mfg[1].instructions), 1)
         self.assertEquals(self.mfg[1].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
@@ -373,7 +371,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 51,
             "olt_ports" : [1, 2]
         },
         {
@@ -381,7 +379,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 3,
             "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 52,
             "olt_ports" : [1]
         }]
 
@@ -412,7 +410,7 @@ class test_flow_mod_genrator(unittest.TestCase):
         self.assertEquals(self.mfg[1].datapathid, datapathid)
         self.assertEquals(self.mfg[1].table_id, 4)
         self.assertEquals(self.mfg[1].priority, PRIORITY_NORMAL)
-        self.assertEquals(self.mfg[1].match['in_port'], 0x02000000 | 50)
+        self.assertEquals(self.mfg[1].match['in_port'], 0x02000000 | 52)
         self.assertEquals(self.mfg[1].match['vlan_vid'], ivid)
         self.assertEquals(len(self.mfg[1].instructions), 1)
         self.assertEquals(self.mfg[1].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
@@ -452,7 +450,7 @@ class test_flow_mod_genrator(unittest.TestCase):
 
 
     '''
-    datapath 2 視聴開始(初回ユーザ参加)
+    datapath 2、 port 2 視聴開始(初回ユーザ参加)
     '''
     def test_start_mg_001(self):
 
@@ -475,7 +473,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 51,
             "olt_ports" : [1, 2]
         },
         {
@@ -483,13 +481,13 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 3,
             "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 52,
             "olt_ports" : [1]
         }]
 
         multicast_address = 'ff38::1:1'
         datapathid = 2
-        portno = 1
+        portno = 2
         ivid = 2011
         pbb_isid = 10011
         bvid = 4001
@@ -557,7 +555,7 @@ class test_flow_mod_genrator(unittest.TestCase):
         self.assertEquals(self.fmg[3].datapathid, datapathid)
         self.assertEquals(self.fmg[3].table_id, 4)
         self.assertEquals(self.fmg[3].priority, PRIORITY_NORMAL)
-        self.assertEquals(self.fmg[3].match['in_port'], 0x02000000 | 50)
+        self.assertEquals(self.fmg[3].match['in_port'], 0x02000000 | 51)
         self.assertEquals(self.fmg[3].match['vlan_vid'], ivid)
         self.assertEquals(len(self.fmg[3].instructions), 1)
         self.assertEquals(self.fmg[3].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
@@ -598,7 +596,7 @@ class test_flow_mod_genrator(unittest.TestCase):
 
 
     '''
-    datapath 3 視聴開始(初回ユーザ参加)
+    datapath 3、port 1 視聴開始(初回ユーザ参加)
     '''
     def test_start_mg_002(self):
 
@@ -621,7 +619,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 51,
             "olt_ports" : [1, 2]
         },
         {
@@ -629,7 +627,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 3,
             "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 52,
             "olt_ports" : [1]
         }]
 
@@ -703,7 +701,7 @@ class test_flow_mod_genrator(unittest.TestCase):
         self.assertEquals(self.fmg[3].datapathid, datapathid)
         self.assertEquals(self.fmg[3].table_id, 4)
         self.assertEquals(self.fmg[3].priority, PRIORITY_NORMAL)
-        self.assertEquals(self.fmg[3].match['in_port'], 0x02000000 | 50)
+        self.assertEquals(self.fmg[3].match['in_port'], 0x02000000 | 52)
         self.assertEquals(self.fmg[3].match['vlan_vid'], ivid)
         self.assertEquals(len(self.fmg[3].instructions), 1)
         self.assertEquals(self.fmg[3].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
@@ -765,7 +763,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 51,
             "olt_ports" : [1, 2, 3]
         },
         {
@@ -773,7 +771,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 3,
             "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 52,
             "olt_ports" : [1]
         }]
 
@@ -823,7 +821,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 51,
             "olt_ports" : [1, 2, 3]
         },
         {
@@ -831,7 +829,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 3,
             "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 52,
             "olt_ports" : [1]
         }]
 
@@ -883,7 +881,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 2,
             "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 51,
             "olt_ports" : [1, 2, 3]
         },
         {
@@ -891,7 +889,7 @@ class test_flow_mod_genrator(unittest.TestCase):
             "sw_type"   : 12000,
             "datapathid": 3,
             "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 50,
+            "edge_switch_port" : 52,
             "olt_ports" : [1]
         }]
 
@@ -950,7 +948,7 @@ class test_flow_mod_genrator(unittest.TestCase):
         self.assertEquals(self.mfg[2].datapathid, datapathid)
         self.assertEquals(self.mfg[2].table_id, 4)
         self.assertEquals(self.mfg[2].priority, PRIORITY_NORMAL)
-        self.assertEquals(self.mfg[2].match['in_port'], 0x02000000 | 50)
+        self.assertEquals(self.mfg[2].match['in_port'], 0x02000000 | 51)
         self.assertEquals(self.mfg[2].match['vlan_vid'], ivid)
         self.assertEquals(len(self.mfg[2].instructions), 1)
         self.assertEquals(self.mfg[2].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)

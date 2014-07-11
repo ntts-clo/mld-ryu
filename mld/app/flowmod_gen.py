@@ -6,9 +6,7 @@ from ryu.ofproto import ofproto_v1_3 as ofproto
 from ryu.ofproto import ofproto_v1_3_parser as parser
 from ryu.ofproto.ofproto_v1_3_parser import OFPActionPopVlan, OFPActionPushPbb, \
     OFPActionSetField, OFPActionPushVlan, OFPActionPopPbb
-import sys
-sys.path.append('../../common')
-from zmq_dispatch import flow_mod_data
+from common.zmq_dispatch import flow_mod_data
 
 '''
 フローテーブルのプライオリティ
