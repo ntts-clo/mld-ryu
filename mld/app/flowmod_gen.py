@@ -79,8 +79,8 @@ class flow_mod_generator(object):
     '''
     def start_mg(self, multicast_address, datapathid, portno, ivid, pbb_isid, bvid):
         flow_mod_datas = []
-        self.edge_switch.start_mg_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
         self.container_switches[datapathid].start_mg_container(portno, ivid, pbb_isid, bvid, flow_mod_datas)
+        self.edge_switch.start_mg_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
         return flow_mod_datas;
 
     '''
@@ -96,9 +96,9 @@ class flow_mod_generator(object):
     '''
     def add_datapath(self, multicast_address, datapathid, portno, ivid, pbb_isid, bvid):
         flow_mod_datas = []
-        self.edge_switch.add_datapath_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
         # 収容スイッチに設定するフローはstartMG時と同じ
         self.container_switches[datapathid].start_mg_container(portno, ivid, pbb_isid, bvid, flow_mod_datas)
+        self.edge_switch.add_datapath_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
         return flow_mod_datas;
 
     '''
@@ -593,10 +593,11 @@ class apresia_12k(flow_mod_gen_impl):
 
     def logical_port_untag(self, portno):
         return 0x00000000 | portno
-
+    '''
+    現状の実相では未使用
     def logical_port_tag(self, portno):
         return 0x01000000 | portno
-
+    '''
     def logical_port_pbb(self, portno):
         return 0x02000000 | portno
 
