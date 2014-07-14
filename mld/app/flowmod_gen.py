@@ -72,7 +72,9 @@ class flow_mod_generator(object):
     初期フロー
     '''
     def initialize_flows(self, datapathid, ivid, pbb_isid, bvid):
-        return self.all_switches[datapathid].initialize_flows(ivid, pbb_isid, bvid)
+        flow_mod_datas = []
+        self.all_switches[datapathid].initialize_flows(ivid, pbb_isid, bvid, flow_mod_datas)
+        return flow_mod_datas;
 
     '''
     試聴開始(初回ユーザ参加)/試聴開始(MGで初回ユーザ)
@@ -138,7 +140,7 @@ class flow_mod_gen_impl(object):
         self.switch_info = switch_info
 
 
-    def initialize_flows(self, ivid, pbb_isid, bvid):
+    def initialize_flows(self, ivid, pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_exception('Unsupported Operation')
 
 
@@ -182,8 +184,7 @@ class apresia_12k(flow_mod_gen_impl):
     def __init__(self, switch_info):
         super(apresia_12k, self).__init__(switch_info)
 
-    def initialize_flows(self, ivid, pbb_isid, bvid):
-        flow_mod_datas = []
+    def initialize_flows(self, ivid, pbb_isid, bvid, flow_mod_datas):
 
         datapathid = self.switch_info[SW_TAG_DATAPATHID]
 
@@ -309,8 +310,6 @@ class apresia_12k(flow_mod_gen_impl):
                                                      actions)]
                 flow_mod_datas.append(flow_mod_data(datapathid=datapathid, table_id=table_id, priority=priority,
                                         match=match, instructions=inst))
-
-        return flow_mod_datas
 
     def start_mg_edge(self, multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas):
 

@@ -1867,9 +1867,11 @@ class test_flow_mod_genrator(object):
         ivid = 2011
         pbb_isid = 10011
         bvid = 4001
+        
+        flow_mod_datas = []
 
         try:
-            self.fmg = apresia_26k(switch_info).initialize_flows(ivid, pbb_isid, bvid)
+            self.fmg = apresia_26k(switch_info).initialize_flows(ivid, pbb_isid, bvid, flow_mod_datas)
         except flow_mod_gen_exception as e:
             eq_(e.value, 'Unsupported Operation')
             eq_(str(e), "'Unsupported Operation'")
