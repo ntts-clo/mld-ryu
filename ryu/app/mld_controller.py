@@ -141,7 +141,8 @@ class mld_controller(app_manager.RyuApp):
 
             else:
                 # dispatch["datapathid"]に紐付くmsgbaseを取得する
-                msgbase = self.dicf_msg[dispatch["datapathid"]]
+                datapathid = dispatch["datapathid"]
+                msgbase = self.dict_msg[datapathid]
                 recvpkt = dispatch["data"]
                 self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt.data)
 
@@ -153,26 +154,6 @@ class mld_controller(app_manager.RyuApp):
                              dispatch["type_"])
             return False
 
-    # =========================================================================
-    # get_msgbase
-    # =========================================================================
-    """
-    def get_msgbase(self, datapathid):
-        self.logger.debug("")
-
-        self.logger.debug("【datapathid】 : %s【dict_msg】 : %s",
-                          datapathid, self.dict_msg.items())
-
-        # CHECK DICTIONARY[msg]
-        if not datapathid in self.dict_msg:
-            self.logger.info("DICTIONARY[datapathid] = None \n")
-            return None
-
-        else:
-            self.logger.debug("DICTIONARY[dict_msg] : %s \n",
-                              self.dict_msg[datapathid])
-            return self.dict_msg[datapathid]
-    """
     # =========================================================================
     # create_flow_mod
     # =========================================================================
@@ -191,13 +172,13 @@ class mld_controller(app_manager.RyuApp):
 
         # Create flow mod message.
         ofproto = datapath.ofproto
-        flowmod = datapath.ofproto_parser.OFPFlowMod(datapath, 0, 0,
+        flowmod = datapath.ofproto_parser.OFPFlowMod(datapath,
                                                       flowdata.table_id,
-                                                      ofproto.OFPFC_ADD, 0, 0,
+                                                      flowdata.command,
                                                       flowdata.priority,
                                                       ofproto.OFPCML_NO_BUFFER,
-                                                      ofproto.OFPP_ANY,
-                                                      ofproto.OFPG_ANY, 0,
+                                                      flowdata.out_port,
+                                                      flowdata.out_group,
                                                       flowdata.match,
                                                       flowdata.instructions)
         return flowmod
