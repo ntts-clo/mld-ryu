@@ -16,7 +16,9 @@ from zmq_dispatch import flow_mod_data
 PRIORITY_NORMAL = 1
 PRIORITY_LOW = 0
 
+# =============================================================================
 # switch設定ファイルの定義名
+# =============================================================================
 # swtich_info common
 SW_TAG_DATAPATHID = 'datapathid'
 SW_TAG_TYPE = 'sw_type'
