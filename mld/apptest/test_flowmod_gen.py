@@ -11,12 +11,11 @@ from ryu.ofproto.ofproto_v1_3_parser import OFPActionPopVlan, OFPActionPopPbb
 from mld.app.flowmod_gen import flow_mod_generator, apresia_12k, apresia_26k, flow_mod_gen_exception, \
     PRIORITY_NORMAL, PRIORITY_LOW
 
-class test_flow_mod_genrator(object):
 
+class test_flow_mod_genrator(object):
 
     def setUp(self):
         self.fmg = None
-
 
     def tearDown(self):
         self.fmg = None
@@ -36,12 +35,12 @@ class test_flow_mod_genrator(object):
     def test_init_002(self):
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12001,
+            "sw_name": "esw",
+            "sw_type": 12001,
             "datapathid": 1,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
@@ -59,12 +58,12 @@ class test_flow_mod_genrator(object):
     def test_init_003(self):
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": 1,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
@@ -82,37 +81,37 @@ class test_flow_mod_genrator(object):
     def test_init_004(self):
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": 1,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 26000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 26000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         self.fmg = flow_mod_generator(switch_infos)
 
-        ok_(self.fmg.edge_switch != None)
+        ok_(self.fmg.edge_switch is not None)
         ok_(isinstance(self.fmg.edge_switch, apresia_12k))
         eq_(len(self.fmg.container_switches), 2)
         c_sw2 = self.fmg.container_switches[2]
@@ -120,38 +119,38 @@ class test_flow_mod_genrator(object):
         c_sw3 = self.fmg.container_switches[3]
         ok_(isinstance(c_sw3, apresia_26k))
 
-    '''
-    エッジSW(Apresia12000)の初期可処理 1
-    '''
+    # =========================================================================
+    # エッジSW(Apresia12000)の初期可処理 1
+    # =========================================================================
     def test_initialize_flows_001(self):
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": 1,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         datapathid = 1
@@ -175,8 +174,10 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[0].instructions), 1)
         eq_(self.mfg[0].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[0].instructions[0].actions), 1)
-        eq_(self.mfg[0].instructions[0].actions[0].port, ofproto.OFPP_CONTROLLER)
-        eq_(self.mfg[0].instructions[0].actions[0].max_len, ofproto.OFPCML_NO_BUFFER)
+        eq_(self.mfg[0].instructions[0].actions[0].port,
+            ofproto.OFPP_CONTROLLER)
+        eq_(self.mfg[0].instructions[0].actions[0].max_len,
+            ofproto.OFPCML_NO_BUFFER)
 
         # table 0
         eq_(self.mfg[1].datapathid, datapathid)
@@ -200,16 +201,19 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[2].instructions), 1)
         eq_(self.mfg[2].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[2].instructions[0].actions), 8)
-        eq_(self.mfg[2].instructions[0].actions[0].type, OFPActionPopVlan().type)
+        eq_(self.mfg[2].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
         eq_(self.mfg[2].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.mfg[2].instructions[0].actions[1].ethertype, ether.ETH_TYPE_8021AH)
+        eq_(self.mfg[2].instructions[0].actions[1].ethertype,
+            ether.ETH_TYPE_8021AH)
         eq_(self.mfg[2].instructions[0].actions[2].key, 'pbb_isid')
         eq_(self.mfg[2].instructions[0].actions[2].value, pbb_isid)
         eq_(self.mfg[2].instructions[0].actions[3].key, 'eth_dst')
         eq_(self.mfg[2].instructions[0].actions[3].value, '00:00:00:00:00:00')
         eq_(self.mfg[2].instructions[0].actions[4].key, 'eth_src')
         eq_(self.mfg[2].instructions[0].actions[4].value, "00:00:00:00:00:01")
-        eq_(self.mfg[2].instructions[0].actions[5].ethertype, ether.ETH_TYPE_8021AD)
+        eq_(self.mfg[2].instructions[0].actions[5].ethertype,
+            ether.ETH_TYPE_8021AD)
         eq_(self.mfg[2].instructions[0].actions[6].key, 'vlan_vid')
         eq_(self.mfg[2].instructions[0].actions[6].value, bvid)
         eq_(self.mfg[2].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
@@ -236,39 +240,38 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[4].instructions[0].actions), 1)
         eq_(self.mfg[4].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
-
-    '''
-    エッジSW(Apresia12000)の初期可処理 2
-    '''
+    # =========================================================================
+    # エッジSW(Apresia12000)の初期可処理 2
+    # =========================================================================
     def test_initialize_flows_002(self):
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": 4,
-            "sw_bmac"   : "00:00:00:00:00:04",
-            "edge_router_port" :  3,
-            "mld_port"  : 2,
+            "sw_bmac": "00:00:00:00:00:04",
+            "edge_router_port": 3,
+            "mld_port": 2,
             "container_sw_ports": {
                 "2": 59,
                 "3": 60
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         datapathid = 4
@@ -292,8 +295,10 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[0].instructions), 1)
         eq_(self.mfg[0].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[0].instructions[0].actions), 1)
-        eq_(self.mfg[0].instructions[0].actions[0].port, ofproto.OFPP_CONTROLLER)
-        eq_(self.mfg[0].instructions[0].actions[0].max_len, ofproto.OFPCML_NO_BUFFER)
+        eq_(self.mfg[0].instructions[0].actions[0].port,
+            ofproto.OFPP_CONTROLLER)
+        eq_(self.mfg[0].instructions[0].actions[0].max_len,
+            ofproto.OFPCML_NO_BUFFER)
 
         # table 0
         eq_(self.mfg[1].datapathid, datapathid)
@@ -317,16 +322,19 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[2].instructions), 1)
         eq_(self.mfg[2].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[2].instructions[0].actions), 8)
-        eq_(self.mfg[2].instructions[0].actions[0].type, OFPActionPopVlan().type)
+        eq_(self.mfg[2].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
         eq_(self.mfg[2].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.mfg[2].instructions[0].actions[1].ethertype, ether.ETH_TYPE_8021AH)
+        eq_(self.mfg[2].instructions[0].actions[1].ethertype,
+            ether.ETH_TYPE_8021AH)
         eq_(self.mfg[2].instructions[0].actions[2].key, 'pbb_isid')
         eq_(self.mfg[2].instructions[0].actions[2].value, pbb_isid)
         eq_(self.mfg[2].instructions[0].actions[3].key, 'eth_dst')
         eq_(self.mfg[2].instructions[0].actions[3].value, '00:00:00:00:00:00')
         eq_(self.mfg[2].instructions[0].actions[4].key, 'eth_src')
         eq_(self.mfg[2].instructions[0].actions[4].value, "00:00:00:00:00:04")
-        eq_(self.mfg[2].instructions[0].actions[5].ethertype, ether.ETH_TYPE_8021AD)
+        eq_(self.mfg[2].instructions[0].actions[5].ethertype,
+            ether.ETH_TYPE_8021AD)
         eq_(self.mfg[2].instructions[0].actions[6].key, 'vlan_vid')
         eq_(self.mfg[2].instructions[0].actions[6].value, bvid)
         eq_(self.mfg[2].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
@@ -353,38 +361,38 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[4].instructions[0].actions), 1)
         eq_(self.mfg[4].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
-    '''
-    収容SW1(Apresia12000)の初期可処理
-    '''
+    # =========================================================================
+    # 収容SW1(Apresia12000)の初期可処理
+    # =========================================================================
     def test_initialize_flows_003(self):
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": 1,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         datapathid = 2
@@ -407,8 +415,10 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[0].instructions), 1)
         eq_(self.mfg[0].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[0].instructions[0].actions), 1)
-        eq_(self.mfg[0].instructions[0].actions[0].port, ofproto.OFPP_CONTROLLER)
-        eq_(self.mfg[0].instructions[0].actions[0].max_len, ofproto.OFPCML_NO_BUFFER)
+        eq_(self.mfg[0].instructions[0].actions[0].port,
+            ofproto.OFPP_CONTROLLER)
+        eq_(self.mfg[0].instructions[0].actions[0].max_len,
+            ofproto.OFPCML_NO_BUFFER)
 
         # table 4
         eq_(self.mfg[1].datapathid, datapathid)
@@ -432,11 +442,14 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[2].instructions), 1)
         eq_(self.mfg[2].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[2].instructions[0].actions), 5)
-        eq_(self.mfg[2].instructions[0].actions[0].type, OFPActionPopVlan().type)
+        eq_(self.mfg[2].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
         eq_(self.mfg[2].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.mfg[2].instructions[0].actions[1].type, OFPActionPopPbb().type)
+        eq_(self.mfg[2].instructions[0].actions[1].type,
+            OFPActionPopPbb().type)
         eq_(self.mfg[2].instructions[0].actions[1].len, OFPActionPopPbb().len)
-        eq_(self.mfg[2].instructions[0].actions[2].ethertype, ether.ETH_TYPE_8021Q)
+        eq_(self.mfg[2].instructions[0].actions[2].ethertype,
+            ether.ETH_TYPE_8021Q)
         eq_(self.mfg[2].instructions[0].actions[3].key, 'vlan_vid')
         eq_(self.mfg[2].instructions[0].actions[3].value, ivid)
         eq_(self.mfg[2].instructions[0].actions[4].port, ofproto.OFPP_NORMAL)
@@ -463,38 +476,38 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[4].instructions[0].actions), 1)
         eq_(self.mfg[4].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
-    '''
-    収容SW2(Apresia12000)の初期可処理
-    '''
+    # =========================================================================
+    # 収容SW2(Apresia12000)の初期可処理
+    # =========================================================================
     def test_initialize_flows_004(self):
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": 1,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         datapathid = 3
@@ -517,8 +530,10 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[0].instructions), 1)
         eq_(self.mfg[0].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[0].instructions[0].actions), 1)
-        eq_(self.mfg[0].instructions[0].actions[0].port, ofproto.OFPP_CONTROLLER)
-        eq_(self.mfg[0].instructions[0].actions[0].max_len, ofproto.OFPCML_NO_BUFFER)
+        eq_(self.mfg[0].instructions[0].actions[0].port,
+            ofproto.OFPP_CONTROLLER)
+        eq_(self.mfg[0].instructions[0].actions[0].max_len,
+            ofproto.OFPCML_NO_BUFFER)
 
         # table 4
         eq_(self.mfg[1].datapathid, datapathid)
@@ -542,11 +557,14 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[2].instructions), 1)
         eq_(self.mfg[2].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[2].instructions[0].actions), 5)
-        eq_(self.mfg[2].instructions[0].actions[0].type, OFPActionPopVlan().type)
+        eq_(self.mfg[2].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
         eq_(self.mfg[2].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.mfg[2].instructions[0].actions[1].type, OFPActionPopPbb().type)
+        eq_(self.mfg[2].instructions[0].actions[1].type,
+            OFPActionPopPbb().type)
         eq_(self.mfg[2].instructions[0].actions[1].len, OFPActionPopPbb().len)
-        eq_(self.mfg[2].instructions[0].actions[2].ethertype, ether.ETH_TYPE_8021Q)
+        eq_(self.mfg[2].instructions[0].actions[2].ethertype,
+            ether.ETH_TYPE_8021Q)
         eq_(self.mfg[2].instructions[0].actions[3].key, 'vlan_vid')
         eq_(self.mfg[2].instructions[0].actions[3].value, ivid)
         eq_(self.mfg[2].instructions[0].actions[4].port, ofproto.OFPP_NORMAL)
@@ -562,41 +580,40 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[3].instructions[0].actions), 1)
         eq_(self.mfg[3].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
-
-    '''
-    datapath 2、 port 2 視聴開始(初回ユーザ参加)
-    '''
+    # =========================================================================
+    # datapath 2、 port 2 視聴開始(初回ユーザ参加)
+    # =========================================================================
     def test_start_mg_001(self):
 
         edge_datapathid = 1
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         multicast_address = 'ff38::1:1'
@@ -609,8 +626,10 @@ class test_flow_mod_genrator(object):
         edge_sw_bmac = switch_infos[0]['sw_bmac']
         container_sw_bmac = switch_infos[1]['sw_bmac']
 
-        self.fmg = flow_mod_generator(switch_infos)\
-            .start_mg(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
+        self.fmg = flow_mod_generator(switch_infos).start_mg(multicast_address,
+                                                             datapathid,
+                                                             portno, ivid,
+                                                             pbb_isid, bvid)
 
         # エッジSWのFlowModが3つ、収容SWのFlowModが3つ配列に格納される
         eq_(len(self.fmg), 6)
@@ -639,11 +658,14 @@ class test_flow_mod_genrator(object):
         eq_(len(self.fmg[1].instructions), 1)
         eq_(self.fmg[1].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.fmg[1].instructions[0].actions), 5)
-        eq_(self.fmg[1].instructions[0].actions[0].type, OFPActionPopVlan().type)
+        eq_(self.fmg[1].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
         eq_(self.fmg[1].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.fmg[1].instructions[0].actions[1].type, OFPActionPopPbb().type)
+        eq_(self.fmg[1].instructions[0].actions[1].type,
+            OFPActionPopPbb().type)
         eq_(self.fmg[1].instructions[0].actions[1].len, OFPActionPopPbb().len)
-        eq_(self.fmg[1].instructions[0].actions[2].ethertype, ether.ETH_TYPE_8021Q)
+        eq_(self.fmg[1].instructions[0].actions[2].ethertype,
+            ether.ETH_TYPE_8021Q)
         eq_(self.fmg[1].instructions[0].actions[3].key, 'vlan_vid')
         eq_(self.fmg[1].instructions[0].actions[3].value, ivid)
         eq_(self.fmg[1].instructions[0].actions[4].port, ofproto.OFPP_NORMAL)
@@ -683,16 +705,19 @@ class test_flow_mod_genrator(object):
         eq_(len(self.fmg[4].instructions), 1)
         eq_(self.fmg[4].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.fmg[4].instructions[0].actions), 8)
-        eq_(self.fmg[4].instructions[0].actions[0].type, OFPActionPopVlan().type)
+        eq_(self.fmg[4].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
         eq_(self.fmg[4].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.fmg[4].instructions[0].actions[1].ethertype, ether.ETH_TYPE_8021AH)
+        eq_(self.fmg[4].instructions[0].actions[1].ethertype,
+            ether.ETH_TYPE_8021AH)
         eq_(self.fmg[4].instructions[0].actions[2].key, 'pbb_isid')
         eq_(self.fmg[4].instructions[0].actions[2].value, pbb_isid)
         eq_(self.fmg[4].instructions[0].actions[3].key, 'eth_dst')
         eq_(self.fmg[4].instructions[0].actions[3].value, '00:00:00:00:00:00')
         eq_(self.fmg[4].instructions[0].actions[4].key, 'eth_src')
         eq_(self.fmg[4].instructions[0].actions[4].value, edge_sw_bmac)
-        eq_(self.fmg[4].instructions[0].actions[5].ethertype, ether.ETH_TYPE_8021AD)
+        eq_(self.fmg[4].instructions[0].actions[5].ethertype,
+            ether.ETH_TYPE_8021AD)
         eq_(self.fmg[4].instructions[0].actions[6].key, 'vlan_vid')
         eq_(self.fmg[4].instructions[0].actions[6].value, bvid)
         eq_(self.fmg[4].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
@@ -708,41 +733,40 @@ class test_flow_mod_genrator(object):
         eq_(len(self.fmg[5].instructions[0].actions), 1)
         eq_(self.fmg[5].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
-
-    '''
-    datapath 3、port 1 視聴開始(初回ユーザ参加)
-    '''
+    # =========================================================================
+    # datapath 3、port 1 視聴開始(初回ユーザ参加)
+    # =========================================================================
     def test_start_mg_002(self):
 
         edge_datapathid = 1
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         multicast_address = 'ff38::1:1'
@@ -755,8 +779,10 @@ class test_flow_mod_genrator(object):
         edge_sw_bmac = switch_infos[0]['sw_bmac']
         container_sw_bmac = switch_infos[2]['sw_bmac']
 
-        self.fmg = flow_mod_generator(switch_infos)\
-            .start_mg(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
+        self.fmg = flow_mod_generator(switch_infos).start_mg(multicast_address,
+                                                             datapathid,
+                                                             portno, ivid,
+                                                             pbb_isid, bvid)
 
         # エッジSWのFlowModが3つ、収容SWのFlowModが3つ配列に格納される
         eq_(len(self.fmg), 6)
@@ -785,11 +811,14 @@ class test_flow_mod_genrator(object):
         eq_(len(self.fmg[1].instructions), 1)
         eq_(self.fmg[1].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.fmg[1].instructions[0].actions), 5)
-        eq_(self.fmg[1].instructions[0].actions[0].type, OFPActionPopVlan().type)
+        eq_(self.fmg[1].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
         eq_(self.fmg[1].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.fmg[1].instructions[0].actions[1].type, OFPActionPopPbb().type)
+        eq_(self.fmg[1].instructions[0].actions[1].type,
+            OFPActionPopPbb().type)
         eq_(self.fmg[1].instructions[0].actions[1].len, OFPActionPopPbb().len)
-        eq_(self.fmg[1].instructions[0].actions[2].ethertype, ether.ETH_TYPE_8021Q)
+        eq_(self.fmg[1].instructions[0].actions[2].ethertype,
+            ether.ETH_TYPE_8021Q)
         eq_(self.fmg[1].instructions[0].actions[3].key, 'vlan_vid')
         eq_(self.fmg[1].instructions[0].actions[3].value, ivid)
         eq_(self.fmg[1].instructions[0].actions[4].port, ofproto.OFPP_NORMAL)
@@ -829,16 +858,19 @@ class test_flow_mod_genrator(object):
         eq_(len(self.fmg[4].instructions), 1)
         eq_(self.fmg[4].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.fmg[4].instructions[0].actions), 8)
-        eq_(self.fmg[4].instructions[0].actions[0].type, OFPActionPopVlan().type)
+        eq_(self.fmg[4].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
         eq_(self.fmg[4].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.fmg[4].instructions[0].actions[1].ethertype, ether.ETH_TYPE_8021AH)
+        eq_(self.fmg[4].instructions[0].actions[1].ethertype,
+            ether.ETH_TYPE_8021AH)
         eq_(self.fmg[4].instructions[0].actions[2].key, 'pbb_isid')
         eq_(self.fmg[4].instructions[0].actions[2].value, pbb_isid)
         eq_(self.fmg[4].instructions[0].actions[3].key, 'eth_dst')
         eq_(self.fmg[4].instructions[0].actions[3].value, '00:00:00:00:00:00')
         eq_(self.fmg[4].instructions[0].actions[4].key, 'eth_src')
         eq_(self.fmg[4].instructions[0].actions[4].value, edge_sw_bmac)
-        eq_(self.fmg[4].instructions[0].actions[5].ethertype, ether.ETH_TYPE_8021AD)
+        eq_(self.fmg[4].instructions[0].actions[5].ethertype,
+            ether.ETH_TYPE_8021AD)
         eq_(self.fmg[4].instructions[0].actions[6].key, 'vlan_vid')
         eq_(self.fmg[4].instructions[0].actions[6].value, bvid)
         eq_(self.fmg[4].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
@@ -854,39 +886,38 @@ class test_flow_mod_genrator(object):
         eq_(len(self.fmg[5].instructions[0].actions), 1)
         eq_(self.fmg[5].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
-
-    '''
-    SW1にport2を追加
-    '''
+    # =========================================================================
+    # SW1にport2を追加
+    # =========================================================================
     def test_add_port_001(self):
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": 1,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2, 3]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2, 3]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         multicast_address = 'ff38::1:1'
@@ -896,8 +927,10 @@ class test_flow_mod_genrator(object):
         pbb_isid = 10011
         bvid = 4001
 
-        self.mfg = flow_mod_generator(switch_infos)\
-            .add_port(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
+        self.mfg = flow_mod_generator(switch_infos).add_port(multicast_address,
+                                                             datapathid,
+                                                             portno, ivid,
+                                                             pbb_isid, bvid)
 
         eq_(len(self.mfg), 1)
 
@@ -912,39 +945,38 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[0].instructions[0].actions), 1)
         eq_(self.mfg[0].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
-
-    '''
-    SW1にport3を追加
-    '''
+    # =========================================================================
+    # SW1にport3を追加
+    # =========================================================================
     def test_add_port_002(self):
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": 1,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2, 3]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2, 3]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         multicast_address = 'ff38::1:1'
@@ -954,8 +986,10 @@ class test_flow_mod_genrator(object):
         pbb_isid = 10011
         bvid = 4001
 
-        self.mfg = flow_mod_generator(switch_infos)\
-            .add_port(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
+        self.mfg = flow_mod_generator(switch_infos).add_port(multicast_address,
+                                                             datapathid,
+                                                             portno, ivid,
+                                                             pbb_isid, bvid)
 
         eq_(len(self.mfg), 1)
 
@@ -970,41 +1004,40 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[0].instructions[0].actions), 1)
         eq_(self.mfg[0].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
-
-    '''
-    SW1,port2を追加
-    '''
+    # =========================================================================
+    # SW1,port2を追加
+    # =========================================================================
     def test_add_datapath_001(self):
 
         edge_datapathid = 1
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2, 3]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2, 3]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         multicast_address = 'ff38::1:1'
@@ -1018,7 +1051,8 @@ class test_flow_mod_genrator(object):
         container_sw_bmac = switch_infos[1]['sw_bmac']
 
         self.mfg = flow_mod_generator(switch_infos)\
-            .add_datapath(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
+            .add_datapath(multicast_address, datapathid, portno, ivid,
+                          pbb_isid, bvid)
 
         eq_(len(self.mfg), 5)
 
@@ -1045,11 +1079,14 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[1].instructions), 1)
         eq_(self.mfg[1].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[1].instructions[0].actions), 5)
-        eq_(self.mfg[1].instructions[0].actions[0].type, OFPActionPopVlan().type)
+        eq_(self.mfg[1].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
         eq_(self.mfg[1].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.mfg[1].instructions[0].actions[1].type, OFPActionPopPbb().type)
+        eq_(self.mfg[1].instructions[0].actions[1].type,
+            OFPActionPopPbb().type)
         eq_(self.mfg[1].instructions[0].actions[1].len, OFPActionPopPbb().len)
-        eq_(self.mfg[1].instructions[0].actions[2].ethertype, ether.ETH_TYPE_8021Q)
+        eq_(self.mfg[1].instructions[0].actions[2].ethertype,
+            ether.ETH_TYPE_8021Q)
         eq_(self.mfg[1].instructions[0].actions[3].key, 'vlan_vid')
         eq_(self.mfg[1].instructions[0].actions[3].value, ivid)
         eq_(self.mfg[1].instructions[0].actions[4].port, ofproto.OFPP_NORMAL)
@@ -1075,20 +1112,23 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[3].instructions), 1)
         eq_(self.mfg[3].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[3].instructions[0].actions), 8)
-        eq_(self.mfg[3].instructions[0].actions[0].type, OFPActionPopVlan().type)
+        eq_(self.mfg[3].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
         eq_(self.mfg[3].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.mfg[3].instructions[0].actions[1].ethertype, ether.ETH_TYPE_8021AH)
+        eq_(self.mfg[3].instructions[0].actions[1].ethertype,
+            ether.ETH_TYPE_8021AH)
         eq_(self.mfg[3].instructions[0].actions[2].key, 'pbb_isid')
         eq_(self.mfg[3].instructions[0].actions[2].value, pbb_isid)
         eq_(self.mfg[3].instructions[0].actions[3].key, 'eth_dst')
         eq_(self.mfg[3].instructions[0].actions[3].value, '00:00:00:00:00:00')
         eq_(self.mfg[3].instructions[0].actions[4].key, 'eth_src')
         eq_(self.mfg[3].instructions[0].actions[4].value, edge_sw_bmac)
-        eq_(self.mfg[3].instructions[0].actions[5].ethertype, ether.ETH_TYPE_8021AD)
+        eq_(self.mfg[3].instructions[0].actions[5].ethertype,
+            ether.ETH_TYPE_8021AD)
         eq_(self.mfg[3].instructions[0].actions[6].key, 'vlan_vid')
         eq_(self.mfg[3].instructions[0].actions[6].value, bvid)
         eq_(self.mfg[3].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
-        eq_(self.mfg[3].command, ofproto.OFPFC_MODIFY)
+        eq_(self.mfg[3].command, ofproto.OFPFC_MODIFY_STRICT)
 
         # table 4
         eq_(self.mfg[4].datapathid, edge_datapathid)
@@ -1101,41 +1141,40 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[4].instructions[0].actions), 1)
         eq_(self.mfg[4].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
-
-    '''
-    SW2,port1を追加
-    '''
+    # =========================================================================
+    # SW2,port1を追加
+    # =========================================================================
     def test_add_datapath_002(self):
 
         edge_datapathid = 1
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2, 3]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2, 3]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         multicast_address = 'ff38::1:1'
@@ -1149,7 +1188,8 @@ class test_flow_mod_genrator(object):
         container_sw_bmac = switch_infos[2]['sw_bmac']
 
         self.mfg = flow_mod_generator(switch_infos)\
-            .add_datapath(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
+            .add_datapath(multicast_address, datapathid, portno, ivid,
+                          pbb_isid, bvid)
 
         eq_(len(self.mfg), 5)
 
@@ -1176,11 +1216,14 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[1].instructions), 1)
         eq_(self.mfg[1].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[1].instructions[0].actions), 5)
-        eq_(self.mfg[1].instructions[0].actions[0].type, OFPActionPopVlan().type)
+        eq_(self.mfg[1].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
         eq_(self.mfg[1].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.mfg[1].instructions[0].actions[1].type, OFPActionPopPbb().type)
+        eq_(self.mfg[1].instructions[0].actions[1].type,
+            OFPActionPopPbb().type)
         eq_(self.mfg[1].instructions[0].actions[1].len, OFPActionPopPbb().len)
-        eq_(self.mfg[1].instructions[0].actions[2].ethertype, ether.ETH_TYPE_8021Q)
+        eq_(self.mfg[1].instructions[0].actions[2].ethertype,
+            ether.ETH_TYPE_8021Q)
         eq_(self.mfg[1].instructions[0].actions[3].key, 'vlan_vid')
         eq_(self.mfg[1].instructions[0].actions[3].value, ivid)
         eq_(self.mfg[1].instructions[0].actions[4].port, ofproto.OFPP_NORMAL)
@@ -1206,20 +1249,23 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[3].instructions), 1)
         eq_(self.mfg[3].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[3].instructions[0].actions), 8)
-        eq_(self.mfg[3].instructions[0].actions[0].type, OFPActionPopVlan().type)
+        eq_(self.mfg[3].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
         eq_(self.mfg[3].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.mfg[3].instructions[0].actions[1].ethertype, ether.ETH_TYPE_8021AH)
+        eq_(self.mfg[3].instructions[0].actions[1].ethertype,
+            ether.ETH_TYPE_8021AH)
         eq_(self.mfg[3].instructions[0].actions[2].key, 'pbb_isid')
         eq_(self.mfg[3].instructions[0].actions[2].value, pbb_isid)
         eq_(self.mfg[3].instructions[0].actions[3].key, 'eth_dst')
         eq_(self.mfg[3].instructions[0].actions[3].value, '00:00:00:00:00:00')
         eq_(self.mfg[3].instructions[0].actions[4].key, 'eth_src')
         eq_(self.mfg[3].instructions[0].actions[4].value, edge_sw_bmac)
-        eq_(self.mfg[3].instructions[0].actions[5].ethertype, ether.ETH_TYPE_8021AD)
+        eq_(self.mfg[3].instructions[0].actions[5].ethertype,
+            ether.ETH_TYPE_8021AD)
         eq_(self.mfg[3].instructions[0].actions[6].key, 'vlan_vid')
         eq_(self.mfg[3].instructions[0].actions[6].value, bvid)
         eq_(self.mfg[3].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
-        eq_(self.mfg[3].command, ofproto.OFPFC_MODIFY)
+        eq_(self.mfg[3].command, ofproto.OFPFC_MODIFY_STRICT)
 
         # table 4
         eq_(self.mfg[4].datapathid, edge_datapathid)
@@ -1232,41 +1278,40 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[4].instructions[0].actions), 1)
         eq_(self.mfg[4].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
-
-    '''
-    datapathid 2,port3 視聴終了
-    '''
+    # =========================================================================
+    # datapathid 2,port3 視聴終了
+    # =========================================================================
     def test_remove_mg_001(self):
 
         edge_datapathid = 1
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2, 3]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2, 3]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         multicast_address = 'ff38::1:1'
@@ -1279,7 +1324,8 @@ class test_flow_mod_genrator(object):
         container_sw_bmac = switch_infos[1]['sw_bmac']
 
         self.mfg = flow_mod_generator(switch_infos)\
-            .remove_mg(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
+            .remove_mg(multicast_address, datapathid, portno, ivid, pbb_isid,
+                       bvid)
 
         eq_(len(self.mfg), 6)
 
@@ -1292,7 +1338,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[0].match['eth_type'], ether.ETH_TYPE_IPV6)
         eq_(self.mfg[0].match['ipv6_dst'], multicast_address)
         eq_(len(self.mfg[0].instructions), 0)
-        eq_(self.mfg[0].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[0].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[0].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[0].out_group, ofproto.OFPG_ANY)
 
@@ -1303,7 +1349,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[1].match['in_port'], apresia_12k.TAG2PBB)
         eq_(self.mfg[1].match['vlan_vid'], ivid)
         eq_(len(self.mfg[1].instructions), 0)
-        eq_(self.mfg[1].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[1].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[1].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[1].out_group, ofproto.OFPG_ANY)
 
@@ -1314,7 +1360,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[2].match['in_port'], 0x02000000 | 49)
         eq_(self.mfg[2].match['vlan_vid'], ivid)
         eq_(len(self.mfg[2].instructions), 0)
-        eq_(self.mfg[2].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[2].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[2].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[2].out_group, ofproto.OFPG_ANY)
 
@@ -1326,7 +1372,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[3].match['in_port'], 0x02000000 | 51)
         eq_(self.mfg[3].match['vlan_vid'], ivid)
         eq_(len(self.mfg[3].instructions), 0)
-        eq_(self.mfg[3].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[3].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[3].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[3].out_group, ofproto.OFPG_ANY)
 
@@ -1338,7 +1384,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[4].match['eth_type'], ether.ETH_TYPE_8021AH)
         eq_(self.mfg[4].match['eth_dst'], container_sw_bmac)
         eq_(len(self.mfg[4].instructions), 0)
-        eq_(self.mfg[4].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[4].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[4].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[4].out_group, ofproto.OFPG_ANY)
 
@@ -1349,45 +1395,44 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[5].match['in_port'], 0x00000000 | portno)
         eq_(self.mfg[5].match['vlan_vid'], ivid)
         eq_(len(self.mfg[5].instructions), 0)
-        eq_(self.mfg[5].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[5].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[5].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[5].out_group, ofproto.OFPG_ANY)
 
-
-    '''
-    datapathid 3,port1 視聴終了
-    '''
+    # =========================================================================
+    # datapathid 3,port1 視聴終了
+    # =========================================================================
     def test_remove_mg_002(self):
 
         edge_datapathid = 1
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2, 3]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2, 3]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         multicast_address = 'ff38::1:1'
@@ -1400,7 +1445,8 @@ class test_flow_mod_genrator(object):
         container_sw_bmac = switch_infos[2]['sw_bmac']
 
         self.mfg = flow_mod_generator(switch_infos)\
-            .remove_mg(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
+            .remove_mg(multicast_address, datapathid, portno, ivid, pbb_isid,
+                       bvid)
 
         eq_(len(self.mfg), 6)
 
@@ -1413,7 +1459,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[0].match['eth_type'], ether.ETH_TYPE_IPV6)
         eq_(self.mfg[0].match['ipv6_dst'], multicast_address)
         eq_(len(self.mfg[0].instructions), 0)
-        eq_(self.mfg[0].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[0].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[0].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[0].out_group, ofproto.OFPG_ANY)
 
@@ -1424,7 +1470,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[1].match['in_port'], apresia_12k.TAG2PBB)
         eq_(self.mfg[1].match['vlan_vid'], ivid)
         eq_(len(self.mfg[1].instructions), 0)
-        eq_(self.mfg[1].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[1].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[1].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[1].out_group, ofproto.OFPG_ANY)
 
@@ -1435,7 +1481,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[2].match['in_port'], 0x02000000 | 50)
         eq_(self.mfg[2].match['vlan_vid'], ivid)
         eq_(len(self.mfg[2].instructions), 0)
-        eq_(self.mfg[2].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[2].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[2].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[2].out_group, ofproto.OFPG_ANY)
 
@@ -1447,7 +1493,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[3].match['in_port'], 0x02000000 | 52)
         eq_(self.mfg[3].match['vlan_vid'], ivid)
         eq_(len(self.mfg[3].instructions), 0)
-        eq_(self.mfg[3].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[3].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[3].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[3].out_group, ofproto.OFPG_ANY)
 
@@ -1459,7 +1505,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[4].match['eth_type'], ether.ETH_TYPE_8021AH)
         eq_(self.mfg[4].match['eth_dst'], container_sw_bmac)
         eq_(len(self.mfg[4].instructions), 0)
-        eq_(self.mfg[4].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[4].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[4].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[4].out_group, ofproto.OFPG_ANY)
 
@@ -1470,45 +1516,44 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[5].match['in_port'], 0x00000000 | portno)
         eq_(self.mfg[5].match['vlan_vid'], ivid)
         eq_(len(self.mfg[5].instructions), 0)
-        eq_(self.mfg[5].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[5].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[5].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[5].out_group, ofproto.OFPG_ANY)
 
-
-    '''
-    SW1,port2 視聴終了
-    '''
+    # =========================================================================
+    # SW1,port2 視聴終了
+    # =========================================================================
     def test_remove_port_001(self):
 
         edge_datapathid = 1
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2, 3]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2, 3]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         multicast_address = 'ff38::1:1'
@@ -1519,7 +1564,8 @@ class test_flow_mod_genrator(object):
         bvid = 4001
 
         self.mfg = flow_mod_generator(switch_infos)\
-            .remove_port(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
+            .remove_port(multicast_address, datapathid, portno, ivid, pbb_isid,
+                         bvid)
 
         eq_(len(self.mfg), 1)
 
@@ -1531,45 +1577,44 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[0].match['in_port'], 0x00000000 | portno)
         eq_(self.mfg[0].match['vlan_vid'], ivid)
         eq_(len(self.mfg[0].instructions), 0)
-        eq_(self.mfg[0].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[0].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[0].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[0].out_group, ofproto.OFPG_ANY)
 
-
-    '''
-    SW1,port3 視聴終了
-    '''
+    # =========================================================================
+    # SW1,port3 視聴終了
+    # =========================================================================
     def test_remove_port_002(self):
 
         edge_datapathid = 1
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port":  2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2, 3]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2, 3]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         multicast_address = 'ff38::1:1'
@@ -1580,7 +1625,8 @@ class test_flow_mod_genrator(object):
         bvid = 4001
 
         self.mfg = flow_mod_generator(switch_infos)\
-            .remove_port(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
+            .remove_port(multicast_address, datapathid, portno, ivid, pbb_isid,
+                         bvid)
 
         eq_(len(self.mfg), 1)
 
@@ -1592,45 +1638,44 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[0].match['in_port'], 0x00000000 | portno)
         eq_(self.mfg[0].match['vlan_vid'], ivid)
         eq_(len(self.mfg[0].instructions), 0)
-        eq_(self.mfg[0].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[0].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[0].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[0].out_group, ofproto.OFPG_ANY)
 
-
-    '''
-    SW1,port3 視聴終了
-    '''
+    # =========================================================================
+    # SW1,port3 視聴終了
+    # =========================================================================
     def test_remove_datapath_001(self):
 
         edge_datapathid = 1
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port":  2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2, 3]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2, 3]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         multicast_address = 'ff38::1:1'
@@ -1644,7 +1689,8 @@ class test_flow_mod_genrator(object):
         container_sw_bmac = switch_infos[1]['sw_bmac']
 
         self.mfg = flow_mod_generator(switch_infos)\
-            .remove_datapath(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
+            .remove_datapath(multicast_address, datapathid, portno, ivid,
+                             pbb_isid, bvid)
 
         eq_(len(self.mfg), 5)
 
@@ -1658,20 +1704,23 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[0].instructions), 1)
         eq_(self.mfg[0].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[0].instructions[0].actions), 8)
-        eq_(self.mfg[0].instructions[0].actions[0].type, OFPActionPopVlan().type)
+        eq_(self.mfg[0].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
         eq_(self.mfg[0].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.mfg[0].instructions[0].actions[1].ethertype, ether.ETH_TYPE_8021AH)
+        eq_(self.mfg[0].instructions[0].actions[1].ethertype,
+            ether.ETH_TYPE_8021AH)
         eq_(self.mfg[0].instructions[0].actions[2].key, 'pbb_isid')
         eq_(self.mfg[0].instructions[0].actions[2].value, pbb_isid)
         eq_(self.mfg[0].instructions[0].actions[3].key, 'eth_dst')
         eq_(self.mfg[0].instructions[0].actions[3].value, '00:00:00:00:00:00')
         eq_(self.mfg[0].instructions[0].actions[4].key, 'eth_src')
         eq_(self.mfg[0].instructions[0].actions[4].value, edge_sw_bmac)
-        eq_(self.mfg[0].instructions[0].actions[5].ethertype, ether.ETH_TYPE_8021AD)
+        eq_(self.mfg[0].instructions[0].actions[5].ethertype,
+            ether.ETH_TYPE_8021AD)
         eq_(self.mfg[0].instructions[0].actions[6].key, 'vlan_vid')
         eq_(self.mfg[0].instructions[0].actions[6].value, bvid)
         eq_(self.mfg[0].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
-        eq_(self.mfg[0].command, ofproto.OFPFC_MODIFY)
+        eq_(self.mfg[0].command, ofproto.OFPFC_MODIFY_STRICT)
 
         # table 4
         eq_(self.mfg[1].datapathid, edge_datapathid)
@@ -1680,7 +1729,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[1].match['in_port'], 0x02000000 | 49)
         eq_(self.mfg[1].match['vlan_vid'], ivid)
         eq_(len(self.mfg[1].instructions), 0)
-        eq_(self.mfg[1].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[1].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[1].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[1].out_group, ofproto.OFPG_ANY)
 
@@ -1692,7 +1741,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[2].match['in_port'], 0x02000000 | 51)
         eq_(self.mfg[2].match['vlan_vid'], ivid)
         eq_(len(self.mfg[2].instructions), 0)
-        eq_(self.mfg[2].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[2].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[2].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[2].out_group, ofproto.OFPG_ANY)
 
@@ -1705,7 +1754,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[3].match['pbb_isid'], pbb_isid)
         eq_(self.mfg[3].match['eth_dst'], container_sw_bmac)
         eq_(len(self.mfg[3].instructions), 0)
-        eq_(self.mfg[3].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[3].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[3].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[3].out_group, ofproto.OFPG_ANY)
 
@@ -1716,45 +1765,44 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[4].match['in_port'], 0x00000000 | portno)
         eq_(self.mfg[4].match['vlan_vid'], ivid)
         eq_(len(self.mfg[4].instructions), 0)
-        eq_(self.mfg[4].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[4].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[4].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[4].out_group, ofproto.OFPG_ANY)
 
-
-    '''
-    SW2,port1 視聴終了
-    '''
+    # =========================================================================
+    # SW2,port1 視聴終了
+    # =========================================================================
     def test_remove_datapath_002(self):
 
         edge_datapathid = 1
 
         switch_infos = [{
-            "sw_name"   : "esw",
-            "sw_type"   : 12000,
+            "sw_name": "esw",
+            "sw_type": 12000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port":  2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
             }
         },
-        {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2, 3]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2, 3]
         },
-        {
-            "sw_name"   : "sw2",
-            "sw_type"   : 12000,
+            {
+            "sw_name": "sw2",
+            "sw_type": 12000,
             "datapathid": 3,
-            "sw_bmac"   : "00:00:00:00:00:03",
-            "edge_switch_port" : 52,
-            "olt_ports" : [1]
+            "sw_bmac": "00:00:00:00:00:03",
+            "edge_switch_port": 52,
+            "olt_ports": [1]
         }]
 
         multicast_address = 'ff38::1:1'
@@ -1768,7 +1816,8 @@ class test_flow_mod_genrator(object):
         container_sw_bmac = switch_infos[2]['sw_bmac']
 
         self.mfg = flow_mod_generator(switch_infos)\
-            .remove_datapath(multicast_address, datapathid, portno, ivid, pbb_isid, bvid)
+            .remove_datapath(multicast_address, datapathid, portno, ivid,
+                             pbb_isid, bvid)
 
         eq_(len(self.mfg), 5)
 
@@ -1782,20 +1831,23 @@ class test_flow_mod_genrator(object):
         eq_(len(self.mfg[0].instructions), 1)
         eq_(self.mfg[0].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[0].instructions[0].actions), 8)
-        eq_(self.mfg[0].instructions[0].actions[0].type, OFPActionPopVlan().type)
+        eq_(self.mfg[0].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
         eq_(self.mfg[0].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.mfg[0].instructions[0].actions[1].ethertype, ether.ETH_TYPE_8021AH)
+        eq_(self.mfg[0].instructions[0].actions[1].ethertype,
+            ether.ETH_TYPE_8021AH)
         eq_(self.mfg[0].instructions[0].actions[2].key, 'pbb_isid')
         eq_(self.mfg[0].instructions[0].actions[2].value, pbb_isid)
         eq_(self.mfg[0].instructions[0].actions[3].key, 'eth_dst')
         eq_(self.mfg[0].instructions[0].actions[3].value, '00:00:00:00:00:00')
         eq_(self.mfg[0].instructions[0].actions[4].key, 'eth_src')
         eq_(self.mfg[0].instructions[0].actions[4].value, edge_sw_bmac)
-        eq_(self.mfg[0].instructions[0].actions[5].ethertype, ether.ETH_TYPE_8021AD)
+        eq_(self.mfg[0].instructions[0].actions[5].ethertype,
+            ether.ETH_TYPE_8021AD)
         eq_(self.mfg[0].instructions[0].actions[6].key, 'vlan_vid')
         eq_(self.mfg[0].instructions[0].actions[6].value, bvid)
         eq_(self.mfg[0].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
-        eq_(self.mfg[0].command, ofproto.OFPFC_MODIFY)
+        eq_(self.mfg[0].command, ofproto.OFPFC_MODIFY_STRICT)
 
         # table 4
         eq_(self.mfg[1].datapathid, edge_datapathid)
@@ -1804,7 +1856,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[1].match['in_port'], 0x02000000 | 50)
         eq_(self.mfg[1].match['vlan_vid'], ivid)
         eq_(len(self.mfg[1].instructions), 0)
-        eq_(self.mfg[1].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[1].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[1].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[1].out_group, ofproto.OFPG_ANY)
 
@@ -1816,7 +1868,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[2].match['in_port'], 0x02000000 | 52)
         eq_(self.mfg[2].match['vlan_vid'], ivid)
         eq_(len(self.mfg[2].instructions), 0)
-        eq_(self.mfg[2].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[2].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[2].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[2].out_group, ofproto.OFPG_ANY)
         # table 3
@@ -1828,7 +1880,7 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[3].match['pbb_isid'], pbb_isid)
         eq_(self.mfg[3].match['eth_dst'], container_sw_bmac)
         eq_(len(self.mfg[3].instructions), 0)
-        eq_(self.mfg[3].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[3].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[3].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[3].out_group, ofproto.OFPG_ANY)
 
@@ -1839,25 +1891,24 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[4].match['in_port'], 0x00000000 | portno)
         eq_(self.mfg[4].match['vlan_vid'], ivid)
         eq_(len(self.mfg[4].instructions), 0)
-        eq_(self.mfg[4].command, ofproto.OFPFC_DELETE)
+        eq_(self.mfg[4].command, ofproto.OFPFC_DELETE_STRICT)
         eq_(self.mfg[4].out_port, ofproto.OFPP_ANY)
         eq_(self.mfg[4].out_group, ofproto.OFPG_ANY)
 
-
-    '''
-    以下、Apresia26000について(未実装なため、エラーが返ることの確認)
-    '''
+    # =========================================================================
+    # 以下、Apresia26000について(未実装なため、エラーが返ることの確認)
+    # =========================================================================
     def test_initialize_flows_apresia_26k_001(self):
 
         edge_datapathid = 1
 
         switch_info = {
-            "sw_name"   : "esw",
-            "sw_type"   : 26000,
+            "sw_name": "esw",
+            "sw_type": 26000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port":  2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
@@ -1867,11 +1918,12 @@ class test_flow_mod_genrator(object):
         ivid = 2011
         pbb_isid = 10011
         bvid = 4001
-        
+
         flow_mod_datas = []
 
         try:
-            self.fmg = apresia_26k(switch_info).initialize_flows(ivid, pbb_isid, bvid, flow_mod_datas)
+            self.fmg = apresia_26k(switch_info)\
+                .initialize_flows(ivid, pbb_isid, bvid, flow_mod_datas)
         except flow_mod_gen_exception as e:
             eq_(e.value, 'Unsupported Operation')
             eq_(str(e), "'Unsupported Operation'")
@@ -1884,12 +1936,12 @@ class test_flow_mod_genrator(object):
         edge_datapathid = 1
 
         switch_info = {
-            "sw_name"   : "esw",
-            "sw_type"   : 26000,
+            "sw_name": "esw",
+            "sw_type": 26000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port":  2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
@@ -1905,26 +1957,27 @@ class test_flow_mod_genrator(object):
         flow_mod_datas = []
 
         try:
-            self.fmg = apresia_26k(switch_info).start_mg_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
+            self.fmg = apresia_26k(switch_info)\
+                .start_mg_edge(multicast_address, datapathid, ivid, pbb_isid,
+                               bvid, flow_mod_datas)
         except flow_mod_gen_exception as e:
             eq_(e.value, 'Unsupported Operation')
             eq_(str(e), "'Unsupported Operation'")
             return
 
         raise Exception()
-
 
     def test_add_datapath_edge_apresia_26k_001(self):
 
         edge_datapathid = 1
 
         switch_info = {
-            "sw_name"   : "esw",
-            "sw_type"   : 26000,
+            "sw_name": "esw",
+            "sw_type": 26000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port":  2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
@@ -1940,26 +1993,27 @@ class test_flow_mod_genrator(object):
         flow_mod_datas = []
 
         try:
-            self.fmg = apresia_26k(switch_info).add_datapath_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
+            self.fmg = apresia_26k(switch_info)\
+                .add_datapath_edge(multicast_address, datapathid, ivid,
+                                   pbb_isid, bvid, flow_mod_datas)
         except flow_mod_gen_exception as e:
             eq_(e.value, 'Unsupported Operation')
             eq_(str(e), "'Unsupported Operation'")
             return
 
         raise Exception()
-
 
     def test_remove_mg_edge_apresia_26k_001(self):
 
         edge_datapathid = 1
 
         switch_info = {
-            "sw_name"   : "esw",
-            "sw_type"   : 26000,
+            "sw_name": "esw",
+            "sw_type": 26000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port":  2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
@@ -1975,26 +2029,27 @@ class test_flow_mod_genrator(object):
         flow_mod_datas = []
 
         try:
-            self.fmg = apresia_26k(switch_info).remove_mg_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
+            self.fmg = apresia_26k(switch_info)\
+                .remove_mg_edge(multicast_address, datapathid, ivid, pbb_isid,
+                                bvid, flow_mod_datas)
         except flow_mod_gen_exception as e:
             eq_(e.value, 'Unsupported Operation')
             eq_(str(e), "'Unsupported Operation'")
             return
 
         raise Exception()
-
 
     def test_remove_datapath_edge_apresia_26k_001(self):
 
         edge_datapathid = 1
 
         switch_info = {
-            "sw_name"   : "esw",
-            "sw_type"   : 26000,
+            "sw_name": "esw",
+            "sw_type": 26000,
             "datapathid": edge_datapathid,
-            "sw_bmac"   : "00:00:00:00:00:01",
-            "edge_router_port" :  2,
-            "mld_port"  : 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port":  2,
+            "mld_port": 1,
             "container_sw_ports": {
                 "2": 49,
                 "3": 50
@@ -2010,7 +2065,9 @@ class test_flow_mod_genrator(object):
         flow_mod_datas = []
 
         try:
-            self.fmg = apresia_26k(switch_info).remove_datapath_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
+            self.fmg = apresia_26k(switch_info)\
+                .remove_datapath_edge(multicast_address, datapathid, ivid,
+                                      pbb_isid, bvid, flow_mod_datas)
 
         except flow_mod_gen_exception as e:
             eq_(e.value, 'Unsupported Operation')
@@ -2018,17 +2075,16 @@ class test_flow_mod_genrator(object):
             return
 
         raise Exception()
-
 
     def test_start_mg_container_apresia_26k_001(self):
 
         switch_info = {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2, 3]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2, 3]
         },
 
         portno = 1
@@ -2039,24 +2095,25 @@ class test_flow_mod_genrator(object):
         flow_mod_datas = []
 
         try:
-            self.fmg = apresia_26k(switch_info).start_mg_container(portno, ivid, pbb_isid, bvid, flow_mod_datas)
+            self.fmg = apresia_26k(switch_info)\
+                .start_mg_container(portno, ivid, pbb_isid, bvid,
+                                    flow_mod_datas)
         except flow_mod_gen_exception as e:
             eq_(e.value, 'Unsupported Operation')
             eq_(str(e), "'Unsupported Operation'")
             return
 
         raise Exception()
-
 
     def test_add_port_container_apresia_26k_001(self):
 
         switch_info = {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2, 3]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2, 3]
         },
 
         portno = 1
@@ -2067,24 +2124,25 @@ class test_flow_mod_genrator(object):
         flow_mod_datas = []
 
         try:
-            self.fmg = apresia_26k(switch_info).add_port_container(portno, ivid, pbb_isid, bvid, flow_mod_datas)
+            self.fmg = apresia_26k(switch_info)\
+                .add_port_container(portno, ivid, pbb_isid, bvid,
+                                    flow_mod_datas)
         except flow_mod_gen_exception as e:
             eq_(e.value, 'Unsupported Operation')
             eq_(str(e), "'Unsupported Operation'")
             return
 
         raise Exception()
-
 
     def test_remove_mg_container_apresia_26k_001(self):
 
         switch_info = {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2, 3]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2, 3]
         },
 
         portno = 1
@@ -2095,7 +2153,9 @@ class test_flow_mod_genrator(object):
         flow_mod_datas = []
 
         try:
-            self.fmg = apresia_26k(switch_info).remove_mg_container(portno, ivid, pbb_isid, bvid, flow_mod_datas)
+            self.fmg = apresia_26k(switch_info)\
+                .remove_mg_container(portno, ivid, pbb_isid, bvid,
+                                     flow_mod_datas)
         except flow_mod_gen_exception as e:
             eq_(e.value, 'Unsupported Operation')
             eq_(str(e), "'Unsupported Operation'")
@@ -2103,16 +2163,15 @@ class test_flow_mod_genrator(object):
 
         raise Exception()
 
-
     def test_remove_port_container_apresia_26k_001(self):
 
         switch_info = {
-            "sw_name"   : "sw1",
-            "sw_type"   : 12000,
+            "sw_name": "sw1",
+            "sw_type": 12000,
             "datapathid": 2,
-            "sw_bmac"   : "00:00:00:00:00:02",
-            "edge_switch_port" : 51,
-            "olt_ports" : [1, 2, 3]
+            "sw_bmac": "00:00:00:00:00:02",
+            "edge_switch_port": 51,
+            "olt_ports": [1, 2, 3]
         },
 
         portno = 1
@@ -2123,7 +2182,9 @@ class test_flow_mod_genrator(object):
         flow_mod_datas = []
 
         try:
-            self.fmg = apresia_26k(switch_info).remove_port_container(portno, ivid, pbb_isid, bvid, flow_mod_datas)
+            self.fmg = apresia_26k(switch_info)\
+                .remove_port_container(portno, ivid, pbb_isid, bvid,
+                                       flow_mod_datas)
         except flow_mod_gen_exception as e:
             eq_(e.value, 'Unsupported Operation')
             eq_(str(e), "'Unsupported Operation'")
@@ -2134,4 +2195,3 @@ class test_flow_mod_genrator(object):
 
 if __name__ == "__main__":
     unittest.main()
-
