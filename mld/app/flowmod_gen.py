@@ -594,7 +594,7 @@ class apresia_12k(flow_mod_gen_impl):
     def logical_port_untag(self, portno):
         return 0x00000000 | portno
     '''
-    現状の実相では未使用
+    現状の実装では未使用
     def logical_port_tag(self, portno):
         return 0x01000000 | portno
     '''
