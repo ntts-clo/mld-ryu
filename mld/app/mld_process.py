@@ -11,8 +11,7 @@ from ryu.lib import hub
 from scapy import sendrecv
 from scapy import packet as scapy_packet
 from eventlet import patcher
-from icmpv6_extend import icmpv6_extend
-from user_manage import channel_info, channel_user_info
+from multiprocessing import Process, Value
 import os
 import logging
 import logging.config
@@ -20,11 +19,16 @@ import cPickle
 import zmq
 import sys
 import time
-sys.path.append('../../common')
+import ctypes
+
+COMMON_PATH = "../../common/"
+sys.path.append(COMMON_PATH)
 from zmq_dispatch import dispatch
 from read_json import read_json
-import mld_const
 from flowmod_gen import flow_mod_generator
+from icmpv6_extend import icmpv6_extend
+from user_manage import channel_info, channel_user_info
+import mld_const
 hub.patch()
 
 
@@ -32,11 +36,6 @@ hub.patch()
 # mld_process
 # ======================================================================
 class mld_process():
-
-    BASEPATH = os.path.dirname(os.path.abspath(__file__))
-    ADDRESS_INFO = os.path.normpath(
-        os.path.join(BASEPATH, "./address_info.csv"))
-    addressinfo = []
 
     # Queryの設定値
     QUERY_MAX_RESPONSE = 10000
@@ -47,7 +46,7 @@ class mld_process():
 
     def __init__(self):
         # ロガーの設定
-        logging.config.fileConfig("../../common/logconf.ini",
+        logging.config.fileConfig(COMMON_PATH + "logconf.ini",
                                   disable_existing_loggers=False)
         self.logger = logging.getLogger(__name__)
         self.logger.debug("")
@@ -56,7 +55,7 @@ class mld_process():
         self.ch_info = channel_info()
 
         # 設定情報読み込み
-        config = read_json("../../common/config.json")
+        config = read_json(COMMON_PATH + "config.json")
         self.logger.info("config_info : %s", str(config.data))
         self.config = config.data["settings"]
 
@@ -67,7 +66,8 @@ class mld_process():
         self.IPC_PATH_RECV = self.IPC + self.RECV_PATH
 
         # アドレス情報読み込み
-        for line in open(self.ADDRESS_INFO, "r"):
+        self.addressinfo = []
+        for line in open("./address_info.csv", "r"):
             if line[0] == "#":
                 continue
             else:
@@ -77,7 +77,7 @@ class mld_process():
         self.logger.info("addressinfo : %s", str(self.addressinfo))
 
         # スイッチ情報読み込み
-        switches = read_json("../../common/switch_info.json")
+        switches = read_json(COMMON_PATH + "switch_info.json")
         self.logger.info("switch_info : %s", str(switches.data))
         self.switch_init_info = switches.data["switch_init_info"]
         self.switches = switches.data["switches"]
@@ -89,7 +89,7 @@ class mld_process():
         self.mc_info_list = mc_info.data["mc_info"]
 
         # bvidパターン読み込み
-        bvid_variation = read_json("../../common/bvid_variation.json")
+        bvid_variation = read_json(COMMON_PATH + "bvid_variation.json")
         self.logger.info("bvid_variation : %s", str(bvid_variation.data))
         self.bvid_variation = bvid_variation.data["bvid_variation"]
 
@@ -151,41 +151,74 @@ class mld_process():
 
         # Specific Query
         elif self.config["reguraly_query_type"] == "SQ":
+            next_interval = Value(ctypes.c_bool, False)
+            send_count = 1
+
             while True:
+                query_proc = Process(
+                    target=self.wait_query_interval, args=(next_interval,))
+                query_proc.start()
+                self.logger.debug("next_interval : %s",
+                                  str(next_interval.value))
                 self.send_mldquery(self.mc_info_list,
-                                   self.config["mc_query_interval"])
-                # TODO スレッド化
-#                send_thre = self.org_thread.Thread(
-#                    target=mld_proc.send_mldquery, name="SendThread",
-#                    args=(self.mc_info_list,
-#                          self.config["mc_query_interval"]))
-#                send_thre.setDaemon(True)
-#                send_thre.start()
-#                self.org_thread_time.sleep(1)
+                                   self.config["mc_query_interval"],
+                                   next_interval)
 
-                self.logger.debug("waiting %d sec...",
-                                  self.config["reguraly_query_interval"])
-                hub.sleep(self.config["reguraly_query_interval"])
+                # 定期送信クエリの送信間隔が過ぎていない場合は待ち
+                if not next_interval.value:
+                    self.logger.debug("waiting query interval(%d sec)...",
+                                      self.config["reguraly_query_interval"])
+                    query_proc.join()
 
-#                send_thre.kill()
+                next_interval.value = False
+                self.logger.debug("send_count : %d", send_count)
+                query_proc.terminate()
+                send_count += 1
+
+    # ==================================================================
+    # wait_query_interval
+    # ==================================================================
+    def wait_query_interval(self, next_interval):
+        self.logger.debug("")
+        self.logger.debug("waiting %d sec...",
+                          self.config["reguraly_query_interval"])
+        hub.sleep(self.config["reguraly_query_interval"])
+        self.logger.debug("waited %d sec",
+                          self.config["reguraly_query_interval"])
+        next_interval.value = True
+        self.logger.debug("update next_interval : %s",
+                          str(next_interval.value))
 
     # ==================================================================
     # send_mldquery
     # ==================================================================
-    def send_mldquery(self, mc_info_list, wait_time):
+    def send_mldquery(self, mc_info_list, wait_time, next_interval=None):
         self.logger.debug("")
 
         vid = self.config["c_tag_id"]
         for mc_info in mc_info_list:
+            # 全体の待ち時間が経過した場合は処理中断（定期送信時のみ）
+            if next_interval and next_interval.value:
+                self.logger.debug("updated next_interval : %s",
+                                  str(next_interval.value))
+                return
+
+            self.logger.debug("mc_addr, serv_ip : %s, %s",
+                              mc_info["mc_addr"], mc_info["serv_ip"])
             mld = self.create_mldquery(
                 mc_info["mc_addr"], mc_info["serv_ip"])
             sendpkt = self.create_packet(
                 self.addressinfo, vid, mld)
+
             # 信頼性変数QRV回送信する
             for i in range(self.QUERY_QRV):
                 self.send_packet_to_sw(sendpkt)
                 hub.sleep(1)
-            self.org_thread_time.sleep(wait_time)
+
+            # 最後のmcアドレス情報以外は送信待ちする
+            if not mc_info == mc_info_list[-1]:
+                self.logger.debug("waiting %d sec...", wait_time)
+                self.org_thread_time.sleep(wait_time)
 
     # ==================================================================
     # create_mldquery
@@ -283,10 +316,8 @@ class mld_process():
     def analyse_receive_packet(self, recvpkt):
         self.logger.debug("")
         dispatch_ = recvpkt.dispatch
-        self.logger.debug("received [type_]: %s",
-                          str(dispatch_["type_"]))
-        self.logger.debug("received [data]: %s",
-                          str(dispatch_["data"]))
+        self.logger.debug("received [type_]: %s", str(dispatch_["type_"]))
+        self.logger.debug("received [data]: %s", str(dispatch_["data"]))
         receive_type = dispatch_["type_"]
 
         if receive_type == mld_const.CON_SWITCH_FEATURE:
@@ -499,6 +530,7 @@ class mld_process():
             ivid = ""
             mc_info_type = ""
             bvid = ""
+            vid = self.config["c_tag_id"]
 
             if not reply_type == mld_const.CON_REPLY_NOTHING:
                 # マルチキャストアドレスに対応するpbb_isidとividを抽出
@@ -551,17 +583,14 @@ class mld_process():
                         mc_address=address,
                         mc_serv_ip=src,
                         report_types=report_types)
-                        # TODO vid
                     packet = self.create_packet(
-                        self.addressinfo, cid, mld_report)
+                        self.addressinfo, vid, mld_report)
                     pout = self.create_packetout(
                         datapathid=self.edge_switch["datapathid"],
                         packet=packet)
                     packetout = dispatch(
                         type_=mld_const.CON_PACKET_OUT,
                         datapathid=1, data=pout)
-#                    self.logger.debug("packetout[data] : %s",
-#                                      packetout["data"])
                     self.send_packet_to_ryu(packetout)
 
             elif reply_type == mld_const.CON_REPLY_ADD_SWITCH:
@@ -601,17 +630,14 @@ class mld_process():
                         mc_address=address,
                         mc_serv_ip=src,
                         report_types=report_types)
-                        # TODO vid
                     packet = self.create_packet(
-                        self.addressinfo, cid, mld_report)
+                        self.addressinfo, vid, mld_report)
                     pout = self.create_packetout(
                         datapathid=self.edge_switch["datapathid"],
                         packet=packet)
                     packetout = dispatch(
                         type_=mld_const.CON_PACKET_OUT,
                         datapathid=1, data=pout)
-#                    self.logger.debug("packetout[data] : %s",
-#                                      str(packetout["data"]))
                     self.send_packet_to_ryu(packetout)
 
                 flowlist = self.flowmod_gen.remove_mg(
@@ -666,15 +692,18 @@ class mld_process():
             # receive of zeromq
             recvpkt = self.recv_sock.recv()
             self.analyse_receive_packet(cPickle.loads(recvpkt))
-
-            self.org_thread_time.sleep(1)
+            hub.sleep(1)
 
 
 if __name__ == "__main__":
     mld_proc = mld_process()
-#    hub.spawn(mld_proc.send_mldquey_regularly)
-    recv_thre = mld_proc.org_thread.Thread(
-        target=mld_proc.receive_from_ryu, name="ReceiveThread")
-    recv_thre.start()
+    # Query定期送信スレッド
+    send_thre = mld_proc.org_thread.Thread(
+        target=mld_proc.send_mldquey_regularly, name="SendRegThread")
+    send_thre.start()
+    # 定期送信開始待ち
+    mld_proc.org_thread_time.sleep(1)
+    # パケット受信スレッド
+    hub.spawn(mld_proc.receive_from_ryu)
     while True:
-        hub.sleep(1)
+        time.sleep(1)
