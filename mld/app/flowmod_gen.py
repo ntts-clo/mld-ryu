@@ -76,7 +76,7 @@ class flow_mod_generator(object):
     def initialize_flows(self, datapathid, ivid, pbb_isid, bvid):
         flow_mod_datas = []
         self.all_switches[datapathid].initialize_flows(ivid, pbb_isid, bvid, flow_mod_datas)
-        return flow_mod_datas;
+        return flow_mod_datas
 
     '''
     試聴開始(初回ユーザ参加)/試聴開始(MGで初回ユーザ)
@@ -85,7 +85,7 @@ class flow_mod_generator(object):
         flow_mod_datas = []
         self.container_switches[datapathid].start_mg_container(portno, ivid, pbb_isid, bvid, flow_mod_datas)
         self.edge_switch.start_mg_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
-        return flow_mod_datas;
+        return flow_mod_datas
 
     '''
     試聴開始(収納ポートで初回、同一収納SWにユーザ既存)
@@ -93,7 +93,7 @@ class flow_mod_generator(object):
     def add_port(self, multicast_address, datapathid, portno, ivid, pbb_isid, bvid):
         flow_mod_datas = []
         self.container_switches[datapathid].add_port_container(portno, ivid, pbb_isid, bvid, flow_mod_datas)
-        return flow_mod_datas;
+        return flow_mod_datas
 
     '''
     試聴開始(収納SWで初回ユーザ)
@@ -103,7 +103,7 @@ class flow_mod_generator(object):
         # 収容スイッチに設定するフローはstartMG時と同じ
         self.container_switches[datapathid].start_mg_container(portno, ivid, pbb_isid, bvid, flow_mod_datas)
         self.edge_switch.add_datapath_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
-        return flow_mod_datas;
+        return flow_mod_datas
 
     '''
     試聴終了(MGで最終ユーザ)/試聴終了(最終ユーザの離脱)
@@ -112,7 +112,7 @@ class flow_mod_generator(object):
         flow_mod_datas = []
         self.edge_switch.remove_mg_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
         self.container_switches[datapathid].remove_mg_container(portno, ivid, pbb_isid, bvid, flow_mod_datas)
-        return flow_mod_datas;
+        return flow_mod_datas
 
     '''
     試聴終了(収納ポートで最終、同一収納SWにユーザ残存)
@@ -120,7 +120,7 @@ class flow_mod_generator(object):
     def remove_port(self, multicast_address, datapathid, portno, ivid, pbb_isid, bvid):
         flow_mod_datas = []
         self.container_switches[datapathid].remove_port_container(portno, ivid, pbb_isid, bvid, flow_mod_datas)
-        return flow_mod_datas;
+        return flow_mod_datas
 
     '''
     試聴終了(収納SWで最終ユーザ)
@@ -130,7 +130,7 @@ class flow_mod_generator(object):
         self.edge_switch.remove_datapath_edge(multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas)
         # 収容スイッチに設定するフローはremoveMG時と同じ
         self.container_switches[datapathid].remove_mg_container(portno, ivid, pbb_isid, bvid, flow_mod_datas)
-        return flow_mod_datas;
+        return flow_mod_datas
 
 
 '''
