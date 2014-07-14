@@ -358,8 +358,6 @@ class apresia_12k(flow_mod_gen_impl):
         flow_mod_datas.append(flow_mod_data(datapathid=mydpid, table_id=table_id, priority=priority,
                                                 match=match, instructions=inst))
 
-        return flow_mod_datas
-
     # multicast_addressは使用しない
     def add_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas):
 
@@ -395,8 +393,6 @@ class apresia_12k(flow_mod_gen_impl):
         flow_mod_datas.append(flow_mod_data(datapathid=mydpid, table_id=table_id, priority=priority,
                                             match=match, instructions=inst))
 
-        return flow_mod_datas
-
     # bvidは使用しない
     def remove_mg_edge(self, multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas):
 
@@ -430,8 +426,6 @@ class apresia_12k(flow_mod_gen_impl):
                                 vlan_vid=ivid)
         flow_mod_datas.append(flow_mod_data(datapathid=mydpid, table_id=table_id, priority=priority, match=match,
                                             command=command_delete, out_port=out_port_any, out_group=out_group_any))
-
-        return flow_mod_datas
 
     # multicast_addressは使用しない
     def remove_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid, bvid, flow_mod_datas):
@@ -470,8 +464,6 @@ class apresia_12k(flow_mod_gen_impl):
         flow_mod_datas.append(flow_mod_data(datapathid=mydpid, table_id=table_id, priority=priority,
                                             match=match,
                                             command=command_delete, out_port=out_port_any, out_group=out_group_any))
-
-        return flow_mod_datas
 
     # bvidは使用しない
     def start_mg_container(self, portno, ivid, pbb_isid, bvid, flow_mod_datas):
@@ -516,8 +508,6 @@ class apresia_12k(flow_mod_gen_impl):
         flow_mod_datas.append(flow_mod_data(datapathid=mydpid, table_id=table_id, priority=priority,
                                                 match=match, instructions=inst))
 
-        return flow_mod_datas
-
     # pbb_isid, bvidは使用しない
     def add_port_container(self, portno, ivid, pbb_isid, bvid, flow_mod_datas):
 
@@ -532,8 +522,6 @@ class apresia_12k(flow_mod_gen_impl):
                                              actions)]
         flow_mod_datas.append(flow_mod_data(datapathid=mydpid, table_id=table_id, priority=priority,
                                             match=match, instructions=inst))
-
-        return flow_mod_datas
 
     # bvidは使用しない
     def remove_mg_container(self, portno, ivid, pbb_isid, bvid, flow_mod_datas):
@@ -569,9 +557,7 @@ class apresia_12k(flow_mod_gen_impl):
         flow_mod_datas.append(flow_mod_data(datapathid=mydpid, table_id=table_id, priority=priority, match=match,
                                             command=command_delete, out_port=out_port_any, out_group=out_group_any))
 
-        return flow_mod_datas
-
-    # pbb_bvid、bvidは使用しない
+    # pbb_isid、bvidは使用しない
     def remove_port_container(self, portno, ivid, pbb_isid, bvid, flow_mod_datas):
 
         mydpid = self.switch_info[SW_TAG_DATAPATHID]
@@ -586,8 +572,6 @@ class apresia_12k(flow_mod_gen_impl):
                                 vlan_vid=ivid)
         flow_mod_datas.append(flow_mod_data(datapathid=mydpid, table_id=table_id, priority=priority, match=match,
                                             command=command_delete, out_port=out_port_any, out_group=out_group_any))
-
-        return flow_mod_datas
 
 
 
