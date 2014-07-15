@@ -5,6 +5,8 @@ import cPickle
 import zmq
 import logging
 
+import pdb
+
 from ryu.base import app_manager
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet, ethernet, icmpv6, vlan
@@ -23,9 +25,11 @@ from common.read_json import read_json
 """
 #from mld_const import mld_const
 import mld_const
+from ryu.app import simple_switch_13
 
 
-class mld_controller(app_manager.RyuApp):
+class mld_controller(simple_switch_13.SimpleSwitch13):
+#class mld_controller(app_manager.RyuApp):
     SOCKET_FLG = 1
 
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -171,16 +175,14 @@ class mld_controller(app_manager.RyuApp):
                           flowdata.instructions)
 
         # Create flow mod message.
-        ofproto = datapath.ofproto
-        flowmod = datapath.ofproto_parser.OFPFlowMod(datapath,
-                                                      flowdata.table_id,
-                                                      flowdata.command,
-                                                      flowdata.priority,
-                                                      ofproto.OFPCML_NO_BUFFER,
-                                                      flowdata.out_port,
-                                                      flowdata.out_group,
-                                                      flowdata.match,
-                                                      flowdata.instructions)
+        flowmod = datapath.ofproto_parser.OFPFlowMod(datapath=datapath,
+                                        table_id=flowdata.table_id,
+                                        command=flowdata.command,
+                                        priority=flowdata.priority,
+                                        out_port=flowdata.out_port,
+                                        out_group=flowdata.out_group,
+                                        match=flowdata.match,
+                                        instructions=flowdata.instructions)
         return flowmod
 
     # =========================================================================
@@ -306,14 +308,7 @@ class mld_controller(app_manager.RyuApp):
 
         msg = ev.msg
         pkt = packet.Packet(msg.data)
-
         self.logger.debug("# PACKET_IN[data] : %s \n", str(pkt))
-
-        # CHECK ETH
-        pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
-        if not pkt_ethernet:
-            self.logger.debug("# check ethernet : None \n")
-            return False
 
         # CHECK VLAN
         pkt_vlan = pkt.get_protocol(vlan.vlan)
@@ -335,6 +330,11 @@ class mld_controller(app_manager.RyuApp):
 
         # CHECK FILTER_MODE
         if pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT]:
+
+            if pkt_icmpv6.data.record_num == 0:
+                self.logger.debug("# check data.record_num : %s \n",
+                                      str(pkt_icmpv6.data.record_num))
+                return False
 
             for mldv2_report_group in pkt_icmpv6.data.records:
 
