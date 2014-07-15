@@ -55,7 +55,6 @@ class base_info(object):
             index_find == False の場合は対象が存在するインデックスを返却する（存在しない場合は-1）
         """
         logger.debug("")
-#        logger.debug("array, value : %s, %s", str(array), str(value))
         idx = bisect.bisect_left(array, value)
         logger.debug("idx : %d", idx)
         if index_find:
@@ -133,10 +132,6 @@ class channel_info(base_info):
 
     def remove_ch_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
         logger.debug("")
-#        logger.debug(
-#            "mc_addr, serv_ip, datapathid, port_no, cid : %s, %s, %s, %s, %s",
-#            mc_addr, serv_ip, str(datapathid), str(port_no), str(cid))
-#        logger.debug("self.channel_info : %s", self.get_channel_info())
         """
           視聴端末を削除。さらに、
             1. 当該sw、当該ポートの視聴ユーザが0になった場合、
@@ -235,7 +230,6 @@ class channel_switch_info(base_info):
 
     def add_sw_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
         logger.debug("port_no, cid : %s, %s", str(port_no), str(cid))
-#        logger.debug("self.port_info :\n%s", self.get_switch_info())
 
         # port_infoにユーザ情報を追加
         if port_no not in self.port_info:
@@ -249,15 +243,24 @@ class channel_switch_info(base_info):
         else:
             # 当該ポートに視聴ユーザが存在する場合
             # 当該CIDが存在しない場合はCIDを追加
-            # ソートを維持して挿入しておく(探索時にbinary searchを使いたい)
-            if not self.exists_user(
-                    mc_addr, serv_ip, datapathid, port_no, cid):
+            # ソートを維持して挿入しておく
+            user = self.exists_user(
+                mc_addr, serv_ip, datapathid, port_no, cid)
+            if not user:
                 # CIDの追加
                 bisect.insort(self.port_info[port_no], channel_user_info(
                     mc_addr, serv_ip, datapathid, port_no, cid, time.time()))
-            # TODO: 既にCIDが存在する場合に無視する処理でよいか精査
-            # FlowMod必要なし
-            return mld_const.CON_REPLY_NOTHING
+            else:
+                # 既にCIDが存在する場合はtimeを更新
+                # user_info_listから一度削除し、更新後に最後尾に追加
+                self.user_info_list.pop(
+                    self.user_info_list.index(user))
+                user.update_time(
+                    mc_addr, serv_ip, datapathid, port_no, cid, time.time())
+                self.user_info_list.append(user)
+
+                # FlowMod必要なし
+                return mld_const.CON_REPLY_NOTHING
 
     def remove_sw_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
         logger.debug("port_no, cid : %s, %s", str(port_no), str(cid))
@@ -267,7 +270,7 @@ class channel_switch_info(base_info):
         #   当該chを視聴しているユーザがいなくなった場合
         if port_no not in self.port_info:
             # 当該ポートにユーザがそもそも存在しない場合
-            # 何もせず抜ける TODO: 本当にそれでよいか精査
+            # 何もせず抜ける
             # FlowMod必要なし
             return mld_const.CON_REPLY_NOTHING
 
@@ -277,7 +280,7 @@ class channel_switch_info(base_info):
         user_list = self.port_info[port_no]
         user = self.exists_user(mc_addr, serv_ip, datapathid, port_no, cid)
         if not user:
-            # 指定されたCIDが存在しなければ何もせず抜ける TODO: 本当にそれでよいか精査
+            # 指定されたCIDが存在しなければ何もせず抜ける
             logger.debug("remove target is nothing.")
             # FlowMod必要なし
             return mld_const.CON_REPLY_NOTHING
@@ -347,8 +350,8 @@ class channel_user_info(base_info):
 
 # DEBUG
 if __name__ == "__main__":
-#    print "**** init"
     ch_info = channel_info()
+#    print "**** init"
 #
 #    # add
 #    print "**** <1>"
