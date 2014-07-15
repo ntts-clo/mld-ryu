@@ -7,13 +7,21 @@ import logging
 
 import pdb
 
+import time
+
+from ryu.app.ofctl import api
+
 from ryu.base import app_manager
 from ryu.ofproto import ofproto_v1_3
+from ryu.ofproto import ofproto_v1_3_parser
 from ryu.lib.packet import packet, ethernet, icmpv6, vlan
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from eventlet import patcher
+from ryu.lib import hub
+hub.patch()
+
 os.sys.path.append("../../common")
 from zmq_dispatch import dispatch
 from zmq_dispatch import flow_mod_data
@@ -25,11 +33,11 @@ from common.read_json import read_json
 """
 #from mld_const import mld_const
 import mld_const
-from ryu.app import simple_switch_13
+#from ryu.app import simple_switch_13
 
 
-class mld_controller(simple_switch_13.SimpleSwitch13):
-#class mld_controller(app_manager.RyuApp):
+#class mld_controller(simple_switch_13.SimpleSwitch13):
+class mld_controller(app_manager.RyuApp):
     SOCKET_FLG = 1
 
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -40,7 +48,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     dict_msg = {}
 
     def __init__(self, *args, **kwargs):
-
+#        super(mld_controller, self).__init__(*args, **kwargs)
         # システムモジュールのソケットに対しパッチを適用
         patcher.monkey_patch()
 
@@ -70,11 +78,14 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         # ソケット生成
         self.cretate_scoket(ipc + send_path, ipc + recv_path)
 
+        hub.spawn(self.receive_from_mld)
+        """
         # ReceiveThread
         recv_thread = self.org_thread.Thread(
                                     target=self.receive_from_mld,
                                     name="ReceiveThread")
         recv_thread.start()
+        """
 
     # =========================================================================
     # CRETATE SCOKET
@@ -118,7 +129,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                 if not flowmoddata.datapathid in self.dict_msg:
                     self.logger.info("dict_msg[datapathid:%s] = None \n",
                                      flowmoddata.datapathid)
-                    return None
+                    #return None
 
                 else:
                     # flowmoddata.datapathidに紐付くmsgbaseを取得する
@@ -127,9 +138,12 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
                     # FLOW_MOD生成
                     flowmod = self.create_flow_mod(msgbase.datapath,
                                                    flowmoddata)
+                    self.logger.debug("msgbase.datapath : %s \n ", msgbase.datapath)
 
                     # FLOW_MOD送信
                     self.send_msg_to_flowmod(msgbase, flowmod)
+                    time.sleep(1)
+                    self.logger.debug("flowmod[data] : %s \n ", flowmod)
 
                     # BARRIER_REQUEST送信
                     result = self.send_msg_to_barrier_request(msgbase)
@@ -202,6 +216,7 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
         self.logger.debug("")
 
         while True:
+            time.sleep(1)
             if self.SOCKET_FLG == 0:
                 self.logger.debug("### EXIT LOOP")
                 break
@@ -218,9 +233,28 @@ class mld_controller(simple_switch_13.SimpleSwitch13):
     def send_msg_to_flowmod(self, msgbase, flowmod):
         self.logger.debug("")
 
-        msgbase.datapath.send_msg(flowmod)
+        ofp_parser = msgbase.datapath.ofproto_parser
+        featuresRequest = ofp_parser.OFPFeaturesRequest(msgbase.datapath)
+        ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
+        ev.msg.datapath.send_msg(flowmod)
+        """
 
-        self.logger.info("sent 1 packet to FlowMod. ")
+        featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(msgbase.datapath)
+        self.logger.info("msgbase.datapath.id %s", str(msgbase.datapath.id))
+        ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
+        ev.msg.datapath.send_msg(flowmod)
+        #ev.msg.datapath.send_msg(flowmod)
+        """
+
+        #datapath = api.get_datapath(simple_switch_13, msgbase.datapath.id)
+        #datapath.send_msg(flowmod)
+        #msgbase.buf=flowmod
+        #pdb.set_trace()
+        #msgbase.datapath.send_msg(flowmod)
+
+        #msgbase.datapath.send_msg(flowmod)
+
+        self.logger.info("sent 1 packet to FlowMod. %s", flowmod)
 
     # =========================================================================
     # send_msg_to_barrier_request
