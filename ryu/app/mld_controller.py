@@ -42,15 +42,12 @@ class mld_controller(app_manager.RyuApp):
 
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
-    org_thread = patcher.original("threading")
-    org_thread_time = patcher.original("time")
+#    org_thread = patcher.original("threading")
+#    org_thread_time = patcher.original("time")
 
     dict_msg = {}
 
     def __init__(self, *args, **kwargs):
-#        super(mld_controller, self).__init__(*args, **kwargs)
-        # システムモジュールのソケットに対しパッチを適用
-        patcher.monkey_patch()
 
         # ログ設定ファイル読み込み
         logging.config.fileConfig("../../common/logconf.ini")
@@ -58,6 +55,9 @@ class mld_controller(app_manager.RyuApp):
         self.logger.debug("")
 
         super(mld_controller, self).__init__(*args, **kwargs)
+
+        # システムモジュールのソケットに対しパッチを適用
+        #patcher.monkey_patch()
 
         # 設定情報読み込み
         config = read_json("../../common/config.json")
@@ -78,14 +78,13 @@ class mld_controller(app_manager.RyuApp):
         # ソケット生成
         self.cretate_scoket(ipc + send_path, ipc + recv_path)
 
+        # mldからの受信スレッドを開始
         hub.spawn(self.receive_from_mld)
-        """
-        # ReceiveThread
-        recv_thread = self.org_thread.Thread(
-                                    target=self.receive_from_mld,
-                                    name="ReceiveThread")
-        recv_thread.start()
-        """
+
+        #recv_thread = self.org_thread.Thread(
+        #                            target=self.receive_from_mld,
+        #                            name="ReceiveThread")
+        #recv_thread.start()
 
     # =========================================================================
     # CRETATE SCOKET
@@ -216,16 +215,15 @@ class mld_controller(app_manager.RyuApp):
         self.logger.debug("")
 
         while True:
-            time.sleep(1)
-            if self.SOCKET_FLG == 0:
-                self.logger.debug("### EXIT LOOP")
-                break
-            else:
-                # receive of zeromq
-                recvpkt = self.recv_sock.recv()
-                packet = cPickle.loads(recvpkt)
-                self.analyse_receive_packet(packet)
-                self.org_thread_time.sleep(1)
+            self.logger.debug("waiting packet...")
+#            self.logger.debug(self.recv_sock.getsockopt(zmq.SUBSCRIBE))
+
+            hub.sleep(1)
+
+            recvpkt = self.recv_sock.recv(flags=zmq.NOBLOCK)
+            packet = cPickle.loads(recvpkt)
+            self.analyse_receive_packet(packet)
+            #self.org_thread_time.sleep(1)
 
     # =========================================================================
     # send_msg_to_flowmod
@@ -233,26 +231,7 @@ class mld_controller(app_manager.RyuApp):
     def send_msg_to_flowmod(self, msgbase, flowmod):
         self.logger.debug("")
 
-        ofp_parser = msgbase.datapath.ofproto_parser
-        featuresRequest = ofp_parser.OFPFeaturesRequest(msgbase.datapath)
-        ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
-        ev.msg.datapath.send_msg(flowmod)
-        """
-
-        featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(msgbase.datapath)
-        self.logger.info("msgbase.datapath.id %s", str(msgbase.datapath.id))
-        ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
-        ev.msg.datapath.send_msg(flowmod)
-        #ev.msg.datapath.send_msg(flowmod)
-        """
-
-        #datapath = api.get_datapath(simple_switch_13, msgbase.datapath.id)
-        #datapath.send_msg(flowmod)
-        #msgbase.buf=flowmod
-        #pdb.set_trace()
-        #msgbase.datapath.send_msg(flowmod)
-
-        #msgbase.datapath.send_msg(flowmod)
+        msgbase.datapath.send_msg(flowmod)
 
         self.logger.info("sent 1 packet to FlowMod. %s", flowmod)
 
@@ -339,8 +318,8 @@ class mld_controller(app_manager.RyuApp):
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         self.logger.debug("")
-
         msg = ev.msg
+        self.logger.debug("# msg[] : %s \n", str(msg.data))
         pkt = packet.Packet(msg.data)
         self.logger.debug("# PACKET_IN[data] : %s \n", str(pkt))
 
