@@ -29,7 +29,6 @@ SW_NAME_ESW = 'esw'
 SW_TAG_BMAC = 'sw_bmac'
 # swtich_info edge
 SW_TAG_EDGE_ROUTER_PORT = 'edge_router_port'
-SW_TAG_MLD_PORT = 'mld_port'
 SW_TAG_CONTEINER_PORTS = 'container_sw_ports'
 # switch_info container
 SW_TAG_EDGE_SWITCH_PORT = 'edge_switch_port'
@@ -221,7 +220,6 @@ class apresia_12k(flow_mod_gen_impl):
         if self.switch_info[SW_TAG_NAME] == SW_NAME_ESW:
 
             edge_router_port = self.switch_info[SW_TAG_EDGE_ROUTER_PORT]
-            mld_port = self.switch_info[SW_TAG_MLD_PORT]
             container_sw_ports = self.switch_info[SW_TAG_CONTEINER_PORTS]
 
             # MLD QueryのPacket-In
@@ -233,22 +231,6 @@ class apresia_12k(flow_mod_gen_impl):
                                     icmpv6_type=icmpv6.MLD_LISTENER_QUERY)
             actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
                                               ofproto.OFPCML_NO_BUFFER)]
-            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-                                                 actions)]
-            flow_mod_datas.append(flow_mod_data(datapathid=datapathid,
-                                                table_id=table_id,
-                                                priority=priority,
-                                                match=match,
-                                                instructions=inst))
-
-            # MLDv2 Reportのエッジルータ向けルーティング
-            table_id = 0
-            priority = PRIORITY_NORMAL
-            match = parser.OFPMatch(in_port=mld_port,
-                                    eth_type=ether.ETH_TYPE_IPV6,
-                                    ip_proto=inet.IPPROTO_ICMPV6,
-                                    icmpv6_type=icmpv6.MLDV2_LISTENER_REPORT)
-            actions = [parser.OFPActionOutput(port=edge_router_port)]
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                                  actions)]
             flow_mod_datas.append(flow_mod_data(datapathid=datapathid,

@@ -161,7 +161,7 @@ class test_flow_mod_genrator(object):
         self.mfg = flow_mod_generator(switch_infos)\
             .initialize_flows(datapathid, ivid, pbb_isid, bvid)
 
-        eq_(len(self.mfg), 5)
+        eq_(len(self.mfg), 4)
 
         # table 0
         eq_(self.mfg[0].datapathid, datapathid)
@@ -179,66 +179,53 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[0].instructions[0].actions[0].max_len,
             ofproto.OFPCML_NO_BUFFER)
 
-        # table 0
+        # table 3
         eq_(self.mfg[1].datapathid, datapathid)
-        eq_(self.mfg[1].table_id, 0)
+        eq_(self.mfg[1].table_id, 3)
         eq_(self.mfg[1].priority, PRIORITY_NORMAL)
-        eq_(self.mfg[1].match['in_port'], 1)
-        eq_(self.mfg[1].match['eth_type'], ether.ETH_TYPE_IPV6)
-        eq_(self.mfg[1].match['ip_proto'], inet.IPPROTO_ICMPV6)
-        eq_(self.mfg[1].match['icmpv6_type'], icmpv6.MLDV2_LISTENER_REPORT)
+        eq_(self.mfg[1].match['in_port'], apresia_12k.TAG2PBB)
+        eq_(self.mfg[1].match['vlan_vid'], ivid)
         eq_(len(self.mfg[1].instructions), 1)
         eq_(self.mfg[1].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
-        eq_(len(self.mfg[1].instructions[0].actions), 1)
-        eq_(self.mfg[1].instructions[0].actions[0].port, 2)
+        eq_(len(self.mfg[1].instructions[0].actions), 8)
+        eq_(self.mfg[1].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
+        eq_(self.mfg[1].instructions[0].actions[0].len, OFPActionPopVlan().len)
+        eq_(self.mfg[1].instructions[0].actions[1].ethertype,
+            ether.ETH_TYPE_8021AH)
+        eq_(self.mfg[1].instructions[0].actions[2].key, 'pbb_isid')
+        eq_(self.mfg[1].instructions[0].actions[2].value, pbb_isid)
+        eq_(self.mfg[1].instructions[0].actions[3].key, 'eth_dst')
+        eq_(self.mfg[1].instructions[0].actions[3].value, '00:00:00:00:00:00')
+        eq_(self.mfg[1].instructions[0].actions[4].key, 'eth_src')
+        eq_(self.mfg[1].instructions[0].actions[4].value, "00:00:00:00:00:01")
+        eq_(self.mfg[1].instructions[0].actions[5].ethertype,
+            ether.ETH_TYPE_8021AD)
+        eq_(self.mfg[1].instructions[0].actions[6].key, 'vlan_vid')
+        eq_(self.mfg[1].instructions[0].actions[6].value, bvid)
+        eq_(self.mfg[1].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
 
-        # table 3
+        # table 4
         eq_(self.mfg[2].datapathid, datapathid)
-        eq_(self.mfg[2].table_id, 3)
+        eq_(self.mfg[2].table_id, 4)
         eq_(self.mfg[2].priority, PRIORITY_NORMAL)
-        eq_(self.mfg[2].match['in_port'], apresia_12k.TAG2PBB)
+        eq_(self.mfg[2].match['in_port'], 0x02000000 | 50)
         eq_(self.mfg[2].match['vlan_vid'], ivid)
         eq_(len(self.mfg[2].instructions), 1)
         eq_(self.mfg[2].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
-        eq_(len(self.mfg[2].instructions[0].actions), 8)
-        eq_(self.mfg[2].instructions[0].actions[0].type,
-            OFPActionPopVlan().type)
-        eq_(self.mfg[2].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.mfg[2].instructions[0].actions[1].ethertype,
-            ether.ETH_TYPE_8021AH)
-        eq_(self.mfg[2].instructions[0].actions[2].key, 'pbb_isid')
-        eq_(self.mfg[2].instructions[0].actions[2].value, pbb_isid)
-        eq_(self.mfg[2].instructions[0].actions[3].key, 'eth_dst')
-        eq_(self.mfg[2].instructions[0].actions[3].value, '00:00:00:00:00:00')
-        eq_(self.mfg[2].instructions[0].actions[4].key, 'eth_src')
-        eq_(self.mfg[2].instructions[0].actions[4].value, "00:00:00:00:00:01")
-        eq_(self.mfg[2].instructions[0].actions[5].ethertype,
-            ether.ETH_TYPE_8021AD)
-        eq_(self.mfg[2].instructions[0].actions[6].key, 'vlan_vid')
-        eq_(self.mfg[2].instructions[0].actions[6].value, bvid)
-        eq_(self.mfg[2].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
+        eq_(len(self.mfg[2].instructions[0].actions), 1)
+        eq_(self.mfg[2].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
         # table 4
         eq_(self.mfg[3].datapathid, datapathid)
         eq_(self.mfg[3].table_id, 4)
         eq_(self.mfg[3].priority, PRIORITY_NORMAL)
-        eq_(self.mfg[3].match['in_port'], 0x02000000 | 50)
+        eq_(self.mfg[3].match['in_port'], 0x02000000 | 49)
         eq_(self.mfg[3].match['vlan_vid'], ivid)
         eq_(len(self.mfg[3].instructions), 1)
         eq_(self.mfg[3].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[3].instructions[0].actions), 1)
         eq_(self.mfg[3].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
-
-        # table 4
-        eq_(self.mfg[4].datapathid, datapathid)
-        eq_(self.mfg[4].table_id, 4)
-        eq_(self.mfg[4].priority, PRIORITY_NORMAL)
-        eq_(self.mfg[4].match['in_port'], 0x02000000 | 49)
-        eq_(self.mfg[4].match['vlan_vid'], ivid)
-        eq_(len(self.mfg[4].instructions), 1)
-        eq_(self.mfg[4].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
-        eq_(len(self.mfg[4].instructions[0].actions), 1)
-        eq_(self.mfg[4].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
     # =========================================================================
     # エッジSW(Apresia12000)の初期可処理 2
@@ -282,7 +269,7 @@ class test_flow_mod_genrator(object):
         self.mfg = flow_mod_generator(switch_infos)\
             .initialize_flows(datapathid, ivid, pbb_isid, bvid)
 
-        eq_(len(self.mfg), 5)
+        eq_(len(self.mfg), 4)
 
         # table 0
         eq_(self.mfg[0].datapathid, datapathid)
@@ -300,66 +287,53 @@ class test_flow_mod_genrator(object):
         eq_(self.mfg[0].instructions[0].actions[0].max_len,
             ofproto.OFPCML_NO_BUFFER)
 
-        # table 0
+        # table 3
         eq_(self.mfg[1].datapathid, datapathid)
-        eq_(self.mfg[1].table_id, 0)
+        eq_(self.mfg[1].table_id, 3)
         eq_(self.mfg[1].priority, PRIORITY_NORMAL)
-        eq_(self.mfg[1].match['in_port'], 2)
-        eq_(self.mfg[1].match['eth_type'], ether.ETH_TYPE_IPV6)
-        eq_(self.mfg[1].match['ip_proto'], inet.IPPROTO_ICMPV6)
-        eq_(self.mfg[1].match['icmpv6_type'], icmpv6.MLDV2_LISTENER_REPORT)
+        eq_(self.mfg[1].match['in_port'], apresia_12k.TAG2PBB)
+        eq_(self.mfg[1].match['vlan_vid'], ivid)
         eq_(len(self.mfg[1].instructions), 1)
         eq_(self.mfg[1].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
-        eq_(len(self.mfg[1].instructions[0].actions), 1)
-        eq_(self.mfg[1].instructions[0].actions[0].port, 3)
+        eq_(len(self.mfg[1].instructions[0].actions), 8)
+        eq_(self.mfg[1].instructions[0].actions[0].type,
+            OFPActionPopVlan().type)
+        eq_(self.mfg[1].instructions[0].actions[0].len, OFPActionPopVlan().len)
+        eq_(self.mfg[1].instructions[0].actions[1].ethertype,
+            ether.ETH_TYPE_8021AH)
+        eq_(self.mfg[1].instructions[0].actions[2].key, 'pbb_isid')
+        eq_(self.mfg[1].instructions[0].actions[2].value, pbb_isid)
+        eq_(self.mfg[1].instructions[0].actions[3].key, 'eth_dst')
+        eq_(self.mfg[1].instructions[0].actions[3].value, '00:00:00:00:00:00')
+        eq_(self.mfg[1].instructions[0].actions[4].key, 'eth_src')
+        eq_(self.mfg[1].instructions[0].actions[4].value, "00:00:00:00:00:04")
+        eq_(self.mfg[1].instructions[0].actions[5].ethertype,
+            ether.ETH_TYPE_8021AD)
+        eq_(self.mfg[1].instructions[0].actions[6].key, 'vlan_vid')
+        eq_(self.mfg[1].instructions[0].actions[6].value, bvid)
+        eq_(self.mfg[1].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
 
-        # table 3
+        # table 4
         eq_(self.mfg[2].datapathid, datapathid)
-        eq_(self.mfg[2].table_id, 3)
+        eq_(self.mfg[2].table_id, 4)
         eq_(self.mfg[2].priority, PRIORITY_NORMAL)
-        eq_(self.mfg[2].match['in_port'], apresia_12k.TAG2PBB)
+        eq_(self.mfg[2].match['in_port'], 0x02000000 | 60)
         eq_(self.mfg[2].match['vlan_vid'], ivid)
         eq_(len(self.mfg[2].instructions), 1)
         eq_(self.mfg[2].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
-        eq_(len(self.mfg[2].instructions[0].actions), 8)
-        eq_(self.mfg[2].instructions[0].actions[0].type,
-            OFPActionPopVlan().type)
-        eq_(self.mfg[2].instructions[0].actions[0].len, OFPActionPopVlan().len)
-        eq_(self.mfg[2].instructions[0].actions[1].ethertype,
-            ether.ETH_TYPE_8021AH)
-        eq_(self.mfg[2].instructions[0].actions[2].key, 'pbb_isid')
-        eq_(self.mfg[2].instructions[0].actions[2].value, pbb_isid)
-        eq_(self.mfg[2].instructions[0].actions[3].key, 'eth_dst')
-        eq_(self.mfg[2].instructions[0].actions[3].value, '00:00:00:00:00:00')
-        eq_(self.mfg[2].instructions[0].actions[4].key, 'eth_src')
-        eq_(self.mfg[2].instructions[0].actions[4].value, "00:00:00:00:00:04")
-        eq_(self.mfg[2].instructions[0].actions[5].ethertype,
-            ether.ETH_TYPE_8021AD)
-        eq_(self.mfg[2].instructions[0].actions[6].key, 'vlan_vid')
-        eq_(self.mfg[2].instructions[0].actions[6].value, bvid)
-        eq_(self.mfg[2].instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
+        eq_(len(self.mfg[2].instructions[0].actions), 1)
+        eq_(self.mfg[2].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
         # table 4
         eq_(self.mfg[3].datapathid, datapathid)
         eq_(self.mfg[3].table_id, 4)
         eq_(self.mfg[3].priority, PRIORITY_NORMAL)
-        eq_(self.mfg[3].match['in_port'], 0x02000000 | 60)
+        eq_(self.mfg[3].match['in_port'], 0x02000000 | 59)
         eq_(self.mfg[3].match['vlan_vid'], ivid)
         eq_(len(self.mfg[3].instructions), 1)
         eq_(self.mfg[3].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(self.mfg[3].instructions[0].actions), 1)
         eq_(self.mfg[3].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
-
-        # table 4
-        eq_(self.mfg[4].datapathid, datapathid)
-        eq_(self.mfg[4].table_id, 4)
-        eq_(self.mfg[4].priority, PRIORITY_NORMAL)
-        eq_(self.mfg[4].match['in_port'], 0x02000000 | 59)
-        eq_(self.mfg[4].match['vlan_vid'], ivid)
-        eq_(len(self.mfg[4].instructions), 1)
-        eq_(self.mfg[4].instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
-        eq_(len(self.mfg[4].instructions[0].actions), 1)
-        eq_(self.mfg[4].instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
     # =========================================================================
     # 収容SW1(Apresia12000)の初期可処理
