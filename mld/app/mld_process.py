@@ -452,7 +452,7 @@ class mld_process():
                     packet=sendpkt)
                 packetout = dispatch(
                     type_=mld_const.CON_PACKET_OUT,
-                    datapathid=1, data=pout)
+                    datapathid=self.edge_switch["datapathid"], data=pout)
                 self.logger.debug("packetout: %s", str(packetout))
                 self.send_packet_to_ryu(packetout)
 
@@ -596,7 +596,8 @@ class mld_process():
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
             flowmod = dispatch(
-                type_=mld_const.CON_FLOW_MOD, datapathid=1, data=flowlist)
+                type_=mld_const.CON_FLOW_MOD,
+                datapathid=self.edge_switch["datapathid"], data=flowlist)
             self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
 
             self.send_packet_to_ryu(flowmod)
@@ -614,7 +615,8 @@ class mld_process():
                 pout = self.create_packetout(
                     datapathid=self.edge_switch["datapathid"], packet=packet)
                 packetout = dispatch(
-                    type_=mld_const.CON_PACKET_OUT, datapathid=1, data=pout)
+                    type_=mld_const.CON_PACKET_OUT,
+                    datapathid=self.edge_switch["datapathid"], data=pout)
                 self.send_packet_to_ryu(packetout)
 
         elif reply_type == mld_const.CON_REPLY_ADD_SWITCH:
@@ -623,7 +625,8 @@ class mld_process():
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
             flowmod = dispatch(
-                type_=mld_const.CON_FLOW_MOD, datapathid=1, data=flowlist)
+                type_=mld_const.CON_FLOW_MOD,
+                datapathid=self.edge_switch["datapathid"], data=flowlist)
             self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
             self.send_packet_to_ryu(flowmod)
 
@@ -633,7 +636,8 @@ class mld_process():
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
             flowmod = dispatch(
-                type_=mld_const.CON_FLOW_MOD, datapathid=1, data=flowlist)
+                type_=mld_const.CON_FLOW_MOD,
+                datapathid=self.edge_switch["datapathid"], data=flowlist)
             self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
             self.send_packet_to_ryu(flowmod)
 
@@ -652,14 +656,16 @@ class mld_process():
                 pout = self.create_packetout(
                     datapathid=self.edge_switch["datapathid"], packet=packet)
                 packetout = dispatch(
-                    type_=mld_const.CON_PACKET_OUT, datapathid=1, data=pout)
+                    type_=mld_const.CON_PACKET_OUT,
+                    datapathid=self.edge_switch["datapathid"], data=pout)
                 self.send_packet_to_ryu(packetout)
 
             flowlist = self.flowmod_gen.remove_mg(
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
             flowmod = dispatch(
-                type_=mld_const.CON_FLOW_MOD, datapathid=1, data=flowlist)
+                type_=mld_const.CON_FLOW_MOD,
+                datapathid=self.edge_switch["datapathid"], data=flowlist)
             self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
             self.send_packet_to_ryu(flowmod)
 
@@ -669,7 +675,8 @@ class mld_process():
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
             flowmod = dispatch(
-                type_=mld_const.CON_FLOW_MOD, datapathid=1, data=flowlist)
+                type_=mld_const.CON_FLOW_MOD,
+                datapathid=self.edge_switch["datapathid"], data=flowlist)
             self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
             self.send_packet_to_ryu(flowmod)
 
@@ -679,7 +686,8 @@ class mld_process():
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
             flowmod = dispatch(
-                type_=mld_const.CON_FLOW_MOD, datapathid=1, data=flowlist)
+                type_=mld_const.CON_FLOW_MOD,
+                datapathid=self.edge_switch["datapathid"], data=flowlist)
             self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
             self.send_packet_to_ryu(flowmod)
 
