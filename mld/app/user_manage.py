@@ -16,7 +16,7 @@ logging.config.fileConfig("../../common/logconf.ini")
 logger = logging.getLogger(__name__)
 
 
-class base_info(object):
+class base_info():
     # {(マルチキャストアドレス, サーバのIP): {データパスID: channel_switch_info}
     channel_info = {}
     # [channel_user_info]
@@ -27,21 +27,25 @@ class base_info(object):
 
     def exists_user(self, mc_addr, serv_ip, datapathid, port_no, cid):
         logger.debug("")
-        logger.debug(
-            "mc_addr, serv_ip, datapathid, port_no, cid : %s, %s, %s, %s, %s",
-            mc_addr, serv_ip, datapathid, port_no, cid)
+#        logger.debug(
+#            "mc_addr, serv_ip, datapathid, port_no, cid : %s, %s, %s, %s, %s",
+#            mc_addr, serv_ip, datapathid, port_no, cid)
         """
             channel_infoから指定されたcidまでを持つchannel_user_infoを返却
             存在しない場合はNoneを返却
         """
         if (mc_addr, serv_ip) in self.channel_info:
+            logger.debug("hit mc_addr, serv_ip : %s, %s", mc_addr, serv_ip)
             sw_info = self.channel_info[(mc_addr, serv_ip)]
             if datapathid in sw_info:
+                logger.debug("hit datapathid : %s", datapathid)
                 port_info = sw_info[datapathid]
                 if port_no in port_info.port_info:
+                    logger.debug("hit port_no : %s", port_no)
                     user_list = port_info[port_no]
                     for user in user_list:
                         if cid == user.cid:
+                            logger.debug("hit cid : %s", cid)
                             logger.debug("found user")
                             return user
 
@@ -55,6 +59,7 @@ class base_info(object):
             index_find == False の場合は対象が存在するインデックスを返却する（存在しない場合は-1）
         """
         logger.debug("")
+        logger.debug("array, value : %s, %s", str(array), str(value))
         idx = bisect.bisect_left(array, value)
         logger.debug("idx : %d", idx)
         if index_find:
@@ -76,10 +81,10 @@ class channel_info(base_info):
 
     def add_ch_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
         logger.debug("")
-        logger.debug(
-            "mc_addr, serv_ip, datapathid, port_no, cid : %s, %s, %s, %s, %s",
-            mc_addr, serv_ip, str(datapathid), str(port_no), str(cid))
-        logger.debug("self.channel_info : %s", self.get_channel_info())
+#        logger.debug(
+#            "mc_addr, serv_ip, datapathid, port_no, cid : %s, %s, %s, %s, %s",
+#            mc_addr, serv_ip, str(datapathid), str(port_no), str(cid))
+#        logger.debug("self.channel_info : %s", self.get_channel_info())
         """
           視聴端末を追加。さらに、
             1. ch視聴ユーザが当該swにおける最初の視聴ユーザだった場合、エッジルータへ
@@ -97,11 +102,12 @@ class channel_info(base_info):
         # チャンネル存在チェック
         if (mc_addr, serv_ip) not in self.channel_info:
             # 当該チャンネルが存在しない場合
-            sw_info = channel_switch_info()
+            sw_info = channel_switch_info(
+                self.channel_info, self.user_info_list)
             sw_info.add_sw_info(mc_addr, serv_ip, datapathid, port_no, cid)
             self.channel_info[(mc_addr, serv_ip)] = {datapathid: sw_info}
-            logger.debug("added self.channel_info : %s",
-                         self.get_channel_info())
+#            logger.debug("added self.channel_info : %s",
+#                         self.get_channel_info())
             self.user_info_list.append(sw_info.port_info[port_no][-1])
             # エッジSW、収容SW両方へのFlowMod、およびエッジルータへのReport
             return mld_const.CON_REPLY_ADD_MC_GROUP
@@ -110,12 +116,13 @@ class channel_info(base_info):
         # DataPath存在チェック
         sw_info = self.channel_info[(mc_addr, serv_ip)]
         if datapathid not in sw_info:
-            new_sw_info = channel_switch_info()
+            new_sw_info = channel_switch_info(
+                self.channel_info, self.user_info_list)
             new_sw_info.add_sw_info(
                 mc_addr, serv_ip, datapathid, port_no, cid)
             sw_info[datapathid] = new_sw_info
-            logger.debug("added self.channel_info : %s",
-                         self.get_channel_info())
+#            logger.debug("added self.channel_info : %s",
+#                         self.get_channel_info())
             self.user_info_list.append(
                 sw_info[datapathid].port_info[port_no][-1])
             # 収容SWへのFlowMod
@@ -126,12 +133,15 @@ class channel_info(base_info):
         ret = ch_sw_info.add_sw_info(
             mc_addr, serv_ip, datapathid, port_no, cid)
         self.user_info_list.append(ch_sw_info.port_info[port_no][-1])
-        logger.debug("added self.channel_info : \n%s",
-                     self.get_channel_info())
+#        logger.debug("added self.channel_info : \n%s",
+#                     self.get_channel_info())
         return ret
 
     def remove_ch_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
         logger.debug("")
+        logger.debug(
+            "mc_addr, serv_ip, datapathid, port_no, cid : %s, %s, %s, %s, %s",
+            mc_addr, serv_ip, str(datapathid), str(port_no), str(cid))
         """
           視聴端末を削除。さらに、
             1. 当該sw、当該ポートの視聴ユーザが0になった場合、
@@ -167,8 +177,8 @@ class channel_info(base_info):
                 self.channel_info.pop((mc_addr, serv_ip))
                 ret = mld_const.CON_REPLY_DEL_MC_GROUP
 
-        logger.debug("removed self.channel_info : %s",
-                     self.get_channel_info())
+#        logger.debug("removed self.channel_info : %s",
+#                     self.get_channel_info())
         return ret
 
     def update_user_info_list(
@@ -177,9 +187,9 @@ class channel_info(base_info):
         """
             引数のcidまでを持つchannel_user_infoを取得し、
             存在する場合、対象のtimeを更新し、user_info_listに入れ直す
+            対象userが存在する場合はuser情報を、存在しない場合はNoneを返却
         """
-        user = self.exists_user(
-            mc_addr, serv_ip, datapathid, port_no, cid)
+        user = self.exists_user(mc_addr, serv_ip, datapathid, port_no, cid)
         if user:
             # user_info_listから一度削除し、更新後に最後尾に追加
             self.user_info_list.pop(
@@ -187,6 +197,7 @@ class channel_info(base_info):
             user.update_time(
                 mc_addr, serv_ip, datapathid, port_no, cid, time.time())
             self.user_info_list.append(user)
+        return user
 
     def get_channel_info(self):
         """
@@ -221,9 +232,11 @@ class channel_info(base_info):
 
 
 class channel_switch_info(base_info):
-    def __init__(self):
+    def __init__(self, channel_info, user_info_list):
         logger.debug("")
         self.port_info = {}
+        self.channel_info = channel_info
+        self.user_info_list = user_info_list
 
     def __getitem__(self, key):
         return self.port_info[key]
@@ -236,8 +249,8 @@ class channel_switch_info(base_info):
             # 当該ポートに視聴ユーザが存在しない場合
             self.port_info[port_no] = [channel_user_info(
                 mc_addr, serv_ip, datapathid, port_no, cid, time.time())]
-            logger.debug("added self.port_info : \n%s",
-                         self.get_switch_info())
+#            logger.debug("added self.port_info : \n%s",
+#                         self.get_switch_info())
             # 収容SWへのFlowMod
             return mld_const.CON_REPLY_ADD_PORT
         else:
@@ -264,7 +277,7 @@ class channel_switch_info(base_info):
 
     def remove_sw_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
         logger.debug("port_no, cid : %s, %s", str(port_no), str(cid))
-        logger.debug("self.port_info : \n%s", self.get_switch_info())
+#        logger.debug("self.port_info : \n%s", self.get_switch_info())
         # port_infoから当該ユーザ情報を検索し削除
         # ch_infoを更新
         #   当該chを視聴しているユーザがいなくなった場合
@@ -295,8 +308,8 @@ class channel_switch_info(base_info):
         if len(user_list) == 0:
             # ポート情報の削除
             self.port_info.pop(port_no)
-            logger.debug("removed self.port_info : \n%s",
-                         self.get_switch_info())
+#            logger.debug("removed self.port_info : \n%s",
+#                         self.get_switch_info())
             # 収容SWへのFlowModが必要
             return mld_const.CON_REPLY_DEL_PORT
         else:
@@ -351,51 +364,52 @@ class channel_user_info(base_info):
 # DEBUG
 if __name__ == "__main__":
     ch_info = channel_info()
-#    print "**** init"
 #
-#    # add
-#    print "**** <1>"
-#    ch_info.add_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
-#    print
-#    print "**** <1> add cid 100"
-#    ch_info.add_ch_info("ff38::1:1", "2001::1:20", 1, 1, 100)
-#    print ch_info.get_user_info_list()
-#    print
-#    print "**** <1> add port 2"
-#    ch_info.add_ch_info("ff38::1:1", "2001::1:20", 1, 2, 120)
-#    print
-#    print "**** <1> add datapath 2"
+    # add
+    logger.debug("**** <1>")
+    ch_info.add_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
+    logger.debug("")
+    logger.debug("**** <1> add cid 100")
+    ch_info.add_ch_info("ff38::1:1", "2001::1:20", 1, 1, 100)
+    logger.debug(ch_info.get_user_info_list())
+    logger.debug("")
+    logger.debug("**** <1> add port 2")
+    ch_info.add_ch_info("ff38::1:1", "2001::1:20", 1, 2, 120)
+#    logger.debug("")
+#    logger.debug("**** <1> add datapath 2")
 #    ch_info.add_ch_info("ff38::1:1", "2001::1:20", 2, 1, 210)
-#    print
-#    print "**** <2>"
+#    logger.debug("")
+#    logger.debug("**** <2>")
 #    ch_info.add_ch_info("ff38::1:2", "2001::1:20", 1, 1, 1110)
-#    print ch_info.get_user_info_list()
-#    print
+#    logger.debug(ch_info.get_user_info_list())
+#    logger.debug("")
 #
 #    # update
-#    print "**** <1> update cid 111"
+#    logger.debug("**** <1> update cid 111")
 #    ch_info.update_user_info_list("ff38::1:1", "2001::1:20", 1, 1, 111)
-#    print
-#    print ch_info.get_channel_info()
-#    print ch_info.get_user_info_list()
-#    print
+#    logger.debug("")
+#    logger.debug(ch_info.get_channel_info())
+#    logger.debug(ch_info.get_user_info_list())
+#    logger.debug("")
 #
-#    # remove
-#    print "**** remove <1> cid 111"
-#    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
-#    print
-#    print "**** remove <1> cid 100"
+    # remove
+    logger.debug("**** remove <1> cid 111")
+    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
+    logger.debug("")
+    logger.debug(ch_info.get_channel_info())
+    logger.debug(ch_info.get_user_info_list())
+#    logger.debug("**** remove <1> cid 100")
 #    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 1, 100)
-#    print
-#    print "**** remove <1> datapath 2"
+#    logger.debug("")
+#    logger.debug("**** remove <1> datapath 2")
 #    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 2, 1, 210)
-#    print
-#    print "**** remove <1> port 2"
+#    logger.debug("")
+#    logger.debug("**** remove <1> port 2")
 #    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 2, 120)
-#    print
-#    print "**** remove <2>"
+#    logger.debug("")
+#    logger.debug("**** remove <2>")
 #    ch_info.remove_ch_info("ff38::1:2", "2001::1:20", 1, 1, 1110)
-#    print ch_info.get_user_info_list()
+#    logger.debug(ch_info.get_user_info_list())
 
 """
 class DatabaseAccessor:
@@ -428,8 +442,8 @@ if '__main__' == __name__:
     a = hoge(int=5)
     b = hoge()
     b.int = 2
-    logger.debug a.int
-    logger.debug b.int
+    logger.debug(a.int)
+    logger.debug(b.int)
 
     # open mongodb
     client = MongoClient("mongodb://localhost:27017")
@@ -455,8 +469,8 @@ if '__main__' == __name__:
     load_result = cpickle.loads(dump_result)
 
     # check
-    logger.debug load_result.int
-    logger.debug load_result.float
-    logger.debug load_result.dict["key1"].str
-    logger.debug load_result.dict["key2"].str
+    logger.debug(load_result.int)
+    logger.debug(load_result.float)
+    logger.debug(load_result.dict["key1"].str)
+    logger.debug(load_result.dict["key2"].str)
 """
