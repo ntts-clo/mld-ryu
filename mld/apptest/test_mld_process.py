@@ -374,7 +374,7 @@ class test_mld_process():
     @attr(do=False)
     def test_set_switch_config(self):
 
-        datapathid = 3
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         dispatch_ = dispatch(mld_const.CON_SWITCH_FEATURE, datapathid)
 
         self.mocker.StubOutWithMock(
@@ -393,7 +393,7 @@ class test_mld_process():
 
     @attr(do=False)
     def test_create_packetout(self):
-        datapathid = 1
+        datapathid = self.mld_proc.edge_switch["datapathid"]
         packet = ipv6.ipv6()
 
         actual = self.mld_proc.create_packetout(datapathid, packet)
@@ -416,7 +416,7 @@ class test_mld_process():
         # タイムアウトのユーザーなし
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
-        datapathid = 2
+        datapathid  = self.mld_proc.switches[1]["datapathid"]
         port_no = 1
         cid = 2101
         self.mld_proc.config["user_time_out"] = 300
@@ -428,7 +428,7 @@ class test_mld_process():
         # 元の値に戻す
         self.mld_proc.config["user_time_out"] = self.config["user_time_out"]
 
-    @attr(do=True)
+    @attr(do=False)
     def test_check_user_timeout_timeout(self):
         # タイムアウトのユーザーあり
 
@@ -437,7 +437,7 @@ class test_mld_process():
 
         mc_addr1 = "ff38::1:1"
         serv_ip = "2001::1:20"
-        datapathid2 = 2
+        datapathid2 = self.mld_proc.switches[1]["datapathid"]
         port_no1 = 1
         cid1 = 12101
         self.mld_proc.ch_info.add_ch_info(
@@ -453,7 +453,7 @@ class test_mld_process():
         cid3 = 12201
         self.mld_proc.ch_info.add_ch_info(
             mc_addr1, serv_ip, datapathid2, port_no2, cid3)
-        datapathid3 = 3
+        datapathid3 = self.mld_proc.switches[2]["datapathid"]
 
         port_no3 = 3
         cid4 = 13301
@@ -542,7 +542,7 @@ class test_mld_process():
         data = icmpv6.icmpv6(
             type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
 
-        datapathid = 2
+        datapathid  = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
         dispatch_ = dispatch(
@@ -572,7 +572,7 @@ class test_mld_process():
         data = icmpv6.icmpv6(
             type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
 
-        datapathid = 2
+        datapathid  = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
         dispatch_ = dispatch(
@@ -599,7 +599,7 @@ class test_mld_process():
     def test_update_user_info_allow(self):
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
-        datapathid = 2
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
 
@@ -625,7 +625,7 @@ class test_mld_process():
     def test_update_user_info_block(self):
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
-        datapathid = 2
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
 
@@ -654,7 +654,7 @@ class test_mld_process():
     def test_update_user_info_include_exist_user(self):
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
-        datapathid = 2
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
 
@@ -681,7 +681,7 @@ class test_mld_process():
     def test_update_user_info_include_no_user(self):
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
-        datapathid = 2
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
 
@@ -713,7 +713,7 @@ class test_mld_process():
         # 上記以外のtypeはCON_REPLY_NOTHINGを返却
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
-        datapathid = 2
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
 
@@ -729,7 +729,7 @@ class test_mld_process():
     def test_reply_to_ryu_add_mc_be(self):
         mc_addr = str(self.mc_info_list[0]["mc_addr"])
         serv_ip = str(self.mc_info_list[0]["serv_ip"])
-        datapathid = 2
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
         reply_type = mld_const.CON_REPLY_ADD_MC_GROUP
@@ -761,7 +761,7 @@ class test_mld_process():
     def test_reply_to_ryu_add_sw(self):
         mc_addr = str(self.mc_info_list[0]["mc_addr"])
         serv_ip = str(self.mc_info_list[0]["serv_ip"])
-        datapathid = 2
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
         reply_type = mld_const.CON_REPLY_ADD_SWITCH
@@ -787,7 +787,7 @@ class test_mld_process():
     def test_reply_to_ryu_add_port(self):
         mc_addr = str(self.mc_info_list[0]["mc_addr"])
         serv_ip = str(self.mc_info_list[0]["serv_ip"])
-        datapathid = 2
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
         reply_type = mld_const.CON_REPLY_ADD_PORT
@@ -813,7 +813,7 @@ class test_mld_process():
     def test_reply_to_ryu_del_mc_be(self):
         mc_addr = str(self.mc_info_list[0]["mc_addr"])
         serv_ip = str(self.mc_info_list[0]["serv_ip"])
-        datapathid = 2
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
         reply_type = mld_const.CON_REPLY_DEL_MC_GROUP
@@ -845,7 +845,7 @@ class test_mld_process():
     def test_reply_to_ryu_del_sw(self):
         mc_addr = str(self.mc_info_list[0]["mc_addr"])
         serv_ip = str(self.mc_info_list[0]["serv_ip"])
-        datapathid = 2
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
         reply_type = mld_const.CON_REPLY_DEL_SWITCH
@@ -872,7 +872,7 @@ class test_mld_process():
     def test_reply_to_ryu_del_port(self):
         mc_addr = str(self.mc_info_list[0]["mc_addr"])
         serv_ip = str(self.mc_info_list[0]["serv_ip"])
-        datapathid = 2
+        datapathid  = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
         reply_type = mld_const.CON_REPLY_DEL_PORT
