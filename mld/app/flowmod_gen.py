@@ -224,7 +224,7 @@ class apresia_12k(flow_mod_gen_impl):
             mld_port = self.switch_info[SW_TAG_MLD_PORT]
             container_sw_ports = self.switch_info[SW_TAG_CONTEINER_PORTS]
 
-            # table 0 エッジルータ(in_port=物理ポート2)からのMLD QueryのパケットIN
+            # MLD QueryのPacket-In
             table_id = 0
             priority = PRIORITY_NORMAL
             match = parser.OFPMatch(in_port=edge_router_port,
@@ -241,8 +241,7 @@ class apresia_12k(flow_mod_gen_impl):
                                                 match=match,
                                                 instructions=inst))
 
-            # table 0 コントローラー(in_port=物理ポート1)から
-            # エッジルータ(in_port=物理ポート2)へMLDv2 ReportのパケットOUT
+            # MLDv2 Reportのエッジルータ向けルーティング
             table_id = 0
             priority = PRIORITY_NORMAL
             match = parser.OFPMatch(in_port=mld_port,
@@ -258,7 +257,7 @@ class apresia_12k(flow_mod_gen_impl):
                                                 match=match,
                                                 instructions=inst))
 
-            # table 3 コントローラからのMLD Queryを収容スイッチへ(PBBカプセル化)
+            # MLD QueryのPBBカプセル化
             table_id = 3
             priority = PRIORITY_NORMAL
             match = parser.OFPMatch(in_port=apresia_12k.TAG2PBB,
@@ -280,7 +279,7 @@ class apresia_12k(flow_mod_gen_impl):
                                                 match=match,
                                                 instructions=inst))
 
-            # table 4 コントローラからのMLD Queryを収容スイッチへ(PBB出力ポート側)
+            # MLD QueryのVLAN設定(PBB出力側)
             for container_sw_port in container_sw_ports.values():
                 table_id = 4
                 priority = PRIORITY_NORMAL
@@ -302,7 +301,7 @@ class apresia_12k(flow_mod_gen_impl):
             edge_switch_port = self.switch_info[SW_TAG_EDGE_SWITCH_PORT]
             olt_ports = self.switch_info[SW_TAG_OLT_PORTS]
 
-            # table 0 端末(OLT)(in_port=*)からのMLDv2 ReportのパケットIN
+            # MLDv2 ReportのPacket-In
             table_id = 0
             priority = PRIORITY_NORMAL
             match = parser.OFPMatch(eth_type=ether.ETH_TYPE_IPV6,
@@ -318,7 +317,7 @@ class apresia_12k(flow_mod_gen_impl):
                                                 match=match,
                                                 instructions=inst))
 
-            # table 4 エッジスイッチ(PBB)からのMLD Queryを端末(OLT)へ(PBB受信ポート側)
+            # MLD QueryのVLAN設定(PBB入力側）
             table_id = 4
             priority = PRIORITY_NORMAL
             match = parser.OFPMatch(in_port=self
@@ -333,7 +332,7 @@ class apresia_12k(flow_mod_gen_impl):
                                                 match=match,
                                                 instructions=inst))
 
-            # table 3 エッジスイッチ(PBB)からのMLD Queryを端末(OLT)へ(PBBデカプセル化)
+            # MLD QueryのPBBデカプセル化
             table_id = 3
             priority = PRIORITY_NORMAL
             match = parser.OFPMatch(in_port=apresia_12k.PBB2TAG,
@@ -354,7 +353,7 @@ class apresia_12k(flow_mod_gen_impl):
                                                 match=match,
                                                 instructions=inst))
 
-            # table 4 エッジスイッチ(PBB)からのMLD Queryを端末(OLT)へ(Untag出力ポート側)
+            # MLD QueryのVLAN設定(OLT出力側)
             for olt_port in olt_ports:
                 table_id = 4
                 priority = PRIORITY_LOW
@@ -378,6 +377,7 @@ class apresia_12k(flow_mod_gen_impl):
         edge_router_port = self.switch_info[SW_TAG_EDGE_ROUTER_PORT]
         container_sw_ports = self.switch_info[SW_TAG_CONTEINER_PORTS]
 
+        # チャネル毎の内部VLANマッピング
         table_id = 2
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=edge_router_port,
@@ -393,6 +393,7 @@ class apresia_12k(flow_mod_gen_impl):
                                             priority=priority,
                                             match=match, instructions=inst))
 
+        # PBBカプセル化
         table_id = 3
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=apresia_12k.TAG2PBB,
@@ -412,6 +413,7 @@ class apresia_12k(flow_mod_gen_impl):
                                             priority=priority,
                                             match=match, instructions=inst))
 
+        # VLAN設定(PBB出力側)
         table_id = 4
         priority = PRIORITY_NORMAL
         match = parser\
@@ -435,6 +437,7 @@ class apresia_12k(flow_mod_gen_impl):
 
         command_modify = ofproto.OFPFC_MODIFY_STRICT
 
+        # PBBカプセル化
         table_id = 3
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=apresia_12k.TAG2PBB,
@@ -455,6 +458,7 @@ class apresia_12k(flow_mod_gen_impl):
                                             instructions=inst,
                                             command=command_modify))
 
+        # VLAN設定(PBB出力側)
         table_id = 4
         priority = PRIORITY_NORMAL
         match = parser\
@@ -481,6 +485,7 @@ class apresia_12k(flow_mod_gen_impl):
         out_port_any = ofproto.OFPP_ANY
         out_group_any = ofproto.OFPG_ANY
 
+        # チャネル毎の内部VLANマッピング
         table_id = 2
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=edge_router_port,
@@ -494,6 +499,7 @@ class apresia_12k(flow_mod_gen_impl):
                                             out_port=out_port_any,
                                             out_group=out_group_any))
 
+        # PBBカプセル化
         table_id = 3
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=apresia_12k.TAG2PBB,
@@ -505,6 +511,7 @@ class apresia_12k(flow_mod_gen_impl):
                                             out_port=out_port_any,
                                             out_group=out_group_any))
 
+        # VLAN設定(PBB出力側)
         table_id = 4
         priority = PRIORITY_NORMAL
         match = parser\
@@ -530,7 +537,7 @@ class apresia_12k(flow_mod_gen_impl):
         out_port_any = ofproto.OFPP_ANY
         out_group_any = ofproto.OFPG_ANY
 
-        # BVIDを変更する
+        # PBBカプセル化
         table_id = 3
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=apresia_12k.TAG2PBB,
@@ -551,7 +558,7 @@ class apresia_12k(flow_mod_gen_impl):
                                             instructions=inst,
                                             command=command_modify))
 
-        # 視聴終了した収納SWへのtableを削除する
+        # VLAN設定(PBB出力側)
         table_id = 4
         priority = PRIORITY_NORMAL
         match = parser\
@@ -571,6 +578,7 @@ class apresia_12k(flow_mod_gen_impl):
         mydpid = self.switch_info[SW_TAG_DATAPATHID]
         edge_switch_port = self.switch_info[SW_TAG_EDGE_SWITCH_PORT]
 
+        # VLAN設定（PBB入力側)
         table_id = 4
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=self
@@ -584,6 +592,7 @@ class apresia_12k(flow_mod_gen_impl):
                                             priority=priority,
                                             match=match, instructions=inst))
 
+        # PBBデカプセル化
         table_id = 3
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=apresia_12k.PBB2TAG,
@@ -603,6 +612,7 @@ class apresia_12k(flow_mod_gen_impl):
                                             priority=priority,
                                             match=match, instructions=inst))
 
+        # VLAN設定(OLT出力側）
         table_id = 4
         priority = PRIORITY_LOW
         match = parser.OFPMatch(in_port=self.logical_port_untag(portno),
@@ -620,6 +630,7 @@ class apresia_12k(flow_mod_gen_impl):
 
         mydpid = self.switch_info[SW_TAG_DATAPATHID]
 
+        # VLAN設定(OLT出力側）
         table_id = 4
         priority = PRIORITY_LOW
         match = parser.OFPMatch(in_port=self.logical_port_untag(portno),
@@ -643,6 +654,7 @@ class apresia_12k(flow_mod_gen_impl):
         out_port_any = ofproto.OFPP_ANY
         out_group_any = ofproto.OFPG_ANY
 
+        # VLAN設定（PBB入力側)
         table_id = 4
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=self
@@ -655,6 +667,7 @@ class apresia_12k(flow_mod_gen_impl):
                                             out_port=out_port_any,
                                             out_group=out_group_any))
 
+        # PBBデカプセル化
         table_id = 3
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=apresia_12k.PBB2TAG,
@@ -669,6 +682,7 @@ class apresia_12k(flow_mod_gen_impl):
                                             out_port=out_port_any,
                                             out_group=out_group_any))
 
+        # VLAN設定(OLT出力側）
         table_id = 4
         priority = PRIORITY_LOW
         match = parser.OFPMatch(in_port=self.logical_port_untag(portno),
@@ -690,6 +704,7 @@ class apresia_12k(flow_mod_gen_impl):
         out_port_any = ofproto.OFPP_ANY
         out_group_any = ofproto.OFPG_ANY
 
+        # VLAN設定(OLT出力側）
         table_id = 4
         priority = PRIORITY_LOW
         match = parser.OFPMatch(in_port=self.logical_port_untag(portno),
