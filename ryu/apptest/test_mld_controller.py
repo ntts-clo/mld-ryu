@@ -139,14 +139,13 @@ class test_mld_controller():
         self.mocker.UnsetStubs()
 
 #    @attr(do=True)
-    def test_cretate_scoket001(self):
-        logger.debug("test_cretate_scoket001")
+    def test_cretate_scoket_Success001(self):
+        logger.debug("test_cretate_scoket_Success001")
         """
         概要：zmqの送受信で使用するsocketを生成
         条件：SEND用・RECV用のipcのtmpファイルパスを指定する
         結果：SEND用・RECV用のsocketが生成されること
         """
-
         #【前処理】
         send_file_path = SEND_FILE_PATH + "/ryu-mld-createsocket"
         recv_file_path = RECV_FILE_PATH + "/mld-ryu-createsocket"
@@ -177,7 +176,6 @@ class test_mld_controller():
         条件：正常に動作するであろうDummyのPACKET_OUTデータを設定し、実行する
         結果：戻り値にFALSEが設定されていないこと
         """
-
         #【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
@@ -240,6 +238,7 @@ class test_mld_controller():
 
         # 【結果】
         self.mocker.VerifyAll()
+        print("result %s", str(result))
         assert_not_equal(result, False)
 
     def test_analyse_receive_packet_Success002(self):
@@ -296,11 +295,12 @@ class test_mld_controller():
 
         # 【結果】
         self.mocker.VerifyAll()
+        print("result %s", str(result))
         assert_not_equal(result, False)
 
     def test_analyse_receive_packet_Success003(self):
-        logger.debug("test_analyse_receive_packet_Success003")
         # mld_controller.analyse_receive_packet(self, recvpkt):
+        logger.debug("test_analyse_receive_packet_Success003")
         """
         概要：zmqにてmld_plocessより受信したpacketを検証し処理を振り分ける
         条件：正常に動作するであろうDummyのFLOW_MODが2レコード存在する
@@ -361,6 +361,7 @@ class test_mld_controller():
 
         # 【結果】
         self.mocker.VerifyAll()
+        print("result %s", str(result))
         assert_not_equal(result, False)
 
     def test_analyse_receive_packet_Failure001(self):
@@ -372,7 +373,6 @@ class test_mld_controller():
               DummyのPACKET_OUTデータを設定し、実行する
         結果：戻り値にFALSEが設定されていること
         """
-
         #【前処理】
         # DummyDatapathの生成
         datapath = _Datapath()
@@ -385,6 +385,7 @@ class test_mld_controller():
         result = self.mld_ctrl.analyse_receive_packet(packet)
 
         #【結果】
+        print("result %s", str(result))
         assert_equal(result, False)
 
     def test_analyse_receive_packet_Failure002(self):
@@ -396,7 +397,6 @@ class test_mld_controller():
               正常に動作するであろうDummyのPACKET_OUTデータを設定し、実行する
         結果：戻り値にNoneが設定されていること
         """
-
         #【前処理】
         # DummyDatapathの生成
         datapath = _Datapath()
@@ -453,13 +453,17 @@ class test_mld_controller():
         result = self.mld_ctrl.analyse_receive_packet(packet)
 
         #【結果】
-        print("result %s", result)
+        print("result %s", str(result))
         assert_equal(result, False)
 
     def test_create_flow_mod_Success001(self):
         # mld_controller.create_flow_mod(self, datapath, flowmoddata):
         logger.debug("test_create_flow_mod_Success001")
-
+        """
+        概要：flow_mld作成処理
+        条件：正常に動作するであろうDummyのflowmlddataを設定し、実行する
+        結果：戻り値のflow_mld_dataと、Dummyのflowmlddataが一致していること
+        """
         #【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
@@ -506,10 +510,14 @@ class test_mld_controller():
         assert_equal(result.match["eth_type"], ch_match["eth_type"])
         assert_equal(result.match["ip_proto"], ch_match["ip_proto"])
 
-    def test_send_to_mld001(self):
+    def test_send_to_mld_Success001(self):
         # mld_controller.send_to_mld
-        logger.debug("test_send_to_mld001")
-
+        logger.debug("test_send_to_mld_Success001")
+        """
+        概要：MLD_Process送信処理
+        条件：正常に動作するであろうデータを設定し、実行する
+        結果：resultがNoneであること
+        """
         # 【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
@@ -523,14 +531,30 @@ class test_mld_controller():
         # 【実行】
         result = self.mld_ctrl.send_to_mld(dispatch_)
 
+        # 【結果】
+        print("result %s", result)
+        assert_equal(result, None)
+
     def test_receive_from_mld_Success001(self):
         # mld_controller.receive_from_mld
-        logger.debug("test_receive_from_mld001")
+        logger.debug("test_receive_from_mld_Success001")
+        """
+        試験方法自体を検討する必要あり、
+        まず、無限ループを止められる実装を行う必要があり。
+        概要：MLD_Process受信処理
+        条件：正常に動作するであろうデータを設定し、実行する
+        結果：resultがNoneであること
+        """
 
-    def test_send_msg_to_flowmod001(self):
+    def test_send_msg_to_flowmod_Success001(self):
         # mld_controller.send_msg_to_flowmod(self, msgbase, flowmod):
-        logger.debug("test_send_msg_to_flowmod001")
-
+        logger.debug("test_send_msg_to_flowmod_Success001")
+        """
+        概要：FlowMod送信処理
+        条件：正常に動作するであろうデータを設定し、実行する
+        結果：resultがNoneであること
+        """
+        # 【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
         # DummyDatapathidを設定
@@ -564,8 +588,13 @@ class test_mld_controller():
 
     def test_send_msg_to_barrier_request_Success001(self):
         # mld_controller.send_msg_to_barrier_request(self, msgbase):
-        logger.debug("test_send_msg_to_barrier_request001")
-
+        logger.debug("test_send_msg_to_barrier_request_Success001")
+        """
+        概要：BarrierRequest送信処理
+        条件：正常に動作するであろうデータを設定し、実行する
+        結果：resultがNoneであること
+        """
+        # 【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
         # DummyDatapathidを設定
@@ -580,13 +609,17 @@ class test_mld_controller():
         result = self.mld_ctrl.send_msg_to_barrier_request(ev.msg)
 
         # 【結果】
-        print("result %s", result)
+        print("result %s", str(result))
         assert_equal(result, None)
 
-    def test_send_msg_to_packetout001(self):
+    def test_send_msg_to_packetout_Success001(self):
         # mld_controller.send_msg_to_packetout(self, msgbase, packetout):
-        logger.debug("test_send_msg_to_packetout001")
-
+        logger.debug("test_send_msg_to_packetout_Success001")
+        """
+        概要：PacketOut送信処理
+        条件：正常に動作するであろうデータを設定し、実行する
+        結果：resultがNoneであること
+        """
         # 【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
@@ -603,7 +636,7 @@ class test_mld_controller():
         result = self.mld_ctrl.send_msg_to_packetout(ev.msg, packetoutdata)
 
         # 【結果】
-        print("result %s", result)
+        print("result %s", str(result))
         assert_equal(result, None)
 
     def test_check_exists_tmp_Success001(self):
@@ -665,10 +698,42 @@ class test_mld_controller():
         os.remove(send_file_path)
         os.rmdir(SEND_FILE_PATH)
 
-    def test_switch_features_handler_001(self):
+    def test_switch_features_handler_Success001(self):
         # mld_controller._switch_features_handler
-        logger.debug("test_switch_features_handler001")
+        logger.debug("test_switch_features_handlerSuccess001")
+        """
+        概要：SwitchFeaturesイベント発生時の処理
+        条件：dict_msgに存在しないdatapath.idを設定し、実行する
+        結果：resultがNoneであること
+              dict_msgのdatapath.idに設定している値とhandlerに渡したev.msgが
+              一致していること
+        """
+        # 【前処理】
+        # DummyDatapathを生成
+        datapath = _Datapath()
+        # DummyDatapathidを設定
+        datapath.id = 3
 
+        # FeaturesRequestEventの作成
+        featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
+        ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
+
+        #【実行】
+        result = self.mld_ctrl._switch_features_handler(ev)
+
+        # 【結果】
+        print ("result %s", str(result))
+        assert_equal(result, None)
+        assert_equal(self.mld_ctrl.dict_msg[datapath.id], ev.msg)
+
+    def test_switch_features_handler_Success002(self):
+        # mld_controller._switch_features_handler
+        logger.debug("test_switch_features_handler_Success002")
+        """
+        概要：SwitchFeaturesイベント発生時の処理
+        条件：dict_msgに存在するdatapath.idを設定し、実行する
+        結果：resultがTrueであること
+        """
         # 【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
@@ -679,40 +744,24 @@ class test_mld_controller():
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
 
-        # 【実行】
-        result = self.mld_ctrl._switch_features_handler(ev)
-
-        # 【結果】
-        print("result %s", result)
-        assert_equal(result, None)
-
-    def test_switch_features_handler_002(self):
-        # mld_controller._switch_features_handler
-        logger.debug("test_switch_features_handler002")
-
-        # 【前処理】
-        # DummyDatapathを生成
-        datapath = _Datapath()
-        # DummyDatapathidを設定
-        datapath.id = 1
-
-        self.mld_ctrl.dict_msg[datapath.id] = "aaa"
-
-        # FeaturesRequestEventの作成
-        featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
-        ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
+        # dict_msgの作成
+        self.mld_ctrl.dict_msg[datapath.id] = ev.msg
 
         # 【実行】
         result = self.mld_ctrl._switch_features_handler(ev)
 
         # 【結果】
-        print("result %s", result)
-        assert_equal(result, None)
+        print("result %s", str(result))
+        assert_equal(result, True)
 
     def test_barrier_reply_handler_Success001(self):
         # mld_controller._barrier_reply_handler(self, ev)
         logger.debug("test_barrier_reply_handler001")
-
+        """
+        概要：BarrierReplyイベント発生時の処理
+        条件：正常に動作するであろうdatapathを設定し、実行する
+        結果：resultがNoneであること
+        """
         # 【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
@@ -740,7 +789,6 @@ class test_mld_controller():
                 PacketInTYPE=MLD_LISTENER_QUERY
         結果：mldにパケットが送信されること
         """
-
         # 【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
@@ -767,10 +815,11 @@ class test_mld_controller():
         packetIn = OFPPacketIn(datapath, match=OFPMatch(in_port=1), data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
+        # 【実行】
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", result)
+        print("result %s", str(result))
         assert_equal(result, None)
 
     def test_packet_in_handler_Success002(self):
@@ -783,7 +832,6 @@ class test_mld_controller():
                 FILTER_MODE=ALLOW_NEW_SOURCES/CHANGE_TO_INCLUDE_MODE
         結果：mldにパケットが送信されること
         """
-
         # 【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
@@ -825,7 +873,7 @@ class test_mld_controller():
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", result)
+        print("result %s", str(result))
         assert_equal(result, None)
 
     def test_packet_in_handler_Success003(self):
@@ -838,7 +886,6 @@ class test_mld_controller():
                 FILTER_MODE=MODE_IS_INCLUDE
         結果：mldにパケットが送信されること
         """
-
         # 【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
@@ -876,7 +923,7 @@ class test_mld_controller():
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", result)
+        print("result %s", str(result))
         assert_equal(result, None)
 
     def test_packet_in_handler_Success004(self):
@@ -889,7 +936,6 @@ class test_mld_controller():
                 FILTER_MODE=BLOCK_OLD_SOURCES
         結果：mldにパケットが送信されること
         """
-
         # 【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
@@ -927,18 +973,17 @@ class test_mld_controller():
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", result)
+        print("result %s", str(result))
         assert_equal(result, None)
 
-    def test_packet_in_handler_Failure_001(self):
+    def test_packet_in_handler_Failure001(self):
         # mld_controller._packet_in_handler(self, ev)
-        logger.debug("test_packet_in_handler_Failure_001")
+        logger.debug("test_packet_in_handler_Failure001")
         """
         概要：PacketInイベント発生時の処理
         条件：パケットにvlanが設定されていない場合
         結果：戻り値がFalseになっていること
         """
-
         # 【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
@@ -963,18 +1008,17 @@ class test_mld_controller():
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", result)
+        print("result %s", str(result))
         assert_equal(result, False)
 
-    def test_packet_in_handler_Failure_002(self):
+    def test_packet_in_handler_Failure002(self):
         # mld_controller._packet_in_handler(self, ev)
-        logger.debug("test_packet_in_handler_Failure_002")
+        logger.debug("test_packet_in_handler_Failure002")
         """
         概要：PacketInイベント発生時の処理
         条件：パケットにIPV6が設定されていない場合
         結果：戻り値がFalseになっていること
         """
-
         # 【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
@@ -998,18 +1042,17 @@ class test_mld_controller():
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", result)
+        print("result %s", str(result))
         assert_equal(result, False)
 
-    def test_packet_in_handler_Failure_003(self):
+    def test_packet_in_handler_Failure003(self):
         # mld_controller._packet_in_handler(self, ev)
-        logger.debug("test_packet_in_handler_Failure_003")
+        logger.debug("test_packet_in_handler_Failure003")
         """
         概要：PacketInイベント発生時の処理
         条件：パケットにICMPV6が設定されていない場合
         結果：戻り値がFalseになっていること
         """
-
         # 【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
@@ -1033,19 +1076,18 @@ class test_mld_controller():
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", result)
+        print("result %s", str(result))
         assert_equal(result, False)
 
-    def test_packet_in_handler_Failure_004(self):
+    def test_packet_in_handler_Failure004(self):
         # mld_controller._packet_in_handler(self, ev)
-        logger.debug("test_packet_in_handler_Failure_004")
+        logger.debug("test_packet_in_handler_Failure004")
         """
         概要：PacketInイベント発生時の処理
         条件：パケットにICMPV6のTYPEに(MLD_LISTENER_QUERY/MLDV2_LISTENER_REPORT)
               以外が設定されている場合
         結果：戻り値がFalseになっていること
         """
-
         # 【前処理】
         # DummyDatapathを生成
         datapath = _Datapath()
@@ -1069,13 +1111,12 @@ class test_mld_controller():
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", result)
+        print("result %s", str(result))
         assert_equal(result, False)
 
-    def test_packet_in_handler_Failure_005(self):
+    def test_packet_in_handler_Failure005(self):
         # mld_controller._packet_in_handler(self, ev)
-        logger.debug("test_packet_in_handler_Failure_005")
-
+        logger.debug("test_packet_in_handler_Failure005")
         """
         概要：PacketInイベント発生時の処理
         条件：パケットにICMPV6のTYPEがMLDV2_LISTENER_REPORTで
@@ -1105,12 +1146,12 @@ class test_mld_controller():
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", result)
+        print("result %s", str(result))
         assert_equal(result, False)
 
-    def test_packet_in_handler_Failure_006(self):
+    def test_packet_in_handler_Failure006(self):
         # mld_controller._packet_in_handler(self, ev)
-        logger.debug("test_packet_in_handler_Failure_006")
+        logger.debug("test_packet_in_handler_Failure006")
         """
         概要：PacketInイベント発生時の処理
         条件：パケットにICMPV6のTYPEがMLDV2_LISTENER_REPORTで
@@ -1150,8 +1191,8 @@ class test_mld_controller():
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", result)
-        assert_equal(result, False)
+        print("result %s", str(result))
+        assert_equal(result, None)
 
 if __name__ == '__main__':
     unittest.main()
