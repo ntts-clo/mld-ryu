@@ -5,8 +5,6 @@ import cPickle
 import zmq
 import logging
 
-import time
-
 from ryu.base import app_manager
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet, icmpv6, vlan
@@ -135,7 +133,7 @@ class mld_controller(app_manager.RyuApp):
             if not dispatch["datapathid"] in self.dict_msg:
                 self.logger.info("dict_msg[datapathid:%s] = None \n",
                                  dispatch["datapathid"])
-                return None
+                return False
 
             else:
                 # dispatch["datapathid"]に紐付くmsgbaseを取得する
@@ -221,19 +219,19 @@ class mld_controller(app_manager.RyuApp):
         msgbase.datapath.send_msg(flowmod)
 
         self.logger.info("sent 1 packet to FlowMod. \n")
-        self.logger.debug("sent 1 packet to FlowMod. %s\n", flowmod)
 
     # =========================================================================
     # send_msg_to_barrier_request
     # =========================================================================
     def send_msg_to_barrier_request(self, msgbase):
         self.logger.debug("")
-        datapath = msgbase.datapath
-        ofp_parser = datapath.ofproto_parser
-        barrier = ofp_parser.OFPBarrierRequest(datapath)
-        datapath.send_msg(barrier)
+
+        ofp_parser = msgbase.datapath.ofproto_parser
+        barrier = ofp_parser.OFPBarrierRequest(msgbase.datapath)
+        msgbase.datapath.send_msg(barrier)
+
         self.logger.debug("sent 1 packet to OFPBarrierRequest [xid] : %s",
-                         datapath.xid)
+                         msgbase.datapath.xid)
 
     # =========================================================================
     # send_msg_to_packetout
@@ -293,8 +291,12 @@ class mld_controller(app_manager.RyuApp):
             self.logger.debug("dispatch[type_] : %s",
                               mld_const.CON_SWITCH_FEATURE)
             self.logger.debug("dispatch[datapath.id] : %s", datapath.id)
-
             self.send_to_mld(dispatch_)
+
+        else:
+            self.logger.info("dict_msg[datapath.id] = Not exist(%s) \n",
+                             datapath.id)
+            return True
 
     # =========================================================================
     # packet_in_handler
@@ -365,5 +367,5 @@ class mld_controller(app_manager.RyuApp):
     # =========================================================================
     @set_ev_cls(ofp_event.EventOFPBarrierReply, MAIN_DISPATCHER)
     def _barrier_reply_handler(self, ev):
-        datapath = ev.msg
-        self.logger.debug('received OFPBarrierReply [xid] : %s ', datapath.xid)
+        self.logger.debug('received OFPBarrierReply [xid] : %s ',
+                          ev.msg.datapath.xid)
