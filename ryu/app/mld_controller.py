@@ -58,6 +58,9 @@ class mld_controller(app_manager.RyuApp):
         send_path = self.config["ipc_ryu-mld"]
         recv_path = self.config["ipc_mld-ryu"]
 
+        # ループフラグの設定
+        self.loop_flg = True
+
         # CHECK TMP FILE(SEND)
         self.check_exists_tmp(send_path)
 
@@ -194,7 +197,7 @@ class mld_controller(app_manager.RyuApp):
     def receive_from_mld(self):
         self.logger.debug("")
 
-        while True:
+        while self.loop_flg:
             hub.sleep(1)
             recvpkt = None
             try:
