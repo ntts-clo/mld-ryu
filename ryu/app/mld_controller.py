@@ -345,7 +345,6 @@ class mld_controller(app_manager.RyuApp):
                                             icmpv6.BLOCK_OLD_SOURCES]:
                     self.logger.debug("# check report_group.[type_] : %s \n",
                                       str(mldv2_report_group.type_))
-                    return False
 
         dispatch_ = dispatch(type_=mld_const.CON_PACKET_IN,
                                datapathid=msg.datapath.id,
