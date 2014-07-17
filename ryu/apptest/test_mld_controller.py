@@ -162,6 +162,9 @@ class test_mld_controller():
         self.mld_ctrl.cretate_scoket(send_path, recv_path)
 
         #【結果】
+        ok_(self.mld_ctrl.send_sock)
+        ok_(self.mld_ctrl.recv_sock)
+
         # 単体での確認不可、後続の試験及び結合にて確認
 
         #【後処理】 作成したfilepathを削除
