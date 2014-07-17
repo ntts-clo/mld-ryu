@@ -6,7 +6,7 @@ from ryu.ofproto import ofproto_v1_3
 
 logging.config.fileConfig(
     os.path.abspath(os.path.dirname(__file__)) + "/logconf.ini",
-    disable_existing_loggers = False)
+    disable_existing_loggers=False)
 logger = logging.getLogger(__name__)
 
 
@@ -35,12 +35,13 @@ class dispatch():
         logger.debug("set self.dispatch : %s \n", str(self.dispatch))
 
 
-'''
-FlowModの転送用データクラス
-'''
+# =====================================================================
+# FlowModの転送用データクラス
+# =====================================================================
 class flow_mod_data(object):
 
-    def __init__(self, datapathid, table_id, priority, match, instructions=[], command=ofproto_v1_3.OFPFC_ADD, out_port=0, out_group=0):
+    def __init__(self, datapathid, table_id, priority, match, instructions=[],
+                 command=ofproto_v1_3.OFPFC_ADD, out_port=0, out_group=0):
         logger.debug("")
 
         self.datapathid = datapathid
