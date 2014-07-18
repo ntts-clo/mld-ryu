@@ -66,11 +66,9 @@ class mld_process():
         self.logger.info("config_info : %s", str(config.data))
         self.config = config.data["settings"]
 
-        self.IPC = self.config["ipc_url"]
-        self.SEND_PATH = self.config["ipc_mld-ryu"]
-        self.RECV_PATH = self.config["ipc_ryu-mld"]
-        self.IPC_PATH_SEND = self.IPC + self.SEND_PATH
-        self.IPC_PATH_RECV = self.IPC + self.RECV_PATH
+        ipc = self.config["ipc_url"]
+        send_path = self.config["ipc_ryu-mld"]
+        recv_path = self.config["ipc_mld-ryu"]
 
         # アドレス情報読み込み
         self.addressinfo = []
@@ -103,17 +101,11 @@ class mld_process():
         # ZeroMQ送受信用設定
 
         # CHECK TMP FILE(SEND)
-        self.check_exists_tmp(self.SEND_PATH)
+        self.check_exists_tmp(send_path)
         # CHECK TMP FILE(RECV)
-        self.check_exists_tmp(self.RECV_PATH)
-
-        ctx = zmq.Context()
-        self.send_sock = ctx.socket(zmq.PUB)
-        self.send_sock.bind(self.IPC_PATH_SEND)
-
-        self.recv_sock = ctx.socket(zmq.SUB)
-        self.recv_sock.connect(self.IPC_PATH_RECV)
-        self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
+        self.check_exists_tmp(recv_path)
+        # ZeroMQ送受信用ソケット生成
+        self.cretate_scoket(ipc + send_path, ipc + recv_path)
 
         # Flowmod生成用インスタンス
         self.flowmod_gen = flow_mod_generator(self.switches)
@@ -141,6 +133,25 @@ class mld_process():
                 f.close()
                 self.logger.info("create dir[%s], file[%s]",
                                  dirpath, filename)
+
+    # =========================================================================
+    # cretate_scoket
+    # =========================================================================
+    def cretate_scoket(self, sendpath, recvpath):
+        self.logger.debug("")
+
+        ctx = zmq.Context()
+
+        # SEND SOCKET CREATE
+        self.send_sock = ctx.socket(zmq.PUB)
+        self.send_sock.bind(sendpath)
+        self.logger.debug("[SendSocket]IPC %s", sendpath)
+
+        # RECV SOCKET CREATE
+        self.recv_sock = ctx.socket(zmq.SUB) 
+        self.recv_sock.connect(recvpath)
+        self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
+        self.logger.debug("[RecvSocket]IPC %s", recvpath)
 
     # ==================================================================
     # send_mldquey_regularly

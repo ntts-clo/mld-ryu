@@ -148,6 +148,28 @@ class test_mld_process():
 #        pass
 
     @attr(do=False)
+    def test_cretate_scoket(self):
+        ipc = self.mld_proc.config["ipc_url"]
+        send_file_path = "/tmp/feeds/ut/mld-mld"
+        recv_file_path = "/tmp/feeds/ut/ryu-mld"
+        send_path = ipc + send_file_path
+        recv_path = ipc + recv_file_path
+
+        # CHECK TMP FILE(SEND)
+        self.mld_proc.check_exists_tmp(send_file_path)
+        # CHECK TMP FILE(RECV)
+        self.mld_proc.check_exists_tmp(recv_file_path)
+
+        self.mld_proc.cretate_scoket(send_path, recv_path)
+
+        ok_(self.mld_proc.send_sock)
+        ok_(self.mld_proc.recv_sock)
+
+        os.remove(send_file_path)
+        os.remove(recv_file_path)
+        os.rmdir("/tmp/feeds/ut/")
+
+    @attr(do=False)
     def test_wait_query_interval(self):
         # Falseで指定した引数がTrueに更新されていること
         next_interval = Value(ctypes.c_bool, False)
