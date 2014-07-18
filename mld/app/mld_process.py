@@ -58,6 +58,9 @@ class mld_process():
         self.logger = logging.getLogger(__name__)
         self.logger.debug("")
 
+        # ループフラグの設定
+        self.loop_flg = True
+
         # 視聴情報初期化
         self.ch_info = channel_info()
 
@@ -707,7 +710,7 @@ class mld_process():
     # ==================================================================
     def receive_from_ryu(self):
         self.logger.debug("")
-        while True:
+        while self.loop_flg:
             self.logger.debug("waiting packet...")
             # receive of zeromq
             recvpkt = self.recv_sock.recv()
