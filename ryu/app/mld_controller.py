@@ -63,18 +63,42 @@ class mld_controller(app_manager.RyuApp):
 
         # CHECK TMP FILE(SEND)
         self.check_exists_tmp(send_path)
-
         # CHECK TMP FILE(RECV)
         self.check_exists_tmp(recv_path)
 
-        # ソケット生成
+        # ZeroMQ送受信用ソケット生成
         self.cretate_scoket(ipc + send_path, ipc + recv_path)
 
         # mldからの受信スレッドを開始
         hub.spawn(self.receive_from_mld)
 
     # =========================================================================
-    # CRETATE SCOKET
+    # check_exists_tmp
+    # =========================================================================
+    def check_exists_tmp(self, filename):
+        self.logger.debug(filename)
+
+        # ファイルの存在チェック
+        if os.path.exists(filename):
+            return
+
+        else:
+            # ディレクトリの存在チェック
+            dirpath = os.path.dirname(filename)
+            if os.path.isdir(dirpath):
+                f = open(filename, "w")
+                f.write("")
+                f.close()
+                self.logger.info("create file[%s]", filename)
+            else:
+                os.makedirs(dirpath)
+                f = open(filename, "w")
+                f.write("")
+                f.close()
+                self.logger.info("create dir[%s], file[%s]", dirpath, filename)
+
+    # =========================================================================
+    # cretate_scoket
     # =========================================================================
     def cretate_scoket(self, sendpath, recvpath):
         self.logger.debug("")
@@ -245,31 +269,6 @@ class mld_controller(app_manager.RyuApp):
         msgbase.datapath.send_msg(packetout)
 
         self.logger.info("sent 1 packet to PacketOut. \n")
-
-    # =========================================================================
-    # check_exists_tmp
-    # =========================================================================
-    def check_exists_tmp(self, filename):
-        self.logger.debug(filename)
-
-        # ファイルの存在チェック
-        if os.path.exists(filename):
-            return
-
-        else:
-            # ディレクトリの存在チェック
-            dirpath = os.path.dirname(filename)
-            if os.path.isdir(dirpath):
-                f = open(filename, "w")
-                f.write("")
-                f.close()
-                self.logger.info("create file[%s]", filename)
-            else:
-                os.makedirs(dirpath)
-                f = open(filename, "w")
-                f.write("")
-                f.close()
-                self.logger.info("create dir[%s], file[%s]", dirpath, filename)
 
     # =========================================================================
     # _switch_features_handler
