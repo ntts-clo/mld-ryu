@@ -284,20 +284,25 @@ class apresia_12k(flow_mod_gen_impl):
             olt_ports = self.switch_info[SW_TAG_OLT_PORTS]
 
             # MLDv2 ReportのPacket-In
-            table_id = 0
-            priority = PRIORITY_NORMAL
-            match = parser.OFPMatch(eth_type=ether.ETH_TYPE_IPV6,
-                                    ip_proto=inet.IPPROTO_ICMPV6,
-                                    icmpv6_type=icmpv6.MLDV2_LISTENER_REPORT)
-            actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
-                                              ofproto.OFPCML_NO_BUFFER)]
-            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-                                                 actions)]
-            flow_mod_datas.append(flow_mod_data(datapathid=datapathid,
-                                                table_id=table_id,
-                                                priority=priority,
-                                                match=match,
-                                                instructions=inst))
+            for olt_port in olt_ports:
+                table_id = 0
+                priority = PRIORITY_NORMAL
+                match = parser.OFPMatch(in_port=olt_port,
+                                        eth_type=ether.ETH_TYPE_IPV6,
+                                        ip_proto=inet.IPPROTO_ICMPV6,
+                                        icmpv6_type=icmpv6
+                                        .MLDV2_LISTENER_REPORT)
+                actions = [parser
+                           .OFPActionOutput(ofproto.OFPP_CONTROLLER,
+                                            ofproto.OFPCML_NO_BUFFER)]
+                inst = [parser
+                        .OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
+                                               actions)]
+                flow_mod_datas.append(flow_mod_data(datapathid=datapathid,
+                                                    table_id=table_id,
+                                                    priority=priority,
+                                                    match=match,
+                                                    instructions=inst))
 
             # MLD QueryのVLAN設定(PBB入力側）
             table_id = 4
