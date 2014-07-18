@@ -148,12 +148,12 @@ class test_mld_process():
 #        pass
 
     @attr(do=False)
-    def test_cretate_scoket(self):
-        ipc = self.mld_proc.config["ipc_url"]
+    def test_cretate_scoket001(self):
+        zmq_url = "ipc://"
         send_file_path = "/tmp/feeds/ut/mld-mld"
         recv_file_path = "/tmp/feeds/ut/ryu-mld"
-        send_path = ipc + send_file_path
-        recv_path = ipc + recv_file_path
+        send_path = zmq_url + send_file_path
+        recv_path = zmq_url + recv_file_path
 
         # CHECK TMP FILE(SEND)
         self.mld_proc.check_exists_tmp(send_file_path)
@@ -168,6 +168,17 @@ class test_mld_process():
         os.remove(send_file_path)
         os.remove(recv_file_path)
         os.rmdir("/tmp/feeds/ut/")
+
+    @attr(do=False)
+    def test_cretate_scoket002(self):
+        zmq_url = "tcp://"
+        send_path = zmq_url + "192.168.5.10:7002"
+        recv_path = zmq_url + "0.0.0.0:7002"
+
+        self.mld_proc.cretate_scoket(send_path, recv_path)
+
+        ok_(self.mld_proc.send_sock)
+        ok_(self.mld_proc.recv_sock)
 
     @attr(do=False)
     def test_wait_query_interval(self):

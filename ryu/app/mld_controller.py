@@ -36,6 +36,8 @@ class mld_controller(app_manager.RyuApp):
 
     dict_msg = {}
 
+    CHECK_URL_IPC = "ipc://"
+
     def __init__(self, *args, **kwargs):
 
         # ログ設定ファイル読み込み
@@ -54,20 +56,24 @@ class mld_controller(app_manager.RyuApp):
         self.config = config.data["settings"]
         self.SOCKET_TIME_OUT = self.config["socket_time_out"]
 
-        ipc = self.config["ipc_url"]
-        send_path = self.config["ipc_ryu-mld"]
-        recv_path = self.config["ipc_mld-ryu"]
+        #ipc = self.config["ipc_url"]
+        #send_path = self.config["ipc_ryu-mld"]
+        #recv_path = self.config["ipc_mld-ryu"]
+        zmq_url = self.config["ofc_url"]
+        send_path = self.config["ofc_send_zmq"]
+        recv_path = self.config["ofc_recv_zmq"]
 
         # ループフラグの設定
         self.loop_flg = True
 
-        # CHECK TMP FILE(SEND)
-        self.check_exists_tmp(send_path)
-        # CHECK TMP FILE(RECV)
-        self.check_exists_tmp(recv_path)
+        if zmq_url == self.CHECK_URL_IPC:
+            # CHECK TMP FILE(SEND)
+            self.check_exists_tmp(send_path)
+            # CHECK TMP FILE(RECV)
+            self.check_exists_tmp(recv_path)
 
         # ZeroMQ送受信用ソケット生成
-        self.cretate_scoket(ipc + send_path, ipc + recv_path)
+        self.cretate_scoket(zmq_url + send_path, zmq_url + recv_path)
 
         # mldからの受信スレッドを開始
         hub.spawn(self.receive_from_mld)
@@ -108,13 +114,13 @@ class mld_controller(app_manager.RyuApp):
         # SEND SOCKET CREATE
         self.send_sock = ctx.socket(zmq.PUB)
         self.send_sock.bind(sendpath)
-        self.logger.debug("[SendSocket]IPC %s", sendpath)
+        self.logger.debug("[SendSocket] %s", sendpath)
 
         # RECV SOCKET CREATE
         self.recv_sock = ctx.socket(zmq.SUB) 
         self.recv_sock.connect(recvpath)
         self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
-        self.logger.debug("[RecvSocket]IPC %s", recvpath)
+        self.logger.debug("[RecvSocket] %s", recvpath)
 
     # ==================================================================
     # analyse_receive_packet

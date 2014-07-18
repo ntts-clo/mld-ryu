@@ -75,10 +75,10 @@ HOST_MACADDR1 = "d4:3d:7e:4a:46:0c"
 HOST_IPADDR2 = "fe80::200:ff:fe00:2"
 HOST_MACADDR2 = "00:00:00:00:00:02"
 
-IPC = "ipc://"
 SEND_FILE_PATH = "/tmp/feeds/test/ut"
 RECV_FILE_PATH = "/tmp/feeds/test/ut"
-
+SEND_IP = "0.0.0.0:7002"
+RECV_IP = "192.168.5.11:7002"
 
 class _Datapath(object):
     """
@@ -138,7 +138,6 @@ class test_mld_controller():
         # StubOutWithMoc()を呼んだ後に必要。常に呼んでおけば安心
         self.mocker.UnsetStubs()
 
-#    @attr(do=True)
     def test_cretate_scoket_Success001(self):
         logger.debug("test_cretate_scoket_Success001")
         """
@@ -147,11 +146,12 @@ class test_mld_controller():
         結果：SEND用・RECV用のsocketが生成されること
         """
         #【前処理】
+        zmq_url = "ipc://"
         send_file_path = SEND_FILE_PATH + "/ryu-mld-createsocket"
         recv_file_path = RECV_FILE_PATH + "/mld-ryu-createsocket"
 
-        send_path = IPC + send_file_path
-        recv_path = IPC + recv_file_path
+        send_path = zmq_url + send_file_path
+        recv_path = zmq_url + recv_file_path
 
         # CHECK TMP FILE(SEND)
         self.mld_ctrl.check_exists_tmp(send_file_path)
@@ -165,11 +165,32 @@ class test_mld_controller():
         ok_(self.mld_ctrl.send_sock)
         ok_(self.mld_ctrl.recv_sock)
 
-        # 単体での確認不可、後続の試験及び結合にて確認
-
         #【後処理】 作成したfilepathを削除
         os.remove(send_file_path)
         os.remove(recv_file_path)
+
+    def test_cretate_scoket_Success002(self):
+        logger.debug("test_cretate_scoket_Success002")
+        """
+        概要：zmqの送受信で使用するsocketを生成
+        条件：SEND用・RECV用のtcpのipを指定する
+        結果：SEND用・RECV用のsocketが生成されること
+        """
+        #【前処理】
+        zmq_url = "tcp://"
+        send_ip_path = SEND_IP
+        recv_ip_path = RECV_IP
+
+        send_path = zmq_url + send_ip_path
+        recv_path = zmq_url + recv_ip_path
+
+        #【実行】
+        self.mld_ctrl.cretate_scoket(send_path, recv_path)
+
+        #【結果】
+        ok_(self.mld_ctrl.send_sock)
+        ok_(self.mld_ctrl.recv_sock)
+
 
     def test_analyse_receive_packet_Success001(self):
         logger.debug("test_analyse_receive_packet_Success001")
@@ -547,6 +568,22 @@ class test_mld_controller():
         概要：MLD_Process受信処理
         条件：正常に動作するであろうデータを設定し、実行する
         結果：resultがNoneであること
+        """
+
+        # 【前処理】
+        # DummyDatapathを生成
+        datapath = _Datapath()
+        # DummyDatapathidを設定
+        datapath.id = 1
+
+        self.mld_ctrl.loop_flg = False
+        """
+        # 【実行】
+        result = self.mld_ctrl.receive_from_mld()
+
+        # 【結果】
+        print("result %s", result)
+        assert_equal(result, None)
         """
 
     def test_send_msg_to_flowmod_Success001(self):

@@ -51,6 +51,8 @@ class mld_process():
     org_thread = patcher.original("threading")
     org_thread_time = patcher.original("time")
 
+    CHECK_URL_IPC = "ipc://"
+
     def __init__(self):
         # ロガーの設定
         logging.config.fileConfig(COMMON_PATH + "logconf.ini",
@@ -69,9 +71,12 @@ class mld_process():
         self.logger.info("config_info : %s", str(config.data))
         self.config = config.data["settings"]
 
-        ipc = self.config["ipc_url"]
-        send_path = self.config["ipc_ryu-mld"]
-        recv_path = self.config["ipc_mld-ryu"]
+        #ipc = self.config["ipc_url"]
+        #send_path = self.config["ipc_ryu-mld"]
+        #recv_path = self.config["ipc_mld-ryu"]
+        zmq_url = self.config["mld_url"]
+        send_path = self.config["mld_send_zmq"]
+        recv_path = self.config["mld_recv_zmq"]
 
         # アドレス情報読み込み
         self.addressinfo = []
@@ -103,12 +108,14 @@ class mld_process():
 
         # ZeroMQ送受信用設定
 
-        # CHECK TMP FILE(SEND)
-        self.check_exists_tmp(send_path)
-        # CHECK TMP FILE(RECV)
-        self.check_exists_tmp(recv_path)
+        if zmq_url == self.CHECK_URL_IPC:
+            # CHECK TMP FILE(SEND)
+            self.check_exists_tmp(send_path)
+            # CHECK TMP FILE(RECV)
+            self.check_exists_tmp(recv_path)
+
         # ZeroMQ送受信用ソケット生成
-        self.cretate_scoket(ipc + send_path, ipc + recv_path)
+        self.cretate_scoket(zmq_url + send_path, zmq_url + recv_path)
 
         # Flowmod生成用インスタンス
         self.flowmod_gen = flow_mod_generator(self.switches)
@@ -148,13 +155,13 @@ class mld_process():
         # SEND SOCKET CREATE
         self.send_sock = ctx.socket(zmq.PUB)
         self.send_sock.bind(sendpath)
-        self.logger.debug("[SendSocket]IPC %s", sendpath)
+        self.logger.debug("[SendSocket] %s", sendpath)
 
         # RECV SOCKET CREATE
         self.recv_sock = ctx.socket(zmq.SUB) 
         self.recv_sock.connect(recvpath)
         self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
-        self.logger.debug("[RecvSocket]IPC %s", recvpath)
+        self.logger.debug("[RecvSocket] %s", recvpath)
 
     # ==================================================================
     # send_mldquey_regularly
