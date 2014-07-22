@@ -71,9 +71,9 @@ class mld_process():
         self.logger.info("config_info : %s", str(config.data))
         self.config = config.data["settings"]
 
-        #ipc = self.config["ipc_url"]
-        #send_path = self.config["ipc_ryu-mld"]
-        #recv_path = self.config["ipc_mld-ryu"]
+        # ipc = self.config["ipc_url"]
+        # send_path = self.config["ipc_ryu-mld"]
+        # recv_path = self.config["ipc_mld-ryu"]
         zmq_url = self.config["mld_url"]
         send_path = self.config["mld_send_zmq"]
         recv_path = self.config["mld_recv_zmq"]
@@ -92,7 +92,8 @@ class mld_process():
         # スイッチ情報読み込み
         switches = read_json(COMMON_PATH + "switch_info.json")
         self.logger.info("switch_info : %s", str(switches.data))
-        self.switch_init_info = switches.data["switch_init_info"]
+        self.switch_mld_info = switches.data["switch_mld_info"]
+        self.switch_mc_info = switches.data["switch_mc_info"]
         self.switches = switches.data["switches"]
         self.edge_switch = self.switches[0]
 
@@ -158,7 +159,7 @@ class mld_process():
         self.logger.debug("[SendSocket] %s", sendpath)
 
         # RECV SOCKET CREATE
-        self.recv_sock = ctx.socket(zmq.SUB) 
+        self.recv_sock = ctx.socket(zmq.SUB)
         self.recv_sock.connect(recvpath)
         self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
         self.logger.debug("[RecvSocket] %s", recvpath)
@@ -387,9 +388,9 @@ class mld_process():
                 flowlist = []
                 flowlist = self.flowmod_gen.initialize_flows(
                     datapathid=target_switch,
-                    pbb_isid=self.switch_init_info["pbb_isid"],
-                    bvid=self.switch_init_info["bvid"],
-                    ivid=self.switch_init_info["ivid"])
+                    pbb_isid=self.switch_mld_info["pbb_isid"],
+                    bvid=self.switch_mld_info["bvid"],
+                    ivid=self.switch_mld_info["ivid"])
                 flowmod = dispatch(
                     type_=mld_const.CON_FLOW_MOD,
                     datapathid=target_switch, data=flowlist)
@@ -615,7 +616,8 @@ class mld_process():
             self.logger.debug("reply_type : CON_REPLY_ADD_MC_GROUP")
             flowlist = self.flowmod_gen.start_mg(
                 multicast_address=address, datapathid=target_switch,
-                portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
+                portno=in_port, mc_ivid=self.switch_mc_info["ivid"],
+                ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
             flowmod = dispatch(
                 type_=mld_const.CON_FLOW_MOD,
                 datapathid=self.edge_switch["datapathid"], data=flowlist)
@@ -683,7 +685,8 @@ class mld_process():
 
             flowlist = self.flowmod_gen.remove_mg(
                 multicast_address=address, datapathid=target_switch,
-                portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
+                portno=in_port, mc_ivid=self.switch_mc_info["ivid"],
+                ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
             flowmod = dispatch(
                 type_=mld_const.CON_FLOW_MOD,
                 datapathid=self.edge_switch["datapathid"], data=flowlist)
