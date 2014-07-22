@@ -99,8 +99,10 @@ class test_mld_process():
 
         # スイッチ情報読み込み
         switches = read_json(COMMON_PATH + "switch_info.json")
-        eq_(self.mld_proc.switch_init_info,
-            switches.data["switch_init_info"])
+        eq_(self.mld_proc.switch_mld_info,
+            switches.data["switch_mld_info"])
+        eq_(self.mld_proc.switch_mc_info,
+            switches.data["switch_mc_info"])
 
         # マルチキャスト情報読み込み
         eq_(self.mld_proc.mc_info_list, self.mc_info_list)
@@ -172,7 +174,7 @@ class test_mld_process():
     @attr(do=False)
     def test_cretate_scoket002(self):
         zmq_url = "tcp://"
-        send_path = zmq_url + "192.168.5.10:7002"
+        send_path = zmq_url + "127.0.0.1:7002"
         recv_path = zmq_url + "0.0.0.0:7002"
 
         self.mld_proc.cretate_scoket(send_path, recv_path)
@@ -414,9 +416,9 @@ class test_mld_process():
             self.mld_proc.flowmod_gen, "initialize_flows")
         self.mld_proc.flowmod_gen.initialize_flows(
             datapathid=datapathid,
-            pbb_isid=self.mld_proc.switch_init_info["pbb_isid"],
-            bvid=self.mld_proc.switch_init_info["bvid"],
-            ivid=self.mld_proc.switch_init_info["ivid"]).AndReturn(0)
+            pbb_isid=self.mld_proc.switch_mld_info["pbb_isid"],
+            bvid=self.mld_proc.switch_mld_info["bvid"],
+            ivid=self.mld_proc.switch_mld_info["ivid"]).AndReturn(0)
         self.mocker.ReplayAll()
 
         self.mld_proc.set_switch_config(dispatch_)
@@ -774,7 +776,8 @@ class test_mld_process():
         self.mocker.StubOutWithMock(self.mld_proc.flowmod_gen, "start_mg")
         self.mld_proc.flowmod_gen.start_mg(
             multicast_address=mc_addr, datapathid=datapathid,
-            portno=in_port, ivid=self.mc_info_list[0]["ivid"],
+            portno=in_port, mc_ivid=self.mld_proc.switch_mc_info["ivid"],
+            ivid=self.mc_info_list[0]["ivid"],
             pbb_isid=self.mc_info_list[0]["pbb_isid"],
             bvid=4001).AndReturn(0)
         self.mocker.ReplayAll()
@@ -858,7 +861,8 @@ class test_mld_process():
         self.mocker.StubOutWithMock(self.mld_proc.flowmod_gen, "remove_mg")
         self.mld_proc.flowmod_gen.remove_mg(
             multicast_address=mc_addr, datapathid=datapathid,
-            portno=in_port, ivid=self.mc_info_list[0]["ivid"],
+            portno=in_port, mc_ivid=self.mld_proc.switch_mc_info["ivid"],
+            ivid=self.mc_info_list[0]["ivid"],
             pbb_isid=self.mc_info_list[0]["pbb_isid"],
             bvid=4001).AndReturn(0)
         self.mocker.ReplayAll()
