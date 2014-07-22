@@ -1,8 +1,11 @@
 {
-    "switch_init_info": {
+    "switch_mld_info": {
     	"pbb_isid": 10001,
     	"bvid"    : 4000,
     	"ivid"    : 2001
+    },
+    "switch_mc_info": {
+    	"ivid"    : 1001
     },
     "switches": [
         {
@@ -16,10 +19,7 @@
             "_comment"  : "MLD処理部との接続ポート",
             "mld_port"  : 1,
             "_comment"  : "収容スイッチとの接続ポート",
-            "container_sw_ports": {
-                "276596903168": 49,
-                "276596902016": 50
-            }
+            "container_sw_ports": [49, 50]
         },
         {
             "_comment"  : "収容スイッチ1",

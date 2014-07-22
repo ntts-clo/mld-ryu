@@ -13,8 +13,7 @@ from zmq_dispatch import flow_mod_data
 # =============================================================================
 # フローテーブルのプライオリティ
 # =============================================================================
-PRIORITY_NORMAL = 1
-PRIORITY_LOW = 0
+PRIORITY_NORMAL = ofproto.OFP_DEFAULT_PRIORITY
 
 # =============================================================================
 # switch設定ファイルの定義名
@@ -84,14 +83,14 @@ class flow_mod_generator(object):
     # =========================================================================
     # 試聴開始(初回ユーザ参加)/試聴開始(MGで初回ユーザ)
     # =========================================================================
-    def start_mg(self, multicast_address, datapathid, portno, ivid, pbb_isid,
-                 bvid):
+    def start_mg(self, multicast_address, datapathid, portno, mc_ivid, ivid,
+                 pbb_isid, bvid):
         flow_mod_datas = []
         self.container_switches[datapathid].start_mg_container(portno, ivid,
                                                                pbb_isid, bvid,
                                                                flow_mod_datas)
-        self.edge_switch.start_mg_edge(multicast_address, datapathid, ivid,
-                                       pbb_isid, bvid, flow_mod_datas)
+        self.edge_switch.start_mg_edge(multicast_address, datapathid, mc_ivid,
+                                       ivid, pbb_isid, bvid, flow_mod_datas)
         return flow_mod_datas
 
     # =========================================================================
@@ -122,11 +121,11 @@ class flow_mod_generator(object):
     # =========================================================================
     # 試聴終了(MGで最終ユーザ)/試聴終了(最終ユーザの離脱)
     # =========================================================================
-    def remove_mg(self, multicast_address, datapathid, portno, ivid, pbb_isid,
-                  bvid):
+    def remove_mg(self, multicast_address, datapathid, portno, mc_ivid, ivid,
+                  pbb_isid, bvid):
         flow_mod_datas = []
-        self.edge_switch.remove_mg_edge(multicast_address, datapathid, ivid,
-                                        pbb_isid, bvid, flow_mod_datas)
+        self.edge_switch.remove_mg_edge(multicast_address, datapathid, mc_ivid,
+                                        ivid, pbb_isid, bvid, flow_mod_datas)
         self.container_switches[datapathid].remove_mg_container(portno, ivid,
                                                                 pbb_isid, bvid,
                                                                 flow_mod_datas)
@@ -170,16 +169,16 @@ class flow_mod_gen_impl(object):
     def initialize_flows(self, ivid, pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_exception('Unsupported Operation')
 
-    def start_mg_edge(self, multicast_address, datapathid, ivid, pbb_isid,
-                      bvid, flow_mod_datas):
+    def start_mg_edge(self, multicast_address, datapathid, mc_ivid, ivid,
+                      pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_exception('Unsupported Operation')
 
     def add_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid,
                           bvid, flow_mod_datas):
         raise flow_mod_gen_exception('Unsupported Operation')
 
-    def remove_mg_edge(self, multicast_address, datapathid, ivid, pbb_isid,
-                       bvid, flow_mod_datas):
+    def remove_mg_edge(self, multicast_address, datapathid, mc_ivid, ivid,
+                       pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_exception('Unsupported Operation')
 
     def remove_datapath_edge(self, multicast_address, datapathid, ivid,
@@ -262,7 +261,7 @@ class apresia_12k(flow_mod_gen_impl):
                                                 instructions=inst))
 
             # MLD QueryのVLAN設定(PBB出力側)
-            for container_sw_port in container_sw_ports.values():
+            for container_sw_port in container_sw_ports:
                 table_id = 4
                 priority = PRIORITY_NORMAL
                 match = parser.OFPMatch(in_port=self
@@ -343,7 +342,7 @@ class apresia_12k(flow_mod_gen_impl):
             # MLD QueryのVLAN設定(OLT出力側)
             for olt_port in olt_ports:
                 table_id = 4
-                priority = PRIORITY_LOW
+                priority = PRIORITY_NORMAL
                 match = parser.OFPMatch(in_port=self
                                         .logical_port_untag(olt_port),
                                         vlan_vid=ivid)
@@ -357,8 +356,8 @@ class apresia_12k(flow_mod_gen_impl):
                                                     match=match,
                                                     instructions=inst))
 
-    def start_mg_edge(self, multicast_address, datapathid, ivid, pbb_isid,
-                      bvid, flow_mod_datas):
+    def start_mg_edge(self, multicast_address, datapathid, mc_ivid,
+                      ivid, pbb_isid, bvid, flow_mod_datas):
 
         mydpid = self.switch_info[SW_TAG_DATAPATHID]
         edge_router_port = self.switch_info[SW_TAG_EDGE_ROUTER_PORT]
@@ -368,7 +367,7 @@ class apresia_12k(flow_mod_gen_impl):
         table_id = 2
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=edge_router_port,
-                                # IPマルチキャスト一時内部VIDは省略
+                                vlan_vid=mc_ivid,
                                 eth_type=ether.ETH_TYPE_IPV6,
                                 ipv6_dst=multicast_address)
         actions = [OFPActionSetField(vlan_vid=ivid),
@@ -401,26 +400,27 @@ class apresia_12k(flow_mod_gen_impl):
                                             match=match, instructions=inst))
 
         # VLAN設定(PBB出力側)
-        table_id = 4
-        priority = PRIORITY_NORMAL
-        match = parser\
-            .OFPMatch(in_port=self
-                      .logical_port_pbb(container_sw_ports[str(datapathid)]),
-                      vlan_vid=ivid)
-        actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-                                             actions)]
-        flow_mod_datas.append(flow_mod_data(datapathid=mydpid,
-                                            table_id=table_id,
-                                            priority=priority,
-                                            match=match, instructions=inst))
+        for container_sw_port in container_sw_ports:
+            table_id = 4
+            priority = PRIORITY_NORMAL
+            match = parser.OFPMatch(in_port=self
+                                    .logical_port_pbb(container_sw_port),
+                                    vlan_vid=ivid)
+            actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
+            inst = [parser.OFPInstructionActions(ofproto
+                                                 .OFPIT_APPLY_ACTIONS,
+                                                 actions)]
+            flow_mod_datas.append(flow_mod_data(datapathid=datapathid,
+                                                table_id=table_id,
+                                                priority=priority,
+                                                match=match,
+                                                instructions=inst))
 
     # multicast_addressは使用しない
     def add_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid,
                           bvid, flow_mod_datas):
 
         mydpid = self.switch_info[SW_TAG_DATAPATHID]
-        container_sw_ports = self.switch_info[SW_TAG_CONTEINER_PORTS]
 
         command_modify = ofproto.OFPFC_MODIFY_STRICT
 
@@ -445,24 +445,9 @@ class apresia_12k(flow_mod_gen_impl):
                                             instructions=inst,
                                             command=command_modify))
 
-        # VLAN設定(PBB出力側)
-        table_id = 4
-        priority = PRIORITY_NORMAL
-        match = parser\
-            .OFPMatch(in_port=self
-                      .logical_port_pbb(container_sw_ports[str(datapathid)]),
-                      vlan_vid=ivid)
-        actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-                                             actions)]
-        flow_mod_datas.append(flow_mod_data(datapathid=mydpid,
-                                            table_id=table_id,
-                                            priority=priority,
-                                            match=match, instructions=inst))
-
     # bvidは使用しない
-    def remove_mg_edge(self, multicast_address, datapathid, ivid, pbb_isid,
-                       bvid, flow_mod_datas):
+    def remove_mg_edge(self, multicast_address, datapathid, mc_ivid,
+                       ivid, pbb_isid, bvid, flow_mod_datas):
 
         mydpid = self.switch_info[SW_TAG_DATAPATHID]
         edge_router_port = self.switch_info[SW_TAG_EDGE_ROUTER_PORT]
@@ -476,7 +461,7 @@ class apresia_12k(flow_mod_gen_impl):
         table_id = 2
         priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=edge_router_port,
-                                # IPマルチキャスト一時内部VIDは省略
+                                vlan_vid=mc_ivid,
                                 eth_type=ether.ETH_TYPE_IPV6,
                                 ipv6_dst=multicast_address)
         flow_mod_datas.append(flow_mod_data(datapathid=mydpid,
@@ -499,30 +484,27 @@ class apresia_12k(flow_mod_gen_impl):
                                             out_group=out_group_any))
 
         # VLAN設定(PBB出力側)
-        table_id = 4
-        priority = PRIORITY_NORMAL
-        match = parser\
-            .OFPMatch(in_port=self
-                      .logical_port_pbb(container_sw_ports[str(datapathid)]),
-                      vlan_vid=ivid)
-        flow_mod_datas.append(flow_mod_data(datapathid=mydpid,
-                                            table_id=table_id,
-                                            priority=priority, match=match,
-                                            command=command_delete,
-                                            out_port=out_port_any,
-                                            out_group=out_group_any))
+        for container_sw_port in container_sw_ports:
+            table_id = 4
+            priority = PRIORITY_NORMAL
+            match = parser.OFPMatch(in_port=self
+                                    .logical_port_pbb(container_sw_port),
+                                    vlan_vid=ivid)
+            flow_mod_datas.append(flow_mod_data(datapathid=datapathid,
+                                                table_id=table_id,
+                                                priority=priority,
+                                                match=match,
+                                                command=command_delete,
+                                                out_port=out_port_any,
+                                                out_group=out_group_any))
 
     # multicast_addressは使用しない
     def remove_datapath_edge(self, multicast_address, datapathid, ivid,
                              pbb_isid, bvid, flow_mod_datas):
 
         mydpid = self.switch_info[SW_TAG_DATAPATHID]
-        container_sw_ports = self.switch_info[SW_TAG_CONTEINER_PORTS]
 
         command_modify = ofproto.OFPFC_MODIFY_STRICT
-        command_delete = ofproto.OFPFC_DELETE_STRICT
-        out_port_any = ofproto.OFPP_ANY
-        out_group_any = ofproto.OFPG_ANY
 
         # PBBカプセル化
         table_id = 3
@@ -544,20 +526,6 @@ class apresia_12k(flow_mod_gen_impl):
                                             priority=priority, match=match,
                                             instructions=inst,
                                             command=command_modify))
-
-        # VLAN設定(PBB出力側)
-        table_id = 4
-        priority = PRIORITY_NORMAL
-        match = parser\
-            .OFPMatch(in_port=self
-                      .logical_port_pbb(container_sw_ports[str(datapathid)]),
-                      vlan_vid=ivid)
-        flow_mod_datas.append(flow_mod_data(datapathid=mydpid,
-                                            table_id=table_id,
-                                            priority=priority, match=match,
-                                            command=command_delete,
-                                            out_port=out_port_any,
-                                            out_group=out_group_any))
 
     # bvidは使用しない
     def start_mg_container(self, portno, ivid, pbb_isid, bvid, flow_mod_datas):
@@ -601,7 +569,7 @@ class apresia_12k(flow_mod_gen_impl):
 
         # VLAN設定(OLT出力側）
         table_id = 4
-        priority = PRIORITY_LOW
+        priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=self.logical_port_untag(portno),
                                 vlan_vid=ivid)
         actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
@@ -619,7 +587,7 @@ class apresia_12k(flow_mod_gen_impl):
 
         # VLAN設定(OLT出力側）
         table_id = 4
-        priority = PRIORITY_LOW
+        priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=self.logical_port_untag(portno),
                                 vlan_vid=ivid)
         actions = [parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
@@ -671,7 +639,7 @@ class apresia_12k(flow_mod_gen_impl):
 
         # VLAN設定(OLT出力側）
         table_id = 4
-        priority = PRIORITY_LOW
+        priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=self.logical_port_untag(portno),
                                 vlan_vid=ivid)
         flow_mod_datas.append(flow_mod_data(datapathid=mydpid,
@@ -693,7 +661,7 @@ class apresia_12k(flow_mod_gen_impl):
 
         # VLAN設定(OLT出力側）
         table_id = 4
-        priority = PRIORITY_LOW
+        priority = PRIORITY_NORMAL
         match = parser.OFPMatch(in_port=self.logical_port_untag(portno),
                                 vlan_vid=ivid)
         flow_mod_datas.append(flow_mod_data(datapathid=mydpid,
