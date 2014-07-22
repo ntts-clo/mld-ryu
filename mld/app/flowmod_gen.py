@@ -410,7 +410,7 @@ class apresia_12k(flow_mod_gen_impl):
             inst = [parser.OFPInstructionActions(ofproto
                                                  .OFPIT_APPLY_ACTIONS,
                                                  actions)]
-            flow_mod_datas.append(flow_mod_data(datapathid=datapathid,
+            flow_mod_datas.append(flow_mod_data(datapathid=mydpid,
                                                 table_id=table_id,
                                                 priority=priority,
                                                 match=match,
@@ -490,7 +490,7 @@ class apresia_12k(flow_mod_gen_impl):
             match = parser.OFPMatch(in_port=self
                                     .logical_port_pbb(container_sw_port),
                                     vlan_vid=ivid)
-            flow_mod_datas.append(flow_mod_data(datapathid=datapathid,
+            flow_mod_datas.append(flow_mod_data(datapathid=mydpid,
                                                 table_id=table_id,
                                                 priority=priority,
                                                 match=match,

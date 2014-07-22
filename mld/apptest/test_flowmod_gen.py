@@ -9,7 +9,7 @@ from ryu.ofproto import ofproto_v1_3 as ofproto
 from ryu.ofproto.ofproto_v1_3_parser import OFPActionPopVlan, OFPActionPopPbb
 
 from mld.app.flowmod_gen import flow_mod_generator, apresia_12k, apresia_26k, flow_mod_gen_exception, \
-    PRIORITY_NORMAL, PRIORITY_LOW
+    PRIORITY_NORMAL
 
 
 class test_flow_mod_genrator(object):
@@ -41,10 +41,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         }]
 
         try:
@@ -64,10 +61,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         }]
 
         try:
@@ -87,10 +81,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -131,10 +122,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -224,7 +212,7 @@ class test_flow_mod_genrator(object):
         for item in fmd_table_4.match.iteritems():
             match_len += 1
         eq_(match_len, 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
+        eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
@@ -240,7 +228,7 @@ class test_flow_mod_genrator(object):
         for item in fmd_table_4.match.iteritems():
             match_len += 1
         eq_(match_len, 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
+        eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
@@ -259,10 +247,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:04",
             "edge_router_port": 3,
             "mld_port": 2,
-            "container_sw_ports": {
-                "2": 59,
-                "3": 60
-            }
+            "container_sw_ports": [59, 60]
         },
             {
             "sw_name": "sw1",
@@ -352,7 +337,7 @@ class test_flow_mod_genrator(object):
         for item in fmd_table_4.match.iteritems():
             match_len += 1
         eq_(match_len, 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 60)
+        eq_(fmd_table_4.match['in_port'], 0x02000000 | 59)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
@@ -368,7 +353,7 @@ class test_flow_mod_genrator(object):
         for item in fmd_table_4.match.iteritems():
             match_len += 1
         eq_(match_len, 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 59)
+        eq_(fmd_table_4.match['in_port'], 0x02000000 | 60)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
@@ -387,10 +372,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -509,7 +491,7 @@ class test_flow_mod_genrator(object):
         fmd_table_4 = self.fmg[4]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -525,7 +507,7 @@ class test_flow_mod_genrator(object):
         fmd_table_4 = self.fmg[5]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -549,10 +531,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -650,7 +629,7 @@ class test_flow_mod_genrator(object):
         fmd_table_4 = self.fmg[3]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -676,10 +655,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -701,6 +677,7 @@ class test_flow_mod_genrator(object):
         multicast_address = 'ff38::1:1'
         datapathid = 2
         portno = 2
+        mc_ivid = 1001
         ivid = 2011
         pbb_isid = 10011
         bvid = 4001
@@ -710,11 +687,12 @@ class test_flow_mod_genrator(object):
 
         self.fmg = flow_mod_generator(switch_infos).start_mg(multicast_address,
                                                              datapathid,
-                                                             portno, ivid,
-                                                             pbb_isid, bvid)
+                                                             portno, mc_ivid,
+                                                             ivid, pbb_isid,
+                                                             bvid)
 
-        # エッジSWのFlowModが3つ、収容SWのFlowModが3つ配列に格納される
-        eq_(len(self.fmg), 6)
+        # エッジSWのFlowModが4つ、収容SWのFlowModが3つ配列に格納される
+        eq_(len(self.fmg), 7)
 
         # 以下、収容SWのFlowMod
         # table 4
@@ -766,7 +744,7 @@ class test_flow_mod_genrator(object):
         fmd_table_4 = self.fmg[2]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -787,8 +765,9 @@ class test_flow_mod_genrator(object):
         match_len = 0
         for item in fmd_table_2.match.iteritems():
             match_len += 1
-        eq_(match_len, 3)
+        eq_(match_len, 4)
         eq_(fmd_table_2.match['in_port'], 2)
+        eq_(fmd_table_2.match['vlan_vid'], mc_ivid)
         eq_(fmd_table_2.match['eth_type'], ether.ETH_TYPE_IPV6)
         eq_(fmd_table_2.match['ipv6_dst'], multicast_address)
         eq_(len(fmd_table_2.instructions), 1)
@@ -845,6 +824,22 @@ class test_flow_mod_genrator(object):
         eq_(len(fmd_table_4.instructions[0].actions), 1)
         eq_(fmd_table_4.instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
 
+        # table 4
+        fmd_table_4 = self.fmg[6]
+        eq_(fmd_table_4.datapathid, edge_datapathid)
+        eq_(fmd_table_4.table_id, 4)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
+        match_len = 0
+        for item in fmd_table_4.match.iteritems():
+            match_len += 1
+        eq_(match_len, 2)
+        eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
+        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(len(fmd_table_4.instructions), 1)
+        eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
+        eq_(len(fmd_table_4.instructions[0].actions), 1)
+        eq_(fmd_table_4.instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
+
     # =========================================================================
     # datapath 3、port 1 視聴開始(初回ユーザ参加)
     # =========================================================================
@@ -859,10 +854,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -884,20 +876,22 @@ class test_flow_mod_genrator(object):
         multicast_address = 'ff38::1:1'
         datapathid = 3
         portno = 1
-        ivid = 2011
-        pbb_isid = 10011
-        bvid = 4001
+        mc_ivid = 1002
+        ivid = 2021
+        pbb_isid = 10021
+        bvid = 4002
 
         edge_sw_bmac = switch_infos[0]['sw_bmac']
         container_sw_bmac = switch_infos[2]['sw_bmac']
 
         self.fmg = flow_mod_generator(switch_infos).start_mg(multicast_address,
                                                              datapathid,
-                                                             portno, ivid,
-                                                             pbb_isid, bvid)
+                                                             portno, mc_ivid,
+                                                             ivid, pbb_isid,
+                                                             bvid)
 
-        # エッジSWのFlowModが3つ、収容SWのFlowModが3つ配列に格納される
-        eq_(len(self.fmg), 6)
+        # エッジSWのFlowModが4つ、収容SWのFlowModが3つ配列に格納される
+        eq_(len(self.fmg), 7)
 
         # 以下、収容SWのFlowMod
         # table 4
@@ -949,7 +943,7 @@ class test_flow_mod_genrator(object):
         fmd_table_4 = self.fmg[2]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -970,8 +964,9 @@ class test_flow_mod_genrator(object):
         match_len = 0
         for item in fmd_table_2.match.iteritems():
             match_len += 1
-        eq_(match_len, 3)
+        eq_(match_len, 4)
         eq_(fmd_table_2.match['in_port'], 2)
+        eq_(fmd_table_2.match['vlan_vid'], mc_ivid)
         eq_(fmd_table_2.match['eth_type'], ether.ETH_TYPE_IPV6)
         eq_(fmd_table_2.match['ipv6_dst'], multicast_address)
         eq_(len(fmd_table_2.instructions), 1)
@@ -1014,6 +1009,22 @@ class test_flow_mod_genrator(object):
 
         # table 4
         fmd_table_4 = self.fmg[5]
+        eq_(fmd_table_4.datapathid, edge_datapathid)
+        eq_(fmd_table_4.table_id, 4)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
+        match_len = 0
+        for item in fmd_table_4.match.iteritems():
+            match_len += 1
+        eq_(match_len, 2)
+        eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
+        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(len(fmd_table_4.instructions), 1)
+        eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
+        eq_(len(fmd_table_4.instructions[0].actions), 1)
+        eq_(fmd_table_4.instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
+
+        # table 4
+        fmd_table_4 = self.fmg[6]
         eq_(fmd_table_4.datapathid, edge_datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
@@ -1040,10 +1051,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -1080,7 +1088,7 @@ class test_flow_mod_genrator(object):
         fmd_table_4 = self.fmg[0]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -1104,10 +1112,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -1144,7 +1149,7 @@ class test_flow_mod_genrator(object):
         fmd_table_4 = self.fmg[0]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -1170,10 +1175,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -1206,7 +1208,7 @@ class test_flow_mod_genrator(object):
             .add_datapath(multicast_address, datapathid, portno, ivid,
                           pbb_isid, bvid)
 
-        eq_(len(self.fmg), 5)
+        eq_(len(self.fmg), 4)
 
         # 以下、収容SW
         # table 4
@@ -1257,7 +1259,7 @@ class test_flow_mod_genrator(object):
         fmd_table_4 = self.fmg[2]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -1302,22 +1304,6 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
         eq_(fmd_table_3.command, ofproto.OFPFC_MODIFY_STRICT)
 
-        # table 4
-        fmd_table_4 = self.fmg[4]
-        eq_(fmd_table_4.datapathid, edge_datapathid)
-        eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
-        eq_(len(fmd_table_4.instructions), 1)
-        eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
-        eq_(len(fmd_table_4.instructions[0].actions), 1)
-        eq_(fmd_table_4.instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
-
     # =========================================================================
     # SW2,port1を追加
     # =========================================================================
@@ -1332,10 +1318,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -1368,7 +1351,7 @@ class test_flow_mod_genrator(object):
             .add_datapath(multicast_address, datapathid, portno, ivid,
                           pbb_isid, bvid)
 
-        eq_(len(self.fmg), 5)
+        eq_(len(self.fmg), 4)
 
         # 以下、収容SW
         # table 4
@@ -1419,7 +1402,7 @@ class test_flow_mod_genrator(object):
         fmd_table_4 = self.fmg[2]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -1464,22 +1447,6 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
         eq_(fmd_table_3.command, ofproto.OFPFC_MODIFY_STRICT)
 
-        # table 4
-        fmd_table_4 = self.fmg[4]
-        eq_(fmd_table_4.datapathid, edge_datapathid)
-        eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
-        eq_(len(fmd_table_4.instructions), 1)
-        eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
-        eq_(len(fmd_table_4.instructions[0].actions), 1)
-        eq_(fmd_table_4.instructions[0].actions[0].port, ofproto.OFPP_NORMAL)
-
     # =========================================================================
     # datapathid 2,port3 視聴終了
     # =========================================================================
@@ -1494,10 +1461,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -1519,6 +1483,7 @@ class test_flow_mod_genrator(object):
         multicast_address = 'ff38::1:1'
         datapathid = 2
         portno = 3
+        mc_ivid = 1001
         ivid = 2011
         pbb_isid = 10011
         bvid = 4001
@@ -1526,10 +1491,10 @@ class test_flow_mod_genrator(object):
         container_sw_bmac = switch_infos[1]['sw_bmac']
 
         self.fmg = flow_mod_generator(switch_infos)\
-            .remove_mg(multicast_address, datapathid, portno, ivid, pbb_isid,
-                       bvid)
+            .remove_mg(multicast_address, datapathid, portno, mc_ivid, ivid,
+                       pbb_isid, bvid)
 
-        eq_(len(self.fmg), 6)
+        eq_(len(self.fmg), 7)
 
         # 以下、エッジSW
         # table 2
@@ -1540,8 +1505,9 @@ class test_flow_mod_genrator(object):
         match_len = 0
         for item in fmd_table_2.match.iteritems():
             match_len += 1
-        eq_(match_len, 3)
+        eq_(match_len, 4)
         eq_(fmd_table_2.match['in_port'], 2)
+        eq_(fmd_table_2.match['vlan_vid'], mc_ivid)
         eq_(fmd_table_2.match['eth_type'], ether.ETH_TYPE_IPV6)
         eq_(fmd_table_2.match['ipv6_dst'], multicast_address)
         eq_(len(fmd_table_2.instructions), 0)
@@ -1581,9 +1547,25 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
         eq_(fmd_table_4.out_group, ofproto.OFPG_ANY)
 
-        # 以下、収容SW
         # table 4
         fmd_table_4 = self.fmg[3]
+        eq_(fmd_table_4.datapathid, edge_datapathid)
+        eq_(fmd_table_4.table_id, 4)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
+        match_len = 0
+        for item in fmd_table_4.match.iteritems():
+            match_len += 1
+        eq_(match_len, 2)
+        eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
+        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(len(fmd_table_4.instructions), 0)
+        eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
+        eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
+        eq_(fmd_table_4.out_group, ofproto.OFPG_ANY)
+
+        # 以下、収容SW
+        # table 4
+        fmd_table_4 = self.fmg[4]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
@@ -1599,7 +1581,7 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.out_group, ofproto.OFPG_ANY)
 
         # table 3
-        fmd_table_3 = self.fmg[4]
+        fmd_table_3 = self.fmg[5]
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
@@ -1617,10 +1599,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.out_group, ofproto.OFPG_ANY)
 
         # table 4
-        fmd_table_4 = self.fmg[5]
+        fmd_table_4 = self.fmg[6]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -1646,10 +1628,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -1671,17 +1650,18 @@ class test_flow_mod_genrator(object):
         multicast_address = 'ff38::1:1'
         datapathid = 3
         portno = 1
-        ivid = 2011
-        pbb_isid = 10011
-        bvid = 4001
+        mc_ivid = 1002
+        ivid = 2021
+        pbb_isid = 10021
+        bvid = 4002
 
         container_sw_bmac = switch_infos[2]['sw_bmac']
 
         self.fmg = flow_mod_generator(switch_infos)\
-            .remove_mg(multicast_address, datapathid, portno, ivid, pbb_isid,
-                       bvid)
+            .remove_mg(multicast_address, datapathid, portno, mc_ivid, ivid,
+                       pbb_isid, bvid)
 
-        eq_(len(self.fmg), 6)
+        eq_(len(self.fmg), 7)
 
         # 以下、エッジSW
         # table 2
@@ -1692,8 +1672,9 @@ class test_flow_mod_genrator(object):
         match_len = 0
         for item in fmd_table_2.match.iteritems():
             match_len += 1
-        eq_(match_len, 3)
+        eq_(match_len, 4)
         eq_(fmd_table_2.match['in_port'], 2)
+        eq_(fmd_table_2.match['vlan_vid'], mc_ivid)
         eq_(fmd_table_2.match['eth_type'], ether.ETH_TYPE_IPV6)
         eq_(fmd_table_2.match['ipv6_dst'], multicast_address)
         eq_(len(fmd_table_2.instructions), 0)
@@ -1726,6 +1707,22 @@ class test_flow_mod_genrator(object):
         for item in fmd_table_4.match.iteritems():
             match_len += 1
         eq_(match_len, 2)
+        eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
+        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(len(fmd_table_4.instructions), 0)
+        eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
+        eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
+        eq_(fmd_table_4.out_group, ofproto.OFPG_ANY)
+
+        # table 4
+        fmd_table_4 = self.fmg[3]
+        eq_(fmd_table_4.datapathid, edge_datapathid)
+        eq_(fmd_table_4.table_id, 4)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
+        match_len = 0
+        for item in fmd_table_4.match.iteritems():
+            match_len += 1
+        eq_(match_len, 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
@@ -1735,7 +1732,7 @@ class test_flow_mod_genrator(object):
 
         # 以下、収容SW
         # table 4
-        fmd_table_4 = self.fmg[3]
+        fmd_table_4 = self.fmg[4]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
@@ -1751,7 +1748,7 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.out_group, ofproto.OFPG_ANY)
 
         # table 3
-        fmd_table_3 = self.fmg[4]
+        fmd_table_3 = self.fmg[5]
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
@@ -1769,10 +1766,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.out_group, ofproto.OFPG_ANY)
 
         # table 4
-        fmd_table_4 = self.fmg[5]
+        fmd_table_4 = self.fmg[6]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -1798,10 +1795,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port": 2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -1838,7 +1832,7 @@ class test_flow_mod_genrator(object):
         fmd_table_4 = self.fmg[0]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -1864,10 +1858,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port":  2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -1904,7 +1895,7 @@ class test_flow_mod_genrator(object):
         fmd_table_4 = self.fmg[0]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -1930,10 +1921,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port":  2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -1966,7 +1954,7 @@ class test_flow_mod_genrator(object):
             .remove_datapath(multicast_address, datapathid, portno, ivid,
                              pbb_isid, bvid)
 
-        eq_(len(self.fmg), 5)
+        eq_(len(self.fmg), 4)
 
         # 以下、収容SW
         # table 3
@@ -2001,25 +1989,9 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
         eq_(fmd_table_3.command, ofproto.OFPFC_MODIFY_STRICT)
 
-        # table 4
-        fmd_table_4 = self.fmg[1]
-        eq_(fmd_table_4.datapathid, edge_datapathid)
-        eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
-        eq_(len(fmd_table_4.instructions), 0)
-        eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
-        eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
-        eq_(fmd_table_4.out_group, ofproto.OFPG_ANY)
-
         # 以下、収容SW
         # table 4
-        fmd_table_4 = self.fmg[2]
+        fmd_table_4 = self.fmg[1]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
@@ -2035,7 +2007,7 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.out_group, ofproto.OFPG_ANY)
 
         # table 3
-        fmd_table_3 = self.fmg[3]
+        fmd_table_3 = self.fmg[2]
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
@@ -2053,10 +2025,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.out_group, ofproto.OFPG_ANY)
 
         # table 4
-        fmd_table_4 = self.fmg[4]
+        fmd_table_4 = self.fmg[3]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -2082,10 +2054,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port":  2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         },
             {
             "sw_name": "sw1",
@@ -2118,7 +2087,7 @@ class test_flow_mod_genrator(object):
             .remove_datapath(multicast_address, datapathid, portno, ivid,
                              pbb_isid, bvid)
 
-        eq_(len(self.fmg), 5)
+        eq_(len(self.fmg), 4)
 
         # 以下、収容SW
         # table 3
@@ -2153,25 +2122,9 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
         eq_(fmd_table_3.command, ofproto.OFPFC_MODIFY_STRICT)
 
-        # table 4
-        fmd_table_4 = self.fmg[1]
-        eq_(fmd_table_4.datapathid, edge_datapathid)
-        eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
-        eq_(len(fmd_table_4.instructions), 0)
-        eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
-        eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
-        eq_(fmd_table_4.out_group, ofproto.OFPG_ANY)
-
         # 以下、収容SW
         # table 4
-        fmd_table_4 = self.fmg[2]
+        fmd_table_4 = self.fmg[1]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
@@ -2187,7 +2140,7 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.out_group, ofproto.OFPG_ANY)
 
         # table 3
-        fmd_table_3 = self.fmg[3]
+        fmd_table_3 = self.fmg[2]
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
@@ -2205,10 +2158,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.out_group, ofproto.OFPG_ANY)
 
         # table 4
-        fmd_table_4 = self.fmg[4]
+        fmd_table_4 = self.fmg[3]
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
-        eq_(fmd_table_4.priority, PRIORITY_LOW)
+        eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_len = 0
         for item in fmd_table_4.match.iteritems():
             match_len += 1
@@ -2234,10 +2187,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port":  2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         }
 
         ivid = 2011
@@ -2267,14 +2217,12 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port":  2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         }
 
         multicast_address = 'ff38::1:1'
         datapathid = 2
+        mc_ivid = 1001
         ivid = 2011
         pbb_isid = 10011
         bvid = 4001
@@ -2283,8 +2231,8 @@ class test_flow_mod_genrator(object):
 
         try:
             self.fmg = apresia_26k(switch_info)\
-                .start_mg_edge(multicast_address, datapathid, ivid, pbb_isid,
-                               bvid, flow_mod_datas)
+                .start_mg_edge(multicast_address, datapathid, mc_ivid, ivid,
+                               pbb_isid, bvid, flow_mod_datas)
         except flow_mod_gen_exception as e:
             eq_(e.value, 'Unsupported Operation')
             eq_(str(e), "'Unsupported Operation'")
@@ -2303,10 +2251,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port":  2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         }
 
         multicast_address = 'ff38::1:1'
@@ -2339,14 +2284,12 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port":  2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         }
 
         multicast_address = 'ff38::1:1'
         datapathid = 2
+        mc_ivid = 1001
         ivid = 2011
         pbb_isid = 10011
         bvid = 4001
@@ -2355,8 +2298,8 @@ class test_flow_mod_genrator(object):
 
         try:
             self.fmg = apresia_26k(switch_info)\
-                .remove_mg_edge(multicast_address, datapathid, ivid, pbb_isid,
-                                bvid, flow_mod_datas)
+                .remove_mg_edge(multicast_address, datapathid, mc_ivid, ivid,
+                                pbb_isid, bvid, flow_mod_datas)
         except flow_mod_gen_exception as e:
             eq_(e.value, 'Unsupported Operation')
             eq_(str(e), "'Unsupported Operation'")
@@ -2375,10 +2318,7 @@ class test_flow_mod_genrator(object):
             "sw_bmac": "00:00:00:00:00:01",
             "edge_router_port":  2,
             "mld_port": 1,
-            "container_sw_ports": {
-                "2": 49,
-                "3": 50
-            }
+            "container_sw_ports": [49, 50]
         }
 
         multicast_address = 'ff38::1:1'
