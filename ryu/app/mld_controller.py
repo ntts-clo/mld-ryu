@@ -18,7 +18,7 @@ hub.patch()
 
 COMMON_PATH = "../../common/"
 sys.path.append(COMMON_PATH)
-from common.icmpv6_extend import icmpv6_extend
+from icmpv6_extend import icmpv6_extend
 from zmq_dispatch import dispatch
 from zmq_dispatch import flow_mod_data
 from read_json import read_json

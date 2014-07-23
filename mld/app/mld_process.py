@@ -22,12 +22,12 @@ import time
 import ctypes
 hub.patch()
 
-from common.icmpv6_extend import icmpv6_extend
 from user_manage import channel_info, channel_user_info
 from flowmod_gen import flow_mod_generator
 
 COMMON_PATH = "../../common/"
 sys.path.append(COMMON_PATH)
+from icmpv6_extend import icmpv6_extend
 from zmq_dispatch import dispatch
 from read_json import read_json
 import mld_const
