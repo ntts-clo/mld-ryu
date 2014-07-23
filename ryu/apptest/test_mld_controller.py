@@ -36,6 +36,7 @@ from nose.tools import eq_
 from nose.tools import ok_
 
 from ryu.app.mld_controller import mld_controller
+#from ryu.app import mld_controller
 
 from ryu.ofproto import ofproto_v1_3
 from ryu.ofproto import ofproto_v1_3_parser
@@ -47,7 +48,7 @@ from ryu.ofproto import ether, inet
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from nose.plugins.attrib import attr
-from icmpv6_extend import icmpv6_extend
+from common.icmpv6_extend import icmpv6_extend
 from ryu.ofproto.ofproto_v1_3_parser import OFPPacketIn, OFPMatch
 
 from common.zmq_dispatch import dispatch
@@ -577,6 +578,10 @@ class test_mld_controller():
         datapath.id = 1
 
         self.mld_ctrl.loop_flg = False
+
+        result = self.mld_ctrl.receive_from_mld()
+
+        
         """
         # 【実行】
         result = self.mld_ctrl.receive_from_mld()
