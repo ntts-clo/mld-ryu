@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import os
+import sys
 import cPickle
 import zmq
 import logging
@@ -15,7 +16,9 @@ from eventlet import patcher
 from ryu.lib import hub
 hub.patch()
 
-os.sys.path.append("../../common")
+COMMON_PATH = "../../common/"
+sys.path.append(COMMON_PATH)
+from common.icmpv6_extend import icmpv6_extend
 from zmq_dispatch import dispatch
 from zmq_dispatch import flow_mod_data
 from read_json import read_json
@@ -41,7 +44,7 @@ class mld_controller(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
 
         # ログ設定ファイル読み込み
-        logging.config.fileConfig("../../common/logconf.ini")
+        logging.config.fileConfig(COMMON_PATH + "logconf.ini")
         self.logger = logging.getLogger(__name__)
         self.logger.debug("")
 
@@ -50,15 +53,13 @@ class mld_controller(app_manager.RyuApp):
         # システムモジュールのソケットに対しパッチを適用
         patcher.monkey_patch()
 
-        # 設定情報読み込み
-        config = read_json("../../common/config.json")
+        # 設定情報の読み込み
+        config = read_json(COMMON_PATH + "config.json")
         self.logger.info("config_info : %s", str(config.data))
         self.config = config.data["settings"]
         self.SOCKET_TIME_OUT = self.config["socket_time_out"]
 
-        #ipc = self.config["ipc_url"]
-        #send_path = self.config["ipc_ryu-mld"]
-        #recv_path = self.config["ipc_mld-ryu"]
+        # zmq設定情報の読み込み
         zmq_url = self.config["ofc_url"]
         send_path = self.config["ofc_send_zmq"]
         recv_path = self.config["ofc_recv_zmq"]
@@ -179,7 +180,7 @@ class mld_controller(app_manager.RyuApp):
                 self.send_msg_to_packetout(msgbase.datapath, recvpkt)
 
         else:
-            self.logger.info("dispatch[type_] = Not exist(%s) \n",
+            self.logger.error("dispatch[type_] : Not Exist(%s) \n",
                              dispatch["type_"])
             return False
 
@@ -302,7 +303,7 @@ class mld_controller(app_manager.RyuApp):
             self.send_to_mld(dispatch_)
 
         else:
-            self.logger.info("dict_msg[datapath.id] = Not exist(%s) \n",
+            self.logger.info("dict_msg[datapath.id] : Already Exist(%s) \n",
                              datapath.id)
             return True
 

@@ -22,7 +22,7 @@ import time
 import ctypes
 hub.patch()
 
-from icmpv6_extend import icmpv6_extend
+from common.icmpv6_extend import icmpv6_extend
 from user_manage import channel_info, channel_user_info
 from flowmod_gen import flow_mod_generator
 
@@ -71,9 +71,6 @@ class mld_process():
         self.logger.info("config_info : %s", str(config.data))
         self.config = config.data["settings"]
 
-        # ipc = self.config["ipc_url"]
-        # send_path = self.config["ipc_ryu-mld"]
-        # recv_path = self.config["ipc_mld-ryu"]
         zmq_url = self.config["mld_url"]
         send_path = self.config["mld_send_zmq"]
         recv_path = self.config["mld_recv_zmq"]
