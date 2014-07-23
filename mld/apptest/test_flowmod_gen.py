@@ -156,10 +156,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_0.datapathid, datapathid)
         eq_(fmd_table_0.table_id, 0)
         eq_(fmd_table_0.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_0.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_0.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_0.match['in_port'], 2)
         eq_(fmd_table_0.match['eth_type'], ether.ETH_TYPE_IPV6)
         eq_(fmd_table_0.match['ip_proto'], inet.IPPROTO_ICMPV6)
@@ -177,10 +175,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
         eq_(fmd_table_3.match['vlan_vid'], ivid)
         eq_(len(fmd_table_3.instructions), 1)
@@ -208,10 +204,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -224,10 +218,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -281,10 +273,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_0.datapathid, datapathid)
         eq_(fmd_table_0.table_id, 0)
         eq_(fmd_table_0.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_0.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_0.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_0.match['in_port'], 3)
         eq_(fmd_table_0.match['eth_type'], ether.ETH_TYPE_IPV6)
         eq_(fmd_table_0.match['ip_proto'], inet.IPPROTO_ICMPV6)
@@ -302,10 +292,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
         eq_(fmd_table_3.match['vlan_vid'], ivid)
         eq_(len(fmd_table_3.instructions), 1)
@@ -333,10 +321,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 59)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -349,10 +335,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 60)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -406,10 +390,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_0.datapathid, datapathid)
         eq_(fmd_table_0.table_id, 0)
         eq_(fmd_table_0.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_0.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_0.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_0.match['in_port'], 1)
         eq_(fmd_table_0.match['eth_type'], ether.ETH_TYPE_IPV6)
         eq_(fmd_table_0.match['ip_proto'], inet.IPPROTO_ICMPV6)
@@ -427,10 +409,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_0.datapathid, datapathid)
         eq_(fmd_table_0.table_id, 0)
         eq_(fmd_table_0.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_0.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_0.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_0.match['in_port'], 2)
         eq_(fmd_table_0.match['eth_type'], ether.ETH_TYPE_IPV6)
         eq_(fmd_table_0.match['ip_proto'], inet.IPPROTO_ICMPV6)
@@ -448,10 +428,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 51)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -464,10 +442,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
         eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
         eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
@@ -492,10 +468,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x00000000 | 1)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -508,10 +482,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x00000000 | 2)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -565,10 +537,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_0.datapathid, datapathid)
         eq_(fmd_table_0.table_id, 0)
         eq_(fmd_table_0.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_0.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_0.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_0.match['in_port'], 1)
         eq_(fmd_table_0.match['eth_type'], ether.ETH_TYPE_IPV6)
         eq_(fmd_table_0.match['ip_proto'], inet.IPPROTO_ICMPV6)
@@ -586,10 +556,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 52)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -602,10 +570,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
         eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
         eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
@@ -630,10 +596,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x00000000 | 1)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -700,10 +664,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 51)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -716,10 +678,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
         # PBBデカプセル時のBVIDは省略可
         eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
@@ -745,10 +705,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -762,10 +720,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_2.datapathid, edge_datapathid)
         eq_(fmd_table_2.table_id, 2)
         eq_(fmd_table_2.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_2.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_2.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_2.match['in_port'], 2)
         eq_(fmd_table_2.match['vlan_vid'], mc_ivid)
         eq_(fmd_table_2.match['eth_type'], ether.ETH_TYPE_IPV6)
@@ -782,10 +738,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, edge_datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
         eq_(fmd_table_3.match['vlan_vid'], ivid)
         eq_(len(fmd_table_3.instructions), 1)
@@ -813,10 +767,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, edge_datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -829,10 +781,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, edge_datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -899,10 +849,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 52)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -915,10 +863,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
         # PBBデカプセル時のBVIDは省略可
         eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
@@ -944,10 +890,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -961,10 +905,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_2.datapathid, edge_datapathid)
         eq_(fmd_table_2.table_id, 2)
         eq_(fmd_table_2.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_2.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_2.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_2.match['in_port'], 2)
         eq_(fmd_table_2.match['vlan_vid'], mc_ivid)
         eq_(fmd_table_2.match['eth_type'], ether.ETH_TYPE_IPV6)
@@ -981,10 +923,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, edge_datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
         eq_(fmd_table_3.match['vlan_vid'], ivid)
         eq_(len(fmd_table_3.instructions), 1)
@@ -1012,10 +952,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, edge_datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -1028,10 +966,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, edge_datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -1089,10 +1025,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], portno)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -1150,10 +1084,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], portno)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -1216,10 +1148,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 51)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -1232,10 +1162,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
         eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
         eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
@@ -1260,10 +1188,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -1277,10 +1203,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, edge_datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
         eq_(fmd_table_3.match['vlan_vid'], ivid)
         eq_(len(fmd_table_3.instructions), 1)
@@ -1359,10 +1283,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 52)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -1375,10 +1297,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
         eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
         eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
@@ -1403,10 +1323,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 1)
@@ -1420,10 +1338,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, edge_datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
         eq_(fmd_table_3.match['vlan_vid'], ivid)
         eq_(len(fmd_table_3.instructions), 1)
@@ -1502,10 +1418,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_2.datapathid, edge_datapathid)
         eq_(fmd_table_2.table_id, 2)
         eq_(fmd_table_2.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_2.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_2.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_2.match['in_port'], 2)
         eq_(fmd_table_2.match['vlan_vid'], mc_ivid)
         eq_(fmd_table_2.match['eth_type'], ether.ETH_TYPE_IPV6)
@@ -1520,10 +1434,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, edge_datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
         eq_(fmd_table_3.match['vlan_vid'], ivid)
         eq_(len(fmd_table_3.instructions), 0)
@@ -1536,10 +1448,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, edge_datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
@@ -1552,10 +1462,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, edge_datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
@@ -1569,10 +1477,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 51)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
@@ -1585,10 +1491,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
         eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
         eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
@@ -1603,10 +1507,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
@@ -1669,10 +1571,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_2.datapathid, edge_datapathid)
         eq_(fmd_table_2.table_id, 2)
         eq_(fmd_table_2.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_2.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_2.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_2.match['in_port'], 2)
         eq_(fmd_table_2.match['vlan_vid'], mc_ivid)
         eq_(fmd_table_2.match['eth_type'], ether.ETH_TYPE_IPV6)
@@ -1687,10 +1587,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, edge_datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
         eq_(fmd_table_3.match['vlan_vid'], ivid)
         eq_(len(fmd_table_3.instructions), 0)
@@ -1703,10 +1601,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, edge_datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
@@ -1719,10 +1615,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, edge_datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
@@ -1736,10 +1630,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 52)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
@@ -1752,10 +1644,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
         eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
         eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
@@ -1770,10 +1660,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
@@ -1833,10 +1721,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
@@ -1896,10 +1782,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
@@ -1962,10 +1846,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, edge_datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
         eq_(fmd_table_3.match['vlan_vid'], ivid)
         eq_(len(fmd_table_3.instructions), 1)
@@ -1995,10 +1877,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 51)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
@@ -2011,10 +1891,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
         eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
         eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
@@ -2029,10 +1907,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
@@ -2095,10 +1971,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, edge_datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
         eq_(fmd_table_3.match['vlan_vid'], ivid)
         eq_(len(fmd_table_3.instructions), 1)
@@ -2128,10 +2002,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x02000000 | 52)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
@@ -2144,10 +2016,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.datapathid, datapathid)
         eq_(fmd_table_3.table_id, 3)
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_3.match.iteritems():
-            match_len += 1
-        eq_(match_len, 4)
+        match_items = [item for item in fmd_table_3.match.iteritems()]
+        eq_(len(match_items), 4)
         eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
         eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
         eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
@@ -2162,10 +2032,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.datapathid, datapathid)
         eq_(fmd_table_4.table_id, 4)
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
-        match_len = 0
-        for item in fmd_table_4.match.iteritems():
-            match_len += 1
-        eq_(match_len, 2)
+        match_items = [item for item in fmd_table_4.match.iteritems()]
+        eq_(len(match_items), 2)
         eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
         eq_(fmd_table_4.match['vlan_vid'], ivid)
         eq_(len(fmd_table_4.instructions), 0)
