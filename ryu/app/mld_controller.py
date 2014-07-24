@@ -19,32 +19,38 @@ hub.patch()
 COMMON_PATH = "../../common/"
 sys.path.append(COMMON_PATH)
 from icmpv6_extend import icmpv6_extend
-from zmq_dispatch import dispatch
+from zmq_dispatch import dispatch, packet_out_data
 from zmq_dispatch import flow_mod_data
 from read_json import read_json
-"""
-from common.zmq_dispatch import dispatch
-from common.zmq_dispatch import flow_mod_data
-from common.read_json import read_json
-"""
-#from mld_const import mld_const
 import mld_const
 
 import pdb
 
 
+# =============================================================================
+# 定数定義
+# =============================================================================
+# OpenFlowのバージョン
+OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
+# Socketタイプチェック用定数
+CHECK_URL_IPC = "ipc://"
+# ログファイル用定数
+LOG_CONF = "logconf.ini"
+# 設定ファイル用定数
+CONF_FILE = "config.json"
+
+
+# =============================================================================
+# Ryu MLDコントローラー
+# =============================================================================
 class mld_controller(app_manager.RyuApp):
 
-    OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
-
+    # datapathidに紐付くmessageを保持する辞書定義
     dict_msg = {}
 
-    CHECK_URL_IPC = "ipc://"
-
     def __init__(self, *args, **kwargs):
-
         # ログ設定ファイル読み込み
-        logging.config.fileConfig(COMMON_PATH + "logconf.ini")
+        logging.config.fileConfig(COMMON_PATH + LOG_CONF)
         self.logger = logging.getLogger(__name__)
         self.logger.debug("")
 
@@ -54,7 +60,7 @@ class mld_controller(app_manager.RyuApp):
         patcher.monkey_patch()
 
         # 設定情報の読み込み
-        config = read_json(COMMON_PATH + "config.json")
+        config = read_json(COMMON_PATH + CONF_FILE)
         self.logger.info("config_info : %s", str(config.data))
         self.config = config.data["settings"]
         self.SOCKET_TIME_OUT = self.config["socket_time_out"]
@@ -64,10 +70,12 @@ class mld_controller(app_manager.RyuApp):
         send_path = self.config["ofc_send_zmq"]
         recv_path = self.config["ofc_recv_zmq"]
 
+        # 
+        self.check_vlan_flg = self.config["check_vlan_flg"]
         # ループフラグの設定
         self.loop_flg = True
 
-        if zmq_url == self.CHECK_URL_IPC:
+        if zmq_url == CHECK_URL_IPC:
             # CHECK TMP FILE(SEND)
             self.check_exists_tmp(send_path)
             # CHECK TMP FILE(RECV)
@@ -87,7 +95,7 @@ class mld_controller(app_manager.RyuApp):
 
         # ファイルの存在チェック
         if os.path.exists(filename):
-            return
+            return True
 
         else:
             # ディレクトリの存在チェック
@@ -174,10 +182,14 @@ class mld_controller(app_manager.RyuApp):
                 datapathid = dispatch["datapathid"]
                 msgbase = self.dict_msg[datapathid]
                 recvpkt = dispatch["data"]
-                self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt.data)
+                self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt)
+
+                # PACKET_OUT生成
+                packetout = self.create_packet_out(msgbase.datapath,
+                                                   recvpkt)
 
                 # PACKET_OUT送信
-                self.send_msg_to_packetout(msgbase.datapath, recvpkt)
+                self.send_msg_to_packetout(msgbase, packetout)
 
         else:
             self.logger.error("dispatch[type_] : Not Exist(%s) \n",
@@ -213,6 +225,27 @@ class mld_controller(app_manager.RyuApp):
         return flowmod
 
     # =========================================================================
+    # create_packet_out
+    # =========================================================================
+    def create_packet_out(self, datapath, pktoutdata):
+        self.logger.info("")
+
+        # Create packetout message.
+        packetout = datapath.ofproto_parser.OFPPacketOut(datapath=datapath,
+                                        in_port=pktoutdata.in_port,
+                                        buffer_id=pktoutdata.buffer_id,
+                                        actions=pktoutdata.actions,
+                                        data=pktoutdata.data)
+
+        self.logger.debug("packetout [datapathid] : %s", pktoutdata.datapathid)
+        self.logger.debug("packetout [in_port] : %s", pktoutdata.in_port)
+        self.logger.debug("packetout [buffer_id] : %s", pktoutdata.buffer_id)
+        self.logger.debug("packetout [actions] : %s", pktoutdata.actions)
+        self.logger.debug("packetout [data] : %s", pktoutdata.data)
+
+        return packetout
+
+    # =========================================================================
     # send_to_mld
     # =========================================================================
     def send_to_mld(self, dispatch_):
@@ -238,6 +271,7 @@ class mld_controller(app_manager.RyuApp):
                     pass
 
                 else:
+                    self.logger.error("receive_from_mld. %s ", e)
                     raise e
 
             if recvpkt is not None:

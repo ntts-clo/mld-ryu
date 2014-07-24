@@ -28,7 +28,7 @@ from flowmod_gen import flow_mod_generator
 COMMON_PATH = "../../common/"
 sys.path.append(COMMON_PATH)
 from icmpv6_extend import icmpv6_extend
-from zmq_dispatch import dispatch
+from zmq_dispatch import dispatch, packet_out_data
 from read_json import read_json
 import mld_const
 
@@ -400,12 +400,15 @@ class mld_process():
     # ==================================================================
     def create_packetout(self, datapathid, packet):
         self.logger.debug("")
+
         actions = [parser.OFPActionOutput(
             port=self.edge_switch["edge_router_port"])]
-        pout = parser.OFPPacketOut(
-            datapath=datapathid, in_port=ofproto_v1_3.OFPP_CONTROLLER,
-            buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
-            actions=actions, data=packet)
+        pout = packet_out_data(datapathid=datapathid,
+                                in_port=ofproto_v1_3.OFPP_CONTROLLER,
+                                buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                                actions=actions,
+                                data=packet)
+
         return pout
 
     # ==================================================================

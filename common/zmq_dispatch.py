@@ -36,6 +36,24 @@ class dispatch():
 
 
 # =====================================================================
+# PacketOutの転送用データクラス
+# =====================================================================
+class packet_out_data(object):
+    def __init__(self, datapathid,
+                 in_port=ofproto_v1_3.OFPP_CONTROLLER,
+                 buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                 actions=[],
+                 data=None):
+        logger.debug("")
+
+        self.datapathid = datapathid
+        self.in_port = in_port
+        self.buffer_id = buffer_id
+        self.actions = actions
+        self.data = data
+
+
+# =====================================================================
 # FlowModの転送用データクラス
 # =====================================================================
 class flow_mod_data(object):
