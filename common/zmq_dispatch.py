@@ -40,15 +40,15 @@ class dispatch():
 # =====================================================================
 class packet_out_data(object):
     def __init__(self, datapathid,
-                 in_port=ofproto_v1_3.OFPP_CONTROLLER,
                  buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                 in_port=ofproto_v1_3.OFPP_CONTROLLER,
                  actions=[],
                  data=None):
         logger.debug("")
 
         self.datapathid = datapathid
-        self.in_port = in_port
         self.buffer_id = buffer_id
+        self.in_port = in_port
         self.actions = actions
         self.data = data
 
