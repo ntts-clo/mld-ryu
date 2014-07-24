@@ -12,6 +12,8 @@
         "user_time_out": 250,
         "_comment" : "ソケットのタイムアウト時間",
         "socket_time_out": 1000,
+        "_comment" : "ryu mld_controllerでのVLANチェックフラグ(True) or (False)",
+        "check_vlan_flg": "False",
         "_comment" : "OFC用のzmqソケットURL [IPC]:(ipc://) or [TCP]:(tcp://)",
         "ofc_url"  : "ipc://",
         "_comment" : "OFC用のzmq接続設定",

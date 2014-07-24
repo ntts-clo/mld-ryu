@@ -70,6 +70,9 @@ class mld_controller(app_manager.RyuApp):
         send_path = self.config["ofc_send_zmq"]
         recv_path = self.config["ofc_recv_zmq"]
 
+        # VLANチェックフラグの読み込み
+        self.check_vlan_flg = self.config["check_vlan_flg"]
+
         # ループフラグの設定
         self.loop_flg = True
 
@@ -231,7 +234,6 @@ class mld_controller(app_manager.RyuApp):
         # Create packetout message.
         packetout = datapath.ofproto_parser.OFPPacketOut(datapath=datapath,
                                         in_port=pktoutdata.in_port,
-                                        buffer_id=pktoutdata.buffer_id,
                                         actions=pktoutdata.actions,
                                         data=pktoutdata.data)
 
@@ -352,9 +354,11 @@ class mld_controller(app_manager.RyuApp):
         self.logger.debug("# PACKET_IN[data] : %s \n", str(pkt))
 
         # CHECK VLAN
-        pkt_vlan = pkt.get_protocol(vlan.vlan)
-        if not pkt_vlan:
-            self.logger.debug("# check vlan : None \n")
+        pkt_vlan = None
+        if self.check_vlan_flg in "True":
+            pkt_vlan = pkt.get_protocol(vlan.vlan)
+            if not pkt_vlan:
+                self.logger.debug("# check vlan : None \n")
 
         # CHECK ICMPV6
         pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
@@ -389,14 +393,15 @@ class mld_controller(app_manager.RyuApp):
 
         dispatch_ = dispatch(type_=mld_const.CON_PACKET_IN,
                                datapathid=msg.datapath.id,
-                               cid=pkt_vlan.vid,
+                               cid=pkt_vlan.vid if pkt_vlan else 0,
                                in_port=msg.match["in_port"],
                                data=pkt_icmpv6)
 
         self.logger.debug("dispatch [PACKET_IN] : %s ", dispatch_)
         self.logger.debug("dispatch [type_] : %s", mld_const.CON_PACKET_IN)
         self.logger.debug("dispatch [datapath.id] : %s", msg.datapath.id)
-        self.logger.debug("dispatch [cid] : %s", pkt_vlan.vid)
+        self.logger.debug("dispatch [cid] : %s",
+                                            pkt_vlan.vid if pkt_vlan else 0)
         self.logger.debug("dispatch [in_port] : %s", msg.match["in_port"])
         self.logger.debug("dispatch [data] : %s", pkt_icmpv6)
 
