@@ -48,12 +48,15 @@ from ryu.ofproto import ether, inet
 from ryu.controller import ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from nose.plugins.attrib import attr
-from common.icmpv6_extend import icmpv6_extend
 from ryu.ofproto.ofproto_v1_3_parser import OFPPacketIn, OFPMatch
 
-from common.zmq_dispatch import dispatch
-from common.zmq_dispatch import flow_mod_data
-from common.read_json import read_json
+COMMON_PATH = "../../common/"
+sys.path.append(COMMON_PATH)
+from icmpv6_extend import icmpv6_extend
+from zmq_dispatch import dispatch
+from zmq_dispatch import flow_mod_data, packet_out_data
+from read_json import read_json
+
 
 #from common.mld_const import mld_const
 import mld_const
@@ -206,6 +209,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
+        datapath.xid = 999
 
         # dict_msgの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
@@ -250,19 +254,35 @@ class test_mld_controller():
         sendpkt.serialize()
         packetoutdata = sendpkt
 
+        switches = read_json(COMMON_PATH + "switch_info.json")
+        self.switch_mld_info = switches.data["switch_mld_info"]
+        self.switch_mc_info = switches.data["switch_mc_info"]
+        self.switches = switches.data["switches"]
+        self.edge_switch = self.switches[0]
+
+        actions = [ofproto_v1_3_parser.OFPActionOutput(
+            port=self.edge_switch["edge_router_port"])]
+
+        packetdata = packet_out_data(datapathid=datapath.id,
+                                in_port=ofproto_v1_3.OFPP_CONTROLLER,
+                                buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                                actions=actions,
+                                data=packetoutdata)
+
         packet = dispatch(type_=mld_const.CON_PACKET_OUT,
-                                datapathid=datapath.id, data=packetoutdata)
+                                datapathid=datapath.id,
+                                data=packetdata)
 
         # モック作成
         self.mocker.StubOutWithMock(self.mld_ctrl, "send_msg_to_packetout")
-        self.mld_ctrl.send_msg_to_packetout(datapath, packetoutdata).AndReturn(0)
+        self.mld_ctrl.send_msg_to_packetout(ev.msg, packet).AndReturn(0)
 
         #【実行】
-        self.mocker.ReplayAll()
+        #self.mocker.ReplayAll()
         result = self.mld_ctrl.analyse_receive_packet(packet)
 
         # 【結果】
-        self.mocker.VerifyAll()
+        #self.mocker.VerifyAll()
         print("result %s", str(result))
         assert_not_equal(result, False)
 
@@ -403,6 +423,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidの設定
         datapath.id = 1
+        datapath.xid = 999
         # dispatchの設定
         packet = dispatch(type_=99, datapathid=datapath.id)
 
@@ -427,7 +448,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidの設定
         datapath.id = 1
-
+        datapath.xid = 999
         # dict_msgの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
@@ -494,7 +515,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         #FlowModDataDetail
         ch_table_id = 0
         ch_command = 2
@@ -535,6 +556,87 @@ class test_mld_controller():
         assert_equal(result.match["eth_type"], ch_match["eth_type"])
         assert_equal(result.match["ip_proto"], ch_match["ip_proto"])
 
+    def test_create_packet_out_Success001(self):
+        # mld_controller.create_flow_mod(self, datapath, flowmoddata):
+        logger.debug("test_create_packet_out_Success001")
+        """
+        概要：packet_out作成処理
+        条件：正常に動作するであろうDummyのpacketoutdataを設定し、実行する
+        結果：戻り値のpacketout_dataと、Dummyのpacketoutdataが一致していること
+        """
+        #【前処理】
+        # DummyDatapathを生成
+        datapath = _Datapath()
+        # DummyDatapathidを設定
+        datapath.id = 1
+        datapath.xid = 999
+
+        # dict_msgの作成
+        featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
+        ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
+        self.mld_ctrl.dict_msg[datapath.id] = ev.msg
+
+        # DummyPACKET_OUTのデータを作成
+        # ETHER
+        eth = ethernet.ethernet(
+            ethertype=ether.ETH_TYPE_8021Q,
+            src=SRC_MC_ADDR, dst=DST_MC_ADDR)
+
+        # VLAN
+        vln = vlan.vlan(vid=100, ethertype=ether.ETH_TYPE_IPV6)
+        #vln = vlan.vlan(vid=self.config["c_tag_id"], ethertype=ether.ETH_TYPE_IPV6)
+
+        # IPV6 with Hop-By-Hop
+        ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6, data=[
+            ipv6.option(type_=5, len_=2, data="\x00\x00"),
+            ipv6.option(type_=1, len_=0)])]
+        ip6 = ipv6.ipv6(
+            src=SRC_IP, dst=DST_IP,
+            hop_limit=1, nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
+
+        mld = icmpv6.mldv2_query(
+            address=str(MC_ADDR1),
+            srcs=[str(SERVER_IP1)] if SERVER_IP1 else None,
+            maxresp=10000, qrv=2,
+            qqic=10)
+
+        # MLDV2
+        if type(mld) == icmpv6.mldv2_query:
+            icmp6 = icmpv6_extend(
+                type_=icmpv6.MLD_LISTENER_QUERY, data=mld)
+
+        elif type(mld) == icmpv6.mldv2_report:
+            icmp6 = icmpv6_extend(
+                type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
+
+        # ether - vlan - ipv6 - icmpv6 ( - mldv2 )
+        sendpkt = eth / vln / ip6 / icmp6
+        sendpkt.serialize()
+        packetoutdata = sendpkt
+
+        switches = read_json(COMMON_PATH + "switch_info.json")
+        self.switch_mld_info = switches.data["switch_mld_info"]
+        self.switch_mc_info = switches.data["switch_mc_info"]
+        self.switches = switches.data["switches"]
+        self.edge_switch = self.switches[0]
+
+        actions = [ofproto_v1_3_parser.OFPActionOutput(
+            port=self.edge_switch["edge_router_port"])]
+
+        packetdata = packet_out_data(datapathid=datapath.id,
+                                buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                                in_port=ofproto_v1_3.OFPP_CONTROLLER,
+                                actions=actions,
+                                data=packetoutdata)
+
+        #【実行】
+        result = self.mld_ctrl.create_packet_out(datapath, packetdata)
+        #【結果】
+        # 結果確認用flowmoddata作成
+
+        # 結果確認
+        print("result %s", result)
+
     def test_send_to_mld_Success001(self):
         # mld_controller.send_to_mld
         logger.debug("test_send_to_mld_Success001")
@@ -548,7 +650,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         # dispatch_の作成
         dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
                                 datapathid=datapath.id)
@@ -576,7 +678,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         self.mld_ctrl.loop_flg = False
 
         result = self.mld_ctrl.receive_from_mld()
@@ -758,7 +860,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 3
-
+        datapath.xid = 999
         # FeaturesRequestEventの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
@@ -784,7 +886,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         # FeaturesRequestEventの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
@@ -839,7 +941,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         # Packetの作成
         eth = ethernet.ethernet(ethertype=ether.ETH_TYPE_8021Q,
                                 src=HOST_MACADDR1,
@@ -857,7 +959,9 @@ class test_mld_controller():
         packet.serialize()
 
         # PacketInEventの作成
-        packetIn = OFPPacketIn(datapath, match=OFPMatch(in_port=1), data=buffer(packet.data))
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                               match=OFPMatch(in_port=1),
+                               data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
@@ -882,7 +986,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         # Packetの作成
         records = []
         record_allow = icmpv6.mldv2_report_group()
@@ -911,7 +1015,7 @@ class test_mld_controller():
         packet.serialize()
 
         # PacketInEventの作成
-        packetIn = OFPPacketIn(datapath, match=OFPMatch(in_port=1), data=buffer(packet.data))
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER, match=OFPMatch(in_port=1), data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
@@ -936,7 +1040,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         # Packetの作成
         records = []
         record_mode = icmpv6.mldv2_report_group()
@@ -961,7 +1065,7 @@ class test_mld_controller():
         packet.serialize()
 
         # PacketInEventの作成
-        packetIn = OFPPacketIn(datapath, match=OFPMatch(in_port=1), data=buffer(packet.data))
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER, match=OFPMatch(in_port=1), data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
@@ -986,7 +1090,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         # Packetの作成
         records = []
         record_block = icmpv6.mldv2_report_group()
@@ -1011,7 +1115,7 @@ class test_mld_controller():
         packet.serialize()
 
         # PacketInEventの作成
-        packetIn = OFPPacketIn(datapath, match=OFPMatch(in_port=1), data=buffer(packet.data))
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER, match=OFPMatch(in_port=1), data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
@@ -1034,7 +1138,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         # Packetの作成
         packet = Packet()
 #        packet.add_protocol(ethernet.ethernet(ethertype=ether.ETH_TYPE_8021Q))
@@ -1045,7 +1149,8 @@ class test_mld_controller():
         packet.serialize()
 
         # PacketInEventの作成
-        packetIn = OFPPacketIn(datapath, match=OFPMatch(in_port=1),
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER, 
+                               match=OFPMatch(in_port=1),
                                data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
@@ -1069,7 +1174,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         # Packetの作成
         packet = Packet()
         packet.add_protocol(ethernet.ethernet(ethertype=ether.ETH_TYPE_8021Q))
@@ -1080,7 +1185,8 @@ class test_mld_controller():
         packet.serialize()
 
         # PacketInEventの作成
-        packetIn = OFPPacketIn(datapath, match=OFPMatch(in_port=1), data=buffer(packet.data))
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                               match=OFPMatch(in_port=1), data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
@@ -1103,7 +1209,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         # Packetの作成
         packet = Packet()
         packet.add_protocol(ethernet.ethernet(ethertype=ether.ETH_TYPE_8021Q))
@@ -1114,7 +1220,8 @@ class test_mld_controller():
         packet.serialize()
 
         # PacketInEventの作成
-        packetIn = OFPPacketIn(datapath, match=OFPMatch(in_port=1), data=buffer(packet.data))
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                               match=OFPMatch(in_port=1), data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
@@ -1138,7 +1245,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         # Packetの作成
         packet = Packet()
         packet.add_protocol(ethernet.ethernet(ethertype=ether.ETH_TYPE_8021Q))
@@ -1149,7 +1256,8 @@ class test_mld_controller():
         packet.serialize()
 
         # PacketInEventの作成
-        packetIn = OFPPacketIn(datapath, match=OFPMatch(in_port=1), data=buffer(packet.data))
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                               match=OFPMatch(in_port=1), data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
@@ -1173,7 +1281,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         # Packetの作成
         packet = Packet()
         packet.add_protocol(ethernet.ethernet(ethertype=ether.ETH_TYPE_8021Q))
@@ -1184,7 +1292,8 @@ class test_mld_controller():
         packet.serialize()
 
         # PacketInEventの作成
-        packetIn = OFPPacketIn(datapath, match=OFPMatch(in_port=1), data=buffer(packet.data))
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                               match=OFPMatch(in_port=1), data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
@@ -1210,7 +1319,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         # Packetの作成
         record = icmpv6.mldv2_report_group()
         record.type_ = icmpv6.ICMPV6_MAXTYPE
@@ -1229,7 +1338,8 @@ class test_mld_controller():
         packet.serialize()
 
         # PacketInEventの作成
-        packetIn = OFPPacketIn(datapath, match=OFPMatch(in_port=1), data=buffer(packet.data))
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                               match=OFPMatch(in_port=1), data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
