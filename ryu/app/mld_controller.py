@@ -242,7 +242,7 @@ class mld_controller(app_manager.RyuApp):
         self.logger.debug("packetout [in_port] : %s", pktoutdata.in_port)
         self.logger.debug("packetout [buffer_id] : %s", pktoutdata.buffer_id)
         self.logger.debug("packetout [actions] : %s", pktoutdata.actions)
-        self.logger.debug("packetout [data].data : %s", pktoutdata.data.data)
+        self.logger.debug("packetout [data].data : %s", pktoutdata.data)
 
         return packetout
 
@@ -299,8 +299,8 @@ class mld_controller(app_manager.RyuApp):
         barrier = ofp_parser.OFPBarrierRequest(msgbase.datapath)
         msgbase.datapath.send_msg(barrier)
 
-        self.logger.debug("sent 1 packet to OFPBarrierRequest [xid] : %s",
-                         msgbase.datapath.xid)
+        self.logger.info("OFPBarrierRequest.[dpid] : %s [xid] : %s \n",
+                         msgbase.datapath.id, msgbase.datapath.xid)
 
     # =========================================================================
     # send_msg_to_packetout
@@ -321,6 +321,8 @@ class mld_controller(app_manager.RyuApp):
 
         msg = ev.msg
         datapath = ev.msg.datapath
+        self.logger.info("OFPSwitchFeatures.[ver] : %s [dpid] : %s [xid] : %s",
+                          msg.version, msg.datapath.id, msg.datapath.xid)
 
         # CHECK Already send
         if not datapath.id in self.dict_msg:
@@ -331,14 +333,14 @@ class mld_controller(app_manager.RyuApp):
             dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
                                     datapathid=datapath.id)
 
-            self.logger.debug("dispatch[SWITCH_FEATURE] : %s", dispatch_)
             self.logger.debug("dispatch[type_] : %s",
                               mld_const.CON_SWITCH_FEATURE)
-            self.logger.debug("dispatch[datapath.id] : %s", datapath.id)
+            self.logger.debug("dispatch[datapathid] : %s", datapath.id)
+
             self.send_to_mld(dispatch_)
 
         else:
-            self.logger.info("dict_msg[datapath.id] : Already Exist(%s) \n",
+            self.logger.info("dict_msg[datapathid] : Already Exist(%s) \n",
                              datapath.id)
             return True
 
@@ -352,7 +354,9 @@ class mld_controller(app_manager.RyuApp):
         msg = ev.msg
         pkt = packet.Packet(msg.data)
 
-        self.logger.debug("# PACKET_IN[data] : %s \n", str(pkt))
+        self.logger.info("OFPPacketIn.[ver] : %s [dpid] : %s [xid] : %s",
+                          msg.version, msg.datapath.id, msg.datapath.xid)
+        self.logger.debug("OFPPacketIn.[data] : %s \n", str(pkt))
 
         # CHECK VLAN
         pkt_vlan = None
@@ -392,17 +396,16 @@ class mld_controller(app_manager.RyuApp):
                     self.logger.debug("# check report_group.[type_] : %s \n",
                                       str(mldv2_report_group.type_))
 
+        vid = pkt_vlan.vid if pkt_vlan else 0
         dispatch_ = dispatch(type_=mld_const.CON_PACKET_IN,
                                datapathid=msg.datapath.id,
-                               cid=pkt_vlan.vid if pkt_vlan else 0,
+                               cid=vid,
                                in_port=msg.match["in_port"],
                                data=pkt_icmpv6)
 
-        self.logger.debug("dispatch [PACKET_IN] : %s ", dispatch_)
         self.logger.debug("dispatch [type_] : %s", mld_const.CON_PACKET_IN)
-        self.logger.debug("dispatch [datapath.id] : %s", msg.datapath.id)
-        self.logger.debug("dispatch [cid] : %s",
-                                            pkt_vlan.vid if pkt_vlan else 0)
+        self.logger.debug("dispatch [datapathid] : %s", msg.datapath.id)
+        self.logger.debug("dispatch [cid] : %s", str(vid))
         self.logger.debug("dispatch [in_port] : %s", msg.match["in_port"])
         self.logger.debug("dispatch [data] : %s", pkt_icmpv6)
 
@@ -413,5 +416,6 @@ class mld_controller(app_manager.RyuApp):
     # =========================================================================
     @set_ev_cls(ofp_event.EventOFPBarrierReply, MAIN_DISPATCHER)
     def _barrier_reply_handler(self, ev):
-        self.logger.debug('received OFPBarrierReply [xid] : %s ',
-                          ev.msg.datapath.xid)
+        msg = ev.msg
+        self.logger.info("OFPBarrierReply.[ver] : %s [dpid] : %s [xid] : %s",
+                      msg.version, msg.datapath.id, msg.datapath.xid)
