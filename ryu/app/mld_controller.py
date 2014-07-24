@@ -70,8 +70,6 @@ class mld_controller(app_manager.RyuApp):
         send_path = self.config["ofc_send_zmq"]
         recv_path = self.config["ofc_recv_zmq"]
 
-        # 
-        self.check_vlan_flg = self.config["check_vlan_flg"]
         # ループフラグの設定
         self.loop_flg = True
 
