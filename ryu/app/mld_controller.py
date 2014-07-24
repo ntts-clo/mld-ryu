@@ -183,7 +183,7 @@ class mld_controller(app_manager.RyuApp):
                 datapathid = dispatch["datapathid"]
                 msgbase = self.dict_msg[datapathid]
                 recvpkt = dispatch["data"]
-                self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt)
+                self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt.data)
 
                 # PACKET_OUT生成
                 packetout = self.create_packet_out(msgbase.datapath,
@@ -233,15 +233,16 @@ class mld_controller(app_manager.RyuApp):
 
         # Create packetout message.
         packetout = datapath.ofproto_parser.OFPPacketOut(datapath=datapath,
+                                        buffer_id=pktoutdata.buffer_id,
                                         in_port=pktoutdata.in_port,
                                         actions=pktoutdata.actions,
-                                        data=pktoutdata.data)
+                                        data=pktoutdata.data.data)
 
         self.logger.debug("packetout [datapathid] : %s", pktoutdata.datapathid)
         self.logger.debug("packetout [in_port] : %s", pktoutdata.in_port)
         self.logger.debug("packetout [buffer_id] : %s", pktoutdata.buffer_id)
         self.logger.debug("packetout [actions] : %s", pktoutdata.actions)
-        self.logger.debug("packetout [data] : %s", pktoutdata.data)
+        self.logger.debug("packetout [data].data : %s", pktoutdata.data.data)
 
         return packetout
 
