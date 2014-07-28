@@ -48,6 +48,9 @@ class mld_process():
     QUERY_MAX_RESPONSE = 10000
     QUERY_QRV = 2
 
+    SEND_LOOP = True
+    RECV_LOOP = True
+
     org_thread = patcher.original("threading")
     org_thread_time = patcher.original("time")
 
@@ -162,15 +165,15 @@ class mld_process():
         self.logger.debug("[RecvSocket] %s", recvpath)
 
     # ==================================================================
-    # send_mldquey_regularly
+    # send_mldquery_regularly
     # ==================================================================
-    def send_mldquey_regularly(self):
+    def send_mldquery_regularly(self):
         self.logger.debug("")
 
         # General Query
         if self.config["reguraly_query_type"] == "GQ":
             mc_info = {"mc_addr": "::", "serv_ip": None}
-            while True:
+            while self.SEND_LOOP:
                 self.send_mldquery([mc_info])
                 hub.sleep(
                     self.config["reguraly_query_interval"] - self.QUERY_QRV)
@@ -180,7 +183,7 @@ class mld_process():
             next_interval = Value(ctypes.c_bool, False)
             send_count = 1
 
-            while True:
+            while self.SEND_LOOP:
                 query_proc = Process(
                     target=self.wait_query_interval, args=(next_interval,))
                 query_proc.start()
@@ -719,7 +722,7 @@ class mld_process():
     # ==================================================================
     def receive_from_ryu(self):
         self.logger.debug("")
-        while self.loop_flg:
+        while self.RECV_LOOP:
             self.logger.debug("waiting packet...")
             # receive of zeromq
             recvpkt = self.recv_sock.recv()
@@ -731,7 +734,7 @@ if __name__ == "__main__":
     mld_proc = mld_process()
     # Query定期送信スレッド
     send_thre = mld_proc.org_thread.Thread(
-        target=mld_proc.send_mldquey_regularly, name="SendRegThread")
+        target=mld_proc.send_mldquery_regularly, name="SendRegThread")
     send_thre.start()
     # 定期送信開始待ち
     mld_proc.org_thread_time.sleep(1)
