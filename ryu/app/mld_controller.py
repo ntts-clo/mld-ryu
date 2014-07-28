@@ -2,6 +2,7 @@
 
 import os
 import sys
+import traceback
 import cPickle
 import zmq
 import logging
@@ -23,6 +24,8 @@ from zmq_dispatch import dispatch, packet_out_data
 from zmq_dispatch import flow_mod_data
 from read_json import read_json
 import mld_const
+
+import pdb
 
 
 # =============================================================================
@@ -52,47 +55,53 @@ class mld_controller(app_manager.RyuApp):
     dict_msg = {}
 
     def __init__(self, *args, **kwargs):
-        # ログ設定ファイル読み込み
-        logging.config.fileConfig(COMMON_PATH + mld_const.LOG_CONF)
-        self.logger = logging.getLogger(__name__)
-        self.logger.debug("")
+        try:
+            # ログ設定ファイル読み込み
+            logging.config.fileConfig(COMMON_PATH + mld_const.LOG_CONF)
+            self.logger = logging.getLogger(__name__)
+            self.logger.debug("")
 
-        super(mld_controller, self).__init__(*args, **kwargs)
+            super(mld_controller, self).__init__(*args, **kwargs)
 
-        # システムモジュールのソケットに対しパッチを適用
-        patcher.monkey_patch()
+            # システムモジュールのソケットに対しパッチを適用
+            patcher.monkey_patch()
 
-        # 設定情報の読み込み
-        config = read_json(COMMON_PATH + mld_const.CONF_FILE)
-        self.logger.debug("config_info : %s", str(config.data))
-        self.config = config.data[SETTING]
-        self.SOCKET_TIME_OUT = self.config[SOCKET_TIME_OUT]
+            # 設定情報の読み込み
+            config = read_json(COMMON_PATH + mld_const.CONF_FILE)
+            self.logger.debug("config_info:%s", str(config.data))
+            self.config = config.data[SETTING]
+            self.SOCKET_TIME_OUT = self.config[SOCKET_TIME_OUT]
 
-        # zmq設定情報の読み込み
-        zmq_url = self.config[OFC_URL]
-        send_path = self.config[OFC_SEND]
-        recv_path = self.config[OFC_RECV]
+            # zmq設定情報の読み込み
+            zmq_url = self.config[OFC_URL]
+            send_path = self.config[OFC_SEND]
+            recv_path = self.config[OFC_RECV]
 
-        # VLANチェックフラグの読み込み
-        self.check_vlan_flg = self.config[CHECK_VLAN_FLG]
+            # VLANチェックフラグの読み込み
+            self.check_vlan_flg = self.config[CHECK_VLAN_FLG]
 
-        # ループフラグの設定
-        self.loop_flg = True
+            # ループフラグの設定
+            self.loop_flg = True
 
-        if zmq_url == CHECK_URL_IPC:
-            # CHECK TMP FILE(SEND)
-            self.check_exists_tmp(send_path)
-            # CHECK TMP FILE(RECV)
-            self.check_exists_tmp(recv_path)
-        elif zmq_url not in CHECK_URL_TCP:
-            self.logger.error("self.config[%s] : %s", OFC_URL, zmq_url)
-            return False
+            # CHECKzmq用URL
+            if zmq_url == CHECK_URL_IPC:
+                # CHECK TMP FILE(SEND)
+                self.check_exists_tmp(send_path)
+                # CHECK TMP FILE(RECV)
+                self.check_exists_tmp(recv_path)
+            elif zmq_url not in CHECK_URL_TCP:
+                self.logger.error("self.config[%s]:%s", OFC_URL, zmq_url)
+                return False
 
-        # ZeroMQ送受信用ソケット生成
-        self.cretate_scoket(zmq_url + send_path, zmq_url + recv_path)
+            # ZeroMQ送受信用ソケット生成
+            self.cretate_scoket(zmq_url + send_path, zmq_url + recv_path)
 
-        # mldからの受信スレッドを開始
-        hub.spawn(self.receive_from_mld)
+            # mldからの受信スレッドを開始
+            hub.spawn(self.receive_from_mld)
+
+        except:
+            self.logger.error("__init__. %s ",
+                              traceback.print_exc())
 
     # =========================================================================
     # check_exists_tmp
@@ -144,18 +153,19 @@ class mld_controller(app_manager.RyuApp):
     def analyse_receive_packet(self, recvpkt):
         self.logger.debug("")
 
+        # mld_processの転送用データクラスを取得
         dispatch = recvpkt.dispatch
 
-        self.logger.debug("ryu received dispatch : %s", str(dispatch))
-        self.logger.debug("dict_msg : %s", self.dict_msg.items())
+        self.logger.debug("ryu received dispatch:%s", str(dispatch))
+        self.logger.debug("dict_msg:%s", self.dict_msg.items())
 
         # CHECK dispatch[type_]
         if dispatch["type_"] == mld_const.CON_FLOW_MOD:
             flowmodlist = dispatch["data"]
-            self.logger.debug("FLOW_MOD[data] : %s", dispatch["data"])
+            self.logger.debug("FLOW_MOD[data]:%s", dispatch["data"])
 
             for flowmoddata in flowmodlist:
-                self.logger.debug("[flowmoddata] : %s", flowmoddata)
+                self.logger.debug("[flowmoddata]:%s", flowmoddata)
 
                 # CHECK dict_msg.datapathid=flowmoddata.datapathid
                 if not flowmoddata.datapathid in self.dict_msg:
@@ -180,7 +190,7 @@ class mld_controller(app_manager.RyuApp):
 
             # CHECK dict_msg.datapathid=dispatch["datapathid"]
             if not dispatch["datapathid"] in self.dict_msg:
-                self.logger.error("dict_msg[datapathid:%s] = None \n",
+                self.logger.error("dict_msg[datapathid:%s]:None \n",
                                  dispatch["datapathid"])
                 return False
 
@@ -189,7 +199,7 @@ class mld_controller(app_manager.RyuApp):
                 datapathid = dispatch["datapathid"]
                 msgbase = self.dict_msg[datapathid]
                 recvpkt = dispatch["data"]
-                self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt.data)
+                self.logger.debug("PACKET_OUT[data]:%s \n", recvpkt.data)
 
                 # PACKET_OUT生成
                 packetout = self.create_packet_out(msgbase.datapath,
@@ -199,7 +209,7 @@ class mld_controller(app_manager.RyuApp):
                 self.send_msg_to_packetout(msgbase, packetout)
 
         else:
-            self.logger.error("dispatch[type_] : Not Exist(%s) \n",
+            self.logger.error("dispatch[type_]:Not Exist(%s) \n",
                              dispatch["type_"])
             return False
 
@@ -219,14 +229,14 @@ class mld_controller(app_manager.RyuApp):
                                         match=flowdata.match,
                                         instructions=flowdata.instructions)
 
-        self.logger.debug("flowdata [datapathid] : %s", flowdata.datapathid)
-        self.logger.debug("flowdata [command] : %s", flowdata.command)
-        self.logger.debug("flowdata [out_port] : %s", flowdata.out_port)
-        self.logger.debug("flowdata [out_group] : %s", flowdata.out_group)
-        self.logger.debug("flowdata [table_id] : %s", flowdata.table_id)
-        self.logger.debug("flowdata [priority] : %s", flowdata.priority)
-        self.logger.debug("flowdata [match] : %s", flowdata.match)
-        self.logger.debug("flowdata [instructions] : %s",
+        self.logger.debug("flowdata [datapathid]:%s", flowdata.datapathid)
+        self.logger.debug("flowdata [command]:%s", flowdata.command)
+        self.logger.debug("flowdata [out_port]:%s", flowdata.out_port)
+        self.logger.debug("flowdata [out_group]:%s", flowdata.out_group)
+        self.logger.debug("flowdata [table_id]:%s", flowdata.table_id)
+        self.logger.debug("flowdata [priority]:%s", flowdata.priority)
+        self.logger.debug("flowdata [match]:%s", flowdata.match)
+        self.logger.debug("flowdata [instructions]:%s",
                           flowdata.instructions)
 
         return flowmod
@@ -244,11 +254,11 @@ class mld_controller(app_manager.RyuApp):
                                         actions=pktoutdata.actions,
                                         data=pktoutdata.data.data)
 
-        self.logger.debug("packetout [datapathid] : %s", pktoutdata.datapathid)
-        self.logger.debug("packetout [in_port] : %s", pktoutdata.in_port)
-        self.logger.debug("packetout [buffer_id] : %s", pktoutdata.buffer_id)
-        self.logger.debug("packetout [actions] : %s", pktoutdata.actions)
-        self.logger.debug("packetout [data].data : %s", pktoutdata.data)
+        self.logger.debug("packetout [datapathid]:%s", pktoutdata.datapathid)
+        self.logger.debug("packetout [in_port]:%s", pktoutdata.in_port)
+        self.logger.debug("packetout [buffer_id]:%s", pktoutdata.buffer_id)
+        self.logger.debug("packetout [actions]:%s", pktoutdata.actions)
+        self.logger.debug("packetout [data].data:%s", pktoutdata.data)
 
         return packetout
 
@@ -268,22 +278,26 @@ class mld_controller(app_manager.RyuApp):
     def receive_from_mld(self):
         self.logger.debug("")
 
-        while self.loop_flg:
-            hub.sleep(1)
-            recvpkt = None
-            try:
-                recvpkt = self.recv_sock.recv(flags=zmq.NOBLOCK)
-            except zmq.ZMQError, e:
-                if e.errno == zmq.EAGAIN:
-                    pass
+        try:
+            while self.loop_flg:
+                hub.sleep(1)
+                recvpkt = None
+                try:
+                    recvpkt = self.recv_sock.recv(flags=zmq.NOBLOCK)
+                except zmq.ZMQError, e:
+                    if e.errno == zmq.EAGAIN:
+                        pass
 
-                else:
-                    self.logger.error("receive_from_mld. %s ", e)
-                    raise e
+                    else:
+                        self.logger.error("receive_from_mld. %s ", e)
 
-            if recvpkt is not None:
-                packet = cPickle.loads(recvpkt)
-                self.analyse_receive_packet(packet)
+                if recvpkt is not None:
+                    packet = cPickle.loads(recvpkt)
+                    self.analyse_receive_packet(packet)
+
+        except:
+            self.logger.error("receive_from_mld. %s ",
+                              traceback.print_exc())
 
     # =========================================================================
     # send_msg_to_flowmod
@@ -305,7 +319,7 @@ class mld_controller(app_manager.RyuApp):
         barrier = ofp_parser.OFPBarrierRequest(msgbase.datapath)
         msgbase.datapath.send_msg(barrier)
 
-        self.logger.info("OFPBarrierRequest.[dpid] : %s [xid] : %s \n",
+        self.logger.info("OFPBarrierRequest.[dpid]:%s [xid]:%s \n",
                          msgbase.datapath.id, msgbase.datapath.xid)
 
     # =========================================================================
@@ -325,30 +339,35 @@ class mld_controller(app_manager.RyuApp):
     def _switch_features_handler(self, ev):
         self.logger.debug("")
 
-        msg = ev.msg
-        datapath = ev.msg.datapath
-        self.logger.info("OFPSwitchFeatures.[ver] : %s [dpid] : %s [xid] : %s",
-                          msg.version, msg.datapath.id, msg.datapath.xid)
+        try:
+            msg = ev.msg
+            datapath = ev.msg.datapath
+            self.logger.info("OFPSwitchFeatures.[ver]:%s [dpid]:%s [xid]:%s",
+                              msg.version, msg.datapath.id, msg.datapath.xid)
 
-        # CHECK Already send
-        if not datapath.id in self.dict_msg:
+            # CHECK Already send
+            if not datapath.id in self.dict_msg:
 
-            # set msg to Dictionary
-            self.dict_msg[datapath.id] = msg
+                # set msg to Dictionary
+                self.dict_msg[datapath.id] = msg
 
-            dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
-                                    datapathid=datapath.id)
+                dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
+                                        datapathid=datapath.id)
 
-            self.logger.debug("dispatch[type_] : %s",
-                              mld_const.CON_SWITCH_FEATURE)
-            self.logger.debug("dispatch[datapathid] : %s", datapath.id)
+                self.logger.debug("dispatch[type_]:%s",
+                                  mld_const.CON_SWITCH_FEATURE)
+                self.logger.debug("dispatch[datapathid]:%s", datapath.id)
 
-            self.send_to_mld(dispatch_)
+                self.send_to_mld(dispatch_)
 
-        else:
-            self.logger.info("dict_msg[datapathid] : Already Exist(%s) \n",
-                             datapath.id)
-            return True
+            else:
+                self.logger.info("dict_msg[datapathid]:Already Exist(%s) \n",
+                                 datapath.id)
+                return True
+
+        except:
+            self.logger.error("switch_features_handler. %s ",
+                              traceback.print_exc())
 
     # =========================================================================
     # packet_in_handler
@@ -356,75 +375,83 @@ class mld_controller(app_manager.RyuApp):
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         self.logger.debug("")
+        try:
+            msg = ev.msg
+            pkt = packet.Packet(msg.data)
 
-        msg = ev.msg
-        pkt = packet.Packet(msg.data)
+            self.logger.info("OFPPacketIn.[ver]:%s [dpid]:%s [xid]:%s",
+                              msg.version, msg.datapath.id, msg.datapath.xid)
+            self.logger.debug("OFPPacketIn.[data]:%s \n", str(pkt))
 
-        self.logger.info("OFPPacketIn.[ver] : %s [dpid] : %s [xid] : %s",
-                          msg.version, msg.datapath.id, msg.datapath.xid)
-        self.logger.debug("OFPPacketIn.[data] : %s \n", str(pkt))
+            # CHECK VLAN
+            pkt_vlan = None
+            if self.check_vlan_flg in "True":
+                pkt_vlan = pkt.get_protocol(vlan.vlan)
+                if not pkt_vlan:
+                    self.logger.debug("check vlan:None \n")
 
-        # CHECK VLAN
-        pkt_vlan = None
-        if self.check_vlan_flg in "True":
-            pkt_vlan = pkt.get_protocol(vlan.vlan)
-            if not pkt_vlan:
-                self.logger.debug("check vlan : None \n")
-
-        # CHECK ICMPV6
-        pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
-        if not pkt_icmpv6:
-            self.logger.error("check icmpv6 : None \n")
-            return False
-
-        # CHECK MLD TYPE
-        if not pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT,
-                                    icmpv6.MLD_LISTENER_QUERY]:
-            self.logger.error("check icmpv6.TYPE : %s \n",
-                              str(pkt_icmpv6.type_))
-            return False
-
-        # CHECK FILTER_MODE
-        if pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT]:
-
-            if pkt_icmpv6.data.record_num == 0:
-                self.logger.error("check data.record_num : %s \n",
-                                      str(pkt_icmpv6.data.record_num))
+            # CHECK ICMPV6
+            pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
+            if not pkt_icmpv6:
+                self.logger.error("check icmpv6:None \n")
                 return False
 
-            for mldv2_report_group in pkt_icmpv6.data.records:
+            # CHECK MLD TYPE
+            if not pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT,
+                                        icmpv6.MLD_LISTENER_QUERY]:
+                self.logger.error("check icmpv6.TYPE:%s \n",
+                                  str(pkt_icmpv6.type_))
+                return False
 
-                if not mldv2_report_group.type_ \
-                                        in [icmpv6.MODE_IS_INCLUDE,
-                                            icmpv6.CHANGE_TO_INCLUDE_MODE,
-                                            icmpv6.ALLOW_NEW_SOURCES,
-                                            icmpv6.BLOCK_OLD_SOURCES]:
-                    self.logger.debug("check report_group.[type_] : %s \n",
-                                      str(mldv2_report_group.type_))
+            # CHECK FILTER_MODE
+            if pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT]:
 
-        # CHECK_VLAN_FLG
-        vid = pkt_vlan.vid if pkt_vlan else 0
+                if pkt_icmpv6.data.record_num == 0:
+                    self.logger.error("check data.record_num:%s \n",
+                                          str(pkt_icmpv6.data.record_num))
+                    return False
 
-        # SET dispatch
-        dispatch_ = dispatch(type_=mld_const.CON_PACKET_IN,
-                               datapathid=msg.datapath.id,
-                               cid=vid,
-                               in_port=msg.match["in_port"],
-                               data=pkt_icmpv6)
+                for mldv2_report_group in pkt_icmpv6.data.records:
 
-        self.logger.debug("dispatch [type_] : %s", mld_const.CON_PACKET_IN)
-        self.logger.debug("dispatch [datapathid] : %s", msg.datapath.id)
-        self.logger.debug("dispatch [cid] : %s", str(vid))
-        self.logger.debug("dispatch [in_port] : %s", msg.match["in_port"])
-        self.logger.debug("dispatch [data] : %s", pkt_icmpv6)
+                    if not mldv2_report_group.type_ \
+                                            in [icmpv6.MODE_IS_INCLUDE,
+                                                icmpv6.CHANGE_TO_INCLUDE_MODE,
+                                                icmpv6.ALLOW_NEW_SOURCES,
+                                                icmpv6.BLOCK_OLD_SOURCES]:
+                        self.logger.debug("check report_group.[type_]:%s \n",
+                                          str(mldv2_report_group.type_))
 
-        self.send_to_mld(dispatch_)
+            # CHECK_VLAN_FLG
+            vid = pkt_vlan.vid if pkt_vlan else 0
+
+            # SET dispatch
+            dispatch_ = dispatch(type_=mld_const.CON_PACKET_IN,
+                                   datapathid=msg.datapath.id,
+                                   cid=vid,
+                                   in_port=msg.match["in_port"],
+                                   data=pkt_icmpv6)
+
+            self.logger.debug("dispatch [type_]:%s", mld_const.CON_PACKET_IN)
+            self.logger.debug("dispatch [datapathid]:%s", msg.datapath.id)
+            self.logger.debug("dispatch [cid]:%s", str(vid))
+            self.logger.debug("dispatch [in_port]:%s", msg.match["in_port"])
+            self.logger.debug("dispatch [data]:%s", pkt_icmpv6)
+
+            self.send_to_mld(dispatch_)
+
+        except:
+            self.logger.error("packet_in_handler. %s ", traceback.print_exc())
 
     # =========================================================================
     # barrier_reply_handler
     # =========================================================================
     @set_ev_cls(ofp_event.EventOFPBarrierReply, MAIN_DISPATCHER)
     def _barrier_reply_handler(self, ev):
-        msg = ev.msg
-        self.logger.info("OFPBarrierReply.[ver] : %s [dpid] : %s [xid] : %s",
-                      msg.version, msg.datapath.id, msg.datapath.xid)
+        try:
+            msg = ev.msg
+            self.logger.info("OFPBarrierReply.[ver]:%s [dpid]:%s [xid]:%s",
+                          msg.version, msg.datapath.id, msg.datapath.xid)
+
+        except:
+            self.logger.error("barrier_reply_handler. %s ",
+                              traceback.print_exc())
