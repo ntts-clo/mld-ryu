@@ -24,8 +24,6 @@ from zmq_dispatch import flow_mod_data
 from read_json import read_json
 import mld_const
 
-import pdb
-
 
 # =============================================================================
 # 定数定義
@@ -34,10 +32,15 @@ import pdb
 OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 # Socketタイプチェック用定数
 CHECK_URL_IPC = "ipc://"
-# ログファイル用定数
-LOG_CONF = "logconf.ini"
-# 設定ファイル用定数
-CONF_FILE = "config.json"
+CHECK_URL_TCP = "tcp://"
+
+# 設定ファイルの定義名
+SETTING = "settings"
+SOCKET_TIME_OUT = "socket_time_out"
+CHECK_VLAN_FLG = "check_vlan_flg"
+OFC_URL = "ofc_url"
+OFC_SEND = "ofc_send_zmq"
+OFC_RECV = "ofc_recv_zmq"
 
 
 # =============================================================================
@@ -50,7 +53,7 @@ class mld_controller(app_manager.RyuApp):
 
     def __init__(self, *args, **kwargs):
         # ログ設定ファイル読み込み
-        logging.config.fileConfig(COMMON_PATH + LOG_CONF)
+        logging.config.fileConfig(COMMON_PATH + mld_const.LOG_CONF)
         self.logger = logging.getLogger(__name__)
         self.logger.debug("")
 
@@ -60,18 +63,18 @@ class mld_controller(app_manager.RyuApp):
         patcher.monkey_patch()
 
         # 設定情報の読み込み
-        config = read_json(COMMON_PATH + CONF_FILE)
-        self.logger.info("config_info : %s", str(config.data))
-        self.config = config.data["settings"]
-        self.SOCKET_TIME_OUT = self.config["socket_time_out"]
+        config = read_json(COMMON_PATH + mld_const.CONF_FILE)
+        self.logger.debug("config_info : %s", str(config.data))
+        self.config = config.data[SETTING]
+        self.SOCKET_TIME_OUT = self.config[SOCKET_TIME_OUT]
 
         # zmq設定情報の読み込み
-        zmq_url = self.config["ofc_url"]
-        send_path = self.config["ofc_send_zmq"]
-        recv_path = self.config["ofc_recv_zmq"]
+        zmq_url = self.config[OFC_URL]
+        send_path = self.config[OFC_SEND]
+        recv_path = self.config[OFC_RECV]
 
         # VLANチェックフラグの読み込み
-        self.check_vlan_flg = self.config["check_vlan_flg"]
+        self.check_vlan_flg = self.config[CHECK_VLAN_FLG]
 
         # ループフラグの設定
         self.loop_flg = True
@@ -81,6 +84,9 @@ class mld_controller(app_manager.RyuApp):
             self.check_exists_tmp(send_path)
             # CHECK TMP FILE(RECV)
             self.check_exists_tmp(recv_path)
+        elif zmq_url not in CHECK_URL_TCP:
+            self.logger.error("self.config[%s] : %s", OFC_URL, zmq_url)
+            return False
 
         # ZeroMQ送受信用ソケット生成
         self.cretate_scoket(zmq_url + send_path, zmq_url + recv_path)
@@ -174,7 +180,7 @@ class mld_controller(app_manager.RyuApp):
 
             # CHECK dict_msg.datapathid=dispatch["datapathid"]
             if not dispatch["datapathid"] in self.dict_msg:
-                self.logger.info("dict_msg[datapathid:%s] = None \n",
+                self.logger.error("dict_msg[datapathid:%s] = None \n",
                                  dispatch["datapathid"])
                 return False
 
@@ -350,7 +356,7 @@ class mld_controller(app_manager.RyuApp):
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         self.logger.debug("")
-        #pdb.set_trace()
+
         msg = ev.msg
         pkt = packet.Packet(msg.data)
 
@@ -363,18 +369,18 @@ class mld_controller(app_manager.RyuApp):
         if self.check_vlan_flg in "True":
             pkt_vlan = pkt.get_protocol(vlan.vlan)
             if not pkt_vlan:
-                self.logger.debug("# check vlan : None \n")
+                self.logger.debug("check vlan : None \n")
 
         # CHECK ICMPV6
         pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
         if not pkt_icmpv6:
-            self.logger.debug("# check icmpv6 : None \n")
+            self.logger.error("check icmpv6 : None \n")
             return False
 
         # CHECK MLD TYPE
         if not pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT,
                                     icmpv6.MLD_LISTENER_QUERY]:
-            self.logger.debug("# check icmpv6.TYPE : %s \n",
+            self.logger.error("check icmpv6.TYPE : %s \n",
                               str(pkt_icmpv6.type_))
             return False
 
@@ -382,7 +388,7 @@ class mld_controller(app_manager.RyuApp):
         if pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT]:
 
             if pkt_icmpv6.data.record_num == 0:
-                self.logger.debug("# check data.record_num : %s \n",
+                self.logger.error("check data.record_num : %s \n",
                                       str(pkt_icmpv6.data.record_num))
                 return False
 
@@ -393,10 +399,13 @@ class mld_controller(app_manager.RyuApp):
                                             icmpv6.CHANGE_TO_INCLUDE_MODE,
                                             icmpv6.ALLOW_NEW_SOURCES,
                                             icmpv6.BLOCK_OLD_SOURCES]:
-                    self.logger.debug("# check report_group.[type_] : %s \n",
+                    self.logger.debug("check report_group.[type_] : %s \n",
                                       str(mldv2_report_group.type_))
 
+        # CHECK_VLAN_FLG
         vid = pkt_vlan.vid if pkt_vlan else 0
+
+        # SET dispatch
         dispatch_ = dispatch(type_=mld_const.CON_PACKET_IN,
                                datapathid=msg.datapath.id,
                                cid=vid,
