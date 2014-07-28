@@ -1,13 +1,16 @@
 # coding: utf-8
 
+import sys
+
 from ryu.lib.packet import icmpv6
 from ryu.ofproto import ether, inet
 from ryu.ofproto import ofproto_v1_3 as ofproto
 from ryu.ofproto import ofproto_v1_3_parser as parser
 from ryu.ofproto.ofproto_v1_3_parser import OFPActionPopVlan, OFPActionPushPbb, \
     OFPActionSetField, OFPActionPushVlan, OFPActionPopPbb
-import sys
-sys.path.append('../../common')
+
+COMMON_PATH = "../../common/"
+sys.path.append(COMMON_PATH)
 from zmq_dispatch import flow_mod_data
 
 # =============================================================================
@@ -19,19 +22,19 @@ PRIORITY_NORMAL = ofproto.OFP_DEFAULT_PRIORITY
 # switch設定ファイルの定義名
 # =============================================================================
 # swtich_info common
-SW_TAG_DATAPATHID = 'datapathid'
-SW_TAG_TYPE = 'sw_type'
+SW_TAG_DATAPATHID = "datapathid"
+SW_TAG_TYPE = "sw_type"
 SW_TYPE_12K = 12000
 SW_TYPE_26K = 26000
-SW_TAG_NAME = 'sw_name'
-SW_NAME_ESW = 'esw'
-SW_TAG_BMAC = 'sw_bmac'
+SW_TAG_NAME = "sw_name"
+SW_NAME_ESW = "esw"
+SW_TAG_BMAC = "sw_bmac"
 # swtich_info edge
-SW_TAG_EDGE_ROUTER_PORT = 'edge_router_port'
-SW_TAG_CONTEINER_PORTS = 'container_sw_ports'
+SW_TAG_EDGE_ROUTER_PORT = "edge_router_port"
+SW_TAG_CONTEINER_PORTS = "container_sw_ports"
 # switch_info container
-SW_TAG_EDGE_SWITCH_PORT = 'edge_switch_port'
-SW_TAG_OLT_PORTS = 'olt_ports'
+SW_TAG_EDGE_SWITCH_PORT = "edge_switch_port"
+SW_TAG_OLT_PORTS = "olt_ports"
 
 
 # =============================================================================
@@ -56,8 +59,8 @@ class flow_mod_generator(object):
             elif sw_type == SW_TYPE_26K:
                 flow_mod_gen_impl = apresia_26k(switch_info)
             else:
-                raise flow_mod_gen_exception('Unsupported sw_type:' +
-                                             str(sw_type) + ', datapathid=' +
+                raise flow_mod_gen_exception("Unsupported sw_type:" +
+                                             str(sw_type) + ", datapathid=" +
                                              str(datapathid))
 
             if switch_info[SW_TAG_NAME] == SW_NAME_ESW:
@@ -67,9 +70,9 @@ class flow_mod_generator(object):
             self.all_switches[datapathid] = flow_mod_gen_impl
 
         if self.edge_switch is None:
-            raise flow_mod_gen_exception('edge switch is not defined.')
+            raise flow_mod_gen_exception("edge switch is not defined.")
         if len(self.container_switches) == 0:
-            raise flow_mod_gen_exception('container switch is not defined.')
+            raise flow_mod_gen_exception("container switch is not defined.")
 
     # =========================================================================
     # 初期フロー
@@ -167,37 +170,37 @@ class flow_mod_gen_impl(object):
         self.switch_info = switch_info
 
     def initialize_flows(self, ivid, pbb_isid, bvid, flow_mod_datas):
-        raise flow_mod_gen_exception('Unsupported Operation')
+        raise flow_mod_gen_exception("Unsupported Operation")
 
     def start_mg_edge(self, multicast_address, datapathid, mc_ivid, ivid,
                       pbb_isid, bvid, flow_mod_datas):
-        raise flow_mod_gen_exception('Unsupported Operation')
+        raise flow_mod_gen_exception("Unsupported Operation")
 
     def add_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid,
                           bvid, flow_mod_datas):
-        raise flow_mod_gen_exception('Unsupported Operation')
+        raise flow_mod_gen_exception("Unsupported Operation")
 
     def remove_mg_edge(self, multicast_address, datapathid, mc_ivid, ivid,
                        pbb_isid, bvid, flow_mod_datas):
-        raise flow_mod_gen_exception('Unsupported Operation')
+        raise flow_mod_gen_exception("Unsupported Operation")
 
     def remove_datapath_edge(self, multicast_address, datapathid, ivid,
                              pbb_isid, bvid, flow_mod_datas):
-        raise flow_mod_gen_exception('Unsupported Operation')
+        raise flow_mod_gen_exception("Unsupported Operation")
 
     def start_mg_container(self, portno, ivid, pbb_isid, bvid, flow_mod_datas):
-        raise flow_mod_gen_exception('Unsupported Operation')
+        raise flow_mod_gen_exception("Unsupported Operation")
 
     def add_port_container(self, portno, ivid, pbb_isid, bvid, flow_mod_datas):
-        raise flow_mod_gen_exception('Unsupported Operation')
+        raise flow_mod_gen_exception("Unsupported Operation")
 
     def remove_mg_container(self, portno, ivid, pbb_isid, bvid,
                             flow_mod_datas):
-        raise flow_mod_gen_exception('Unsupported Operation')
+        raise flow_mod_gen_exception("Unsupported Operation")
 
     def remove_port_container(self, portno, ivid, pbb_isid, bvid,
                               flow_mod_datas):
-        raise flow_mod_gen_exception('Unsupported Operation')
+        raise flow_mod_gen_exception("Unsupported Operation")
 
 
 # =============================================================================
@@ -246,7 +249,7 @@ class apresia_12k(flow_mod_gen_impl):
             actions = [OFPActionPopVlan(),
                        OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
                        OFPActionSetField(pbb_isid=pbb_isid),
-                       OFPActionSetField(eth_dst='00:00:00:00:00:00'),
+                       OFPActionSetField(eth_dst="00:00:00:00:00:00"),
                        OFPActionSetField(eth_src=self
                                          .switch_info[SW_TAG_BMAC]),
                        OFPActionPushVlan(ethertype=ether.ETH_TYPE_8021AD),
@@ -387,7 +390,7 @@ class apresia_12k(flow_mod_gen_impl):
         actions = [OFPActionPopVlan(),
                    OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
                    OFPActionSetField(pbb_isid=pbb_isid),
-                   OFPActionSetField(eth_dst='00:00:00:00:00:00'),
+                   OFPActionSetField(eth_dst="00:00:00:00:00:00"),
                    OFPActionSetField(eth_src=self.switch_info[SW_TAG_BMAC]),
                    OFPActionPushVlan(ethertype=ether.ETH_TYPE_8021AD),
                    OFPActionSetField(vlan_vid=bvid),
@@ -432,7 +435,7 @@ class apresia_12k(flow_mod_gen_impl):
         actions = [OFPActionPopVlan(),
                    OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
                    OFPActionSetField(pbb_isid=pbb_isid),
-                   OFPActionSetField(eth_dst='00:00:00:00:00:00'),
+                   OFPActionSetField(eth_dst="00:00:00:00:00:00"),
                    OFPActionSetField(eth_src=self.switch_info[SW_TAG_BMAC]),
                    OFPActionPushVlan(ethertype=ether.ETH_TYPE_8021AD),
                    OFPActionSetField(vlan_vid=bvid),
@@ -514,7 +517,7 @@ class apresia_12k(flow_mod_gen_impl):
         actions = [OFPActionPopVlan(),
                    OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
                    OFPActionSetField(pbb_isid=pbb_isid),
-                   OFPActionSetField(eth_dst='00:00:00:00:00:00'),
+                   OFPActionSetField(eth_dst="00:00:00:00:00:00"),
                    OFPActionSetField(eth_src=self.switch_info[SW_TAG_BMAC]),
                    OFPActionPushVlan(ethertype=ether.ETH_TYPE_8021AD),
                    OFPActionSetField(vlan_vid=bvid),
