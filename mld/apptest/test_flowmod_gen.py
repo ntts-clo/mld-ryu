@@ -158,10 +158,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_0.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_0.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_0.match['in_port'], 2)
-        eq_(fmd_table_0.match['eth_type'], ether.ETH_TYPE_IPV6)
-        eq_(fmd_table_0.match['ip_proto'], inet.IPPROTO_ICMPV6)
-        eq_(fmd_table_0.match['icmpv6_type'], icmpv6.MLD_LISTENER_QUERY)
+        eq_(fmd_table_0.match["in_port"], 2)
+        eq_(fmd_table_0.match["eth_type"], ether.ETH_TYPE_IPV6)
+        eq_(fmd_table_0.match["ip_proto"], inet.IPPROTO_ICMPV6)
+        eq_(fmd_table_0.match["icmpv6_type"], icmpv6.MLD_LISTENER_QUERY)
         eq_(len(fmd_table_0.instructions), 1)
         eq_(fmd_table_0.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_0.instructions[0].actions), 1)
@@ -177,8 +177,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
-        eq_(fmd_table_3.match['vlan_vid'], ivid)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.TAG2PBB)
+        eq_(fmd_table_3.match["vlan_vid"], ivid)
         eq_(len(fmd_table_3.instructions), 1)
         eq_(fmd_table_3.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_3.instructions[0].actions), 8)
@@ -187,15 +187,15 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[0].len, OFPActionPopVlan().len)
         eq_(fmd_table_3.instructions[0].actions[1].ethertype,
             ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.instructions[0].actions[2].key, 'pbb_isid')
+        eq_(fmd_table_3.instructions[0].actions[2].key, "pbb_isid")
         eq_(fmd_table_3.instructions[0].actions[2].value, pbb_isid)
-        eq_(fmd_table_3.instructions[0].actions[3].key, 'eth_dst')
-        eq_(fmd_table_3.instructions[0].actions[3].value, '00:00:00:00:00:00')
-        eq_(fmd_table_3.instructions[0].actions[4].key, 'eth_src')
+        eq_(fmd_table_3.instructions[0].actions[3].key, "eth_dst")
+        eq_(fmd_table_3.instructions[0].actions[3].value, "00:00:00:00:00:00")
+        eq_(fmd_table_3.instructions[0].actions[4].key, "eth_src")
         eq_(fmd_table_3.instructions[0].actions[4].value, "00:00:00:00:00:01")
         eq_(fmd_table_3.instructions[0].actions[5].ethertype,
             ether.ETH_TYPE_8021AD)
-        eq_(fmd_table_3.instructions[0].actions[6].key, 'vlan_vid')
+        eq_(fmd_table_3.instructions[0].actions[6].key, "vlan_vid")
         eq_(fmd_table_3.instructions[0].actions[6].value, bvid)
         eq_(fmd_table_3.instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
 
@@ -206,8 +206,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 49)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -220,8 +220,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 50)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -275,10 +275,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_0.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_0.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_0.match['in_port'], 3)
-        eq_(fmd_table_0.match['eth_type'], ether.ETH_TYPE_IPV6)
-        eq_(fmd_table_0.match['ip_proto'], inet.IPPROTO_ICMPV6)
-        eq_(fmd_table_0.match['icmpv6_type'], icmpv6.MLD_LISTENER_QUERY)
+        eq_(fmd_table_0.match["in_port"], 3)
+        eq_(fmd_table_0.match["eth_type"], ether.ETH_TYPE_IPV6)
+        eq_(fmd_table_0.match["ip_proto"], inet.IPPROTO_ICMPV6)
+        eq_(fmd_table_0.match["icmpv6_type"], icmpv6.MLD_LISTENER_QUERY)
         eq_(len(fmd_table_0.instructions), 1)
         eq_(fmd_table_0.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_0.instructions[0].actions), 1)
@@ -294,8 +294,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
-        eq_(fmd_table_3.match['vlan_vid'], ivid)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.TAG2PBB)
+        eq_(fmd_table_3.match["vlan_vid"], ivid)
         eq_(len(fmd_table_3.instructions), 1)
         eq_(fmd_table_3.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_3.instructions[0].actions), 8)
@@ -304,15 +304,15 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[0].len, OFPActionPopVlan().len)
         eq_(fmd_table_3.instructions[0].actions[1].ethertype,
             ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.instructions[0].actions[2].key, 'pbb_isid')
+        eq_(fmd_table_3.instructions[0].actions[2].key, "pbb_isid")
         eq_(fmd_table_3.instructions[0].actions[2].value, pbb_isid)
-        eq_(fmd_table_3.instructions[0].actions[3].key, 'eth_dst')
-        eq_(fmd_table_3.instructions[0].actions[3].value, '00:00:00:00:00:00')
-        eq_(fmd_table_3.instructions[0].actions[4].key, 'eth_src')
+        eq_(fmd_table_3.instructions[0].actions[3].key, "eth_dst")
+        eq_(fmd_table_3.instructions[0].actions[3].value, "00:00:00:00:00:00")
+        eq_(fmd_table_3.instructions[0].actions[4].key, "eth_src")
         eq_(fmd_table_3.instructions[0].actions[4].value, "00:00:00:00:00:04")
         eq_(fmd_table_3.instructions[0].actions[5].ethertype,
             ether.ETH_TYPE_8021AD)
-        eq_(fmd_table_3.instructions[0].actions[6].key, 'vlan_vid')
+        eq_(fmd_table_3.instructions[0].actions[6].key, "vlan_vid")
         eq_(fmd_table_3.instructions[0].actions[6].value, bvid)
         eq_(fmd_table_3.instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
 
@@ -323,8 +323,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 59)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 59)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -337,8 +337,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 60)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 60)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -392,10 +392,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_0.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_0.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_0.match['in_port'], 1)
-        eq_(fmd_table_0.match['eth_type'], ether.ETH_TYPE_IPV6)
-        eq_(fmd_table_0.match['ip_proto'], inet.IPPROTO_ICMPV6)
-        eq_(fmd_table_0.match['icmpv6_type'], icmpv6.MLDV2_LISTENER_REPORT)
+        eq_(fmd_table_0.match["in_port"], 1)
+        eq_(fmd_table_0.match["eth_type"], ether.ETH_TYPE_IPV6)
+        eq_(fmd_table_0.match["ip_proto"], inet.IPPROTO_ICMPV6)
+        eq_(fmd_table_0.match["icmpv6_type"], icmpv6.MLDV2_LISTENER_REPORT)
         eq_(len(fmd_table_0.instructions), 1)
         eq_(fmd_table_0.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_0.instructions[0].actions), 1)
@@ -411,10 +411,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_0.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_0.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_0.match['in_port'], 2)
-        eq_(fmd_table_0.match['eth_type'], ether.ETH_TYPE_IPV6)
-        eq_(fmd_table_0.match['ip_proto'], inet.IPPROTO_ICMPV6)
-        eq_(fmd_table_0.match['icmpv6_type'], icmpv6.MLDV2_LISTENER_REPORT)
+        eq_(fmd_table_0.match["in_port"], 2)
+        eq_(fmd_table_0.match["eth_type"], ether.ETH_TYPE_IPV6)
+        eq_(fmd_table_0.match["ip_proto"], inet.IPPROTO_ICMPV6)
+        eq_(fmd_table_0.match["icmpv6_type"], icmpv6.MLDV2_LISTENER_REPORT)
         eq_(len(fmd_table_0.instructions), 1)
         eq_(fmd_table_0.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_0.instructions[0].actions), 1)
@@ -430,8 +430,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 51)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 51)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -444,10 +444,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
-        eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
-        eq_(fmd_table_3.match['eth_dst'], "00:00:00:00:00:02")
+        eq_(fmd_table_3.match["in_port"], apresia_12k.PBB2TAG)
+        eq_(fmd_table_3.match["eth_type"], ether.ETH_TYPE_8021AH)
+        eq_(fmd_table_3.match["pbb_isid"], pbb_isid)
+        eq_(fmd_table_3.match["eth_dst"], "00:00:00:00:00:02")
         eq_(len(fmd_table_3.instructions), 1)
         eq_(fmd_table_3.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_3.instructions[0].actions), 5)
@@ -459,7 +459,7 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[1].len, OFPActionPopPbb().len)
         eq_(fmd_table_3.instructions[0].actions[2].ethertype,
             ether.ETH_TYPE_8021Q)
-        eq_(fmd_table_3.instructions[0].actions[3].key, 'vlan_vid')
+        eq_(fmd_table_3.instructions[0].actions[3].key, "vlan_vid")
         eq_(fmd_table_3.instructions[0].actions[3].value, ivid)
         eq_(fmd_table_3.instructions[0].actions[4].port, ofproto.OFPP_NORMAL)
 
@@ -470,8 +470,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x00000000 | 1)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x00000000 | 1)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -484,8 +484,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x00000000 | 2)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x00000000 | 2)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -539,10 +539,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_0.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_0.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_0.match['in_port'], 1)
-        eq_(fmd_table_0.match['eth_type'], ether.ETH_TYPE_IPV6)
-        eq_(fmd_table_0.match['ip_proto'], inet.IPPROTO_ICMPV6)
-        eq_(fmd_table_0.match['icmpv6_type'], icmpv6.MLDV2_LISTENER_REPORT)
+        eq_(fmd_table_0.match["in_port"], 1)
+        eq_(fmd_table_0.match["eth_type"], ether.ETH_TYPE_IPV6)
+        eq_(fmd_table_0.match["ip_proto"], inet.IPPROTO_ICMPV6)
+        eq_(fmd_table_0.match["icmpv6_type"], icmpv6.MLDV2_LISTENER_REPORT)
         eq_(len(fmd_table_0.instructions), 1)
         eq_(fmd_table_0.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_0.instructions[0].actions), 1)
@@ -558,8 +558,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 52)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 52)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -572,10 +572,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
-        eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
-        eq_(fmd_table_3.match['eth_dst'], "00:00:00:00:00:03")
+        eq_(fmd_table_3.match["in_port"], apresia_12k.PBB2TAG)
+        eq_(fmd_table_3.match["eth_type"], ether.ETH_TYPE_8021AH)
+        eq_(fmd_table_3.match["pbb_isid"], pbb_isid)
+        eq_(fmd_table_3.match["eth_dst"], "00:00:00:00:00:03")
         eq_(len(fmd_table_3.instructions), 1)
         eq_(fmd_table_3.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_3.instructions[0].actions), 5)
@@ -587,7 +587,7 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[1].len, OFPActionPopPbb().len)
         eq_(fmd_table_3.instructions[0].actions[2].ethertype,
             ether.ETH_TYPE_8021Q)
-        eq_(fmd_table_3.instructions[0].actions[3].key, 'vlan_vid')
+        eq_(fmd_table_3.instructions[0].actions[3].key, "vlan_vid")
         eq_(fmd_table_3.instructions[0].actions[3].value, ivid)
         eq_(fmd_table_3.instructions[0].actions[4].port, ofproto.OFPP_NORMAL)
 
@@ -598,8 +598,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x00000000 | 1)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x00000000 | 1)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -638,7 +638,7 @@ class test_flow_mod_genrator(object):
             "olt_ports": [1]
         }]
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 2
         portno = 2
         mc_ivid = 1001
@@ -646,8 +646,8 @@ class test_flow_mod_genrator(object):
         pbb_isid = 10011
         bvid = 4001
 
-        edge_sw_bmac = switch_infos[0]['sw_bmac']
-        container_sw_bmac = switch_infos[1]['sw_bmac']
+        edge_sw_bmac = switch_infos[0]["sw_bmac"]
+        container_sw_bmac = switch_infos[1]["sw_bmac"]
 
         self.fmg = flow_mod_generator(switch_infos).start_mg(multicast_address,
                                                              datapathid,
@@ -666,8 +666,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 51)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 51)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -680,11 +680,11 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.PBB2TAG)
         # PBBデカプセル時のBVIDは省略可
-        eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
-        eq_(fmd_table_3.match['eth_dst'], container_sw_bmac)
+        eq_(fmd_table_3.match["eth_type"], ether.ETH_TYPE_8021AH)
+        eq_(fmd_table_3.match["pbb_isid"], pbb_isid)
+        eq_(fmd_table_3.match["eth_dst"], container_sw_bmac)
         eq_(len(fmd_table_3.instructions), 1)
         eq_(fmd_table_3.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_3.instructions[0].actions), 5)
@@ -696,7 +696,7 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[1].len, OFPActionPopPbb().len)
         eq_(fmd_table_3.instructions[0].actions[2].ethertype,
             ether.ETH_TYPE_8021Q)
-        eq_(fmd_table_3.instructions[0].actions[3].key, 'vlan_vid')
+        eq_(fmd_table_3.instructions[0].actions[3].key, "vlan_vid")
         eq_(fmd_table_3.instructions[0].actions[3].value, ivid)
         eq_(fmd_table_3.instructions[0].actions[4].port, ofproto.OFPP_NORMAL)
 
@@ -707,8 +707,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x00000000 | portno)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -722,14 +722,14 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_2.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_2.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_2.match['in_port'], 2)
-        eq_(fmd_table_2.match['vlan_vid'], mc_ivid)
-        eq_(fmd_table_2.match['eth_type'], ether.ETH_TYPE_IPV6)
-        eq_(fmd_table_2.match['ipv6_dst'], multicast_address)
+        eq_(fmd_table_2.match["in_port"], 2)
+        eq_(fmd_table_2.match["vlan_vid"], mc_ivid)
+        eq_(fmd_table_2.match["eth_type"], ether.ETH_TYPE_IPV6)
+        eq_(fmd_table_2.match["ipv6_dst"], multicast_address)
         eq_(len(fmd_table_2.instructions), 1)
         eq_(fmd_table_2.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_2.instructions[0].actions), 2)
-        eq_(fmd_table_2.instructions[0].actions[0].key, 'vlan_vid')
+        eq_(fmd_table_2.instructions[0].actions[0].key, "vlan_vid")
         eq_(fmd_table_2.instructions[0].actions[0].value, ivid)
         eq_(fmd_table_2.instructions[0].actions[1].port, ofproto.OFPP_NORMAL)
 
@@ -740,8 +740,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
-        eq_(fmd_table_3.match['vlan_vid'], ivid)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.TAG2PBB)
+        eq_(fmd_table_3.match["vlan_vid"], ivid)
         eq_(len(fmd_table_3.instructions), 1)
         eq_(fmd_table_3.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_3.instructions[0].actions), 8)
@@ -750,15 +750,15 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[0].len, OFPActionPopVlan().len)
         eq_(fmd_table_3.instructions[0].actions[1].ethertype,
             ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.instructions[0].actions[2].key, 'pbb_isid')
+        eq_(fmd_table_3.instructions[0].actions[2].key, "pbb_isid")
         eq_(fmd_table_3.instructions[0].actions[2].value, pbb_isid)
-        eq_(fmd_table_3.instructions[0].actions[3].key, 'eth_dst')
-        eq_(fmd_table_3.instructions[0].actions[3].value, '00:00:00:00:00:00')
-        eq_(fmd_table_3.instructions[0].actions[4].key, 'eth_src')
+        eq_(fmd_table_3.instructions[0].actions[3].key, "eth_dst")
+        eq_(fmd_table_3.instructions[0].actions[3].value, "00:00:00:00:00:00")
+        eq_(fmd_table_3.instructions[0].actions[4].key, "eth_src")
         eq_(fmd_table_3.instructions[0].actions[4].value, edge_sw_bmac)
         eq_(fmd_table_3.instructions[0].actions[5].ethertype,
             ether.ETH_TYPE_8021AD)
-        eq_(fmd_table_3.instructions[0].actions[6].key, 'vlan_vid')
+        eq_(fmd_table_3.instructions[0].actions[6].key, "vlan_vid")
         eq_(fmd_table_3.instructions[0].actions[6].value, bvid)
         eq_(fmd_table_3.instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
 
@@ -769,8 +769,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 49)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -783,8 +783,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 50)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -823,7 +823,7 @@ class test_flow_mod_genrator(object):
             "olt_ports": [1]
         }]
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 3
         portno = 1
         mc_ivid = 1002
@@ -831,8 +831,8 @@ class test_flow_mod_genrator(object):
         pbb_isid = 10021
         bvid = 4002
 
-        edge_sw_bmac = switch_infos[0]['sw_bmac']
-        container_sw_bmac = switch_infos[2]['sw_bmac']
+        edge_sw_bmac = switch_infos[0]["sw_bmac"]
+        container_sw_bmac = switch_infos[2]["sw_bmac"]
 
         self.fmg = flow_mod_generator(switch_infos).start_mg(multicast_address,
                                                              datapathid,
@@ -851,8 +851,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 52)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 52)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -865,11 +865,11 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.PBB2TAG)
         # PBBデカプセル時のBVIDは省略可
-        eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
-        eq_(fmd_table_3.match['eth_dst'], container_sw_bmac)
+        eq_(fmd_table_3.match["eth_type"], ether.ETH_TYPE_8021AH)
+        eq_(fmd_table_3.match["pbb_isid"], pbb_isid)
+        eq_(fmd_table_3.match["eth_dst"], container_sw_bmac)
         eq_(len(fmd_table_3.instructions), 1)
         eq_(fmd_table_3.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_3.instructions[0].actions), 5)
@@ -881,7 +881,7 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[1].len, OFPActionPopPbb().len)
         eq_(fmd_table_3.instructions[0].actions[2].ethertype,
             ether.ETH_TYPE_8021Q)
-        eq_(fmd_table_3.instructions[0].actions[3].key, 'vlan_vid')
+        eq_(fmd_table_3.instructions[0].actions[3].key, "vlan_vid")
         eq_(fmd_table_3.instructions[0].actions[3].value, ivid)
         eq_(fmd_table_3.instructions[0].actions[4].port, ofproto.OFPP_NORMAL)
 
@@ -892,8 +892,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x00000000 | portno)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -907,14 +907,14 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_2.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_2.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_2.match['in_port'], 2)
-        eq_(fmd_table_2.match['vlan_vid'], mc_ivid)
-        eq_(fmd_table_2.match['eth_type'], ether.ETH_TYPE_IPV6)
-        eq_(fmd_table_2.match['ipv6_dst'], multicast_address)
+        eq_(fmd_table_2.match["in_port"], 2)
+        eq_(fmd_table_2.match["vlan_vid"], mc_ivid)
+        eq_(fmd_table_2.match["eth_type"], ether.ETH_TYPE_IPV6)
+        eq_(fmd_table_2.match["ipv6_dst"], multicast_address)
         eq_(len(fmd_table_2.instructions), 1)
         eq_(fmd_table_2.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_2.instructions[0].actions), 2)
-        eq_(fmd_table_2.instructions[0].actions[0].key, 'vlan_vid')
+        eq_(fmd_table_2.instructions[0].actions[0].key, "vlan_vid")
         eq_(fmd_table_2.instructions[0].actions[0].value, ivid)
         eq_(fmd_table_2.instructions[0].actions[1].port, ofproto.OFPP_NORMAL)
 
@@ -925,8 +925,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
-        eq_(fmd_table_3.match['vlan_vid'], ivid)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.TAG2PBB)
+        eq_(fmd_table_3.match["vlan_vid"], ivid)
         eq_(len(fmd_table_3.instructions), 1)
         eq_(fmd_table_3.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_3.instructions[0].actions), 8)
@@ -935,15 +935,15 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[0].len, OFPActionPopVlan().len)
         eq_(fmd_table_3.instructions[0].actions[1].ethertype,
             ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.instructions[0].actions[2].key, 'pbb_isid')
+        eq_(fmd_table_3.instructions[0].actions[2].key, "pbb_isid")
         eq_(fmd_table_3.instructions[0].actions[2].value, pbb_isid)
-        eq_(fmd_table_3.instructions[0].actions[3].key, 'eth_dst')
-        eq_(fmd_table_3.instructions[0].actions[3].value, '00:00:00:00:00:00')
-        eq_(fmd_table_3.instructions[0].actions[4].key, 'eth_src')
+        eq_(fmd_table_3.instructions[0].actions[3].key, "eth_dst")
+        eq_(fmd_table_3.instructions[0].actions[3].value, "00:00:00:00:00:00")
+        eq_(fmd_table_3.instructions[0].actions[4].key, "eth_src")
         eq_(fmd_table_3.instructions[0].actions[4].value, edge_sw_bmac)
         eq_(fmd_table_3.instructions[0].actions[5].ethertype,
             ether.ETH_TYPE_8021AD)
-        eq_(fmd_table_3.instructions[0].actions[6].key, 'vlan_vid')
+        eq_(fmd_table_3.instructions[0].actions[6].key, "vlan_vid")
         eq_(fmd_table_3.instructions[0].actions[6].value, bvid)
         eq_(fmd_table_3.instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
 
@@ -954,8 +954,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 49)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -968,8 +968,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 50)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -1006,7 +1006,7 @@ class test_flow_mod_genrator(object):
             "olt_ports": [1]
         }]
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 2
         portno = 2
         ivid = 2011
@@ -1027,8 +1027,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], portno)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], portno)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -1065,7 +1065,7 @@ class test_flow_mod_genrator(object):
             "olt_ports": [1]
         }]
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 2
         portno = 3
         ivid = 2011
@@ -1086,8 +1086,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], portno)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], portno)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -1126,15 +1126,15 @@ class test_flow_mod_genrator(object):
             "olt_ports": [1]
         }]
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 2
         portno = 2
         ivid = 2011
         pbb_isid = 10011
         bvid = 4001
 
-        edge_sw_bmac = switch_infos[0]['sw_bmac']
-        container_sw_bmac = switch_infos[1]['sw_bmac']
+        edge_sw_bmac = switch_infos[0]["sw_bmac"]
+        container_sw_bmac = switch_infos[1]["sw_bmac"]
 
         self.fmg = flow_mod_generator(switch_infos)\
             .add_datapath(multicast_address, datapathid, portno, ivid,
@@ -1150,8 +1150,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 51)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 51)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -1164,10 +1164,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
-        eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
-        eq_(fmd_table_3.match['eth_dst'], container_sw_bmac)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.PBB2TAG)
+        eq_(fmd_table_3.match["eth_type"], ether.ETH_TYPE_8021AH)
+        eq_(fmd_table_3.match["pbb_isid"], pbb_isid)
+        eq_(fmd_table_3.match["eth_dst"], container_sw_bmac)
         eq_(len(fmd_table_3.instructions), 1)
         eq_(fmd_table_3.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_3.instructions[0].actions), 5)
@@ -1179,7 +1179,7 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[1].len, OFPActionPopPbb().len)
         eq_(fmd_table_3.instructions[0].actions[2].ethertype,
             ether.ETH_TYPE_8021Q)
-        eq_(fmd_table_3.instructions[0].actions[3].key, 'vlan_vid')
+        eq_(fmd_table_3.instructions[0].actions[3].key, "vlan_vid")
         eq_(fmd_table_3.instructions[0].actions[3].value, ivid)
         eq_(fmd_table_3.instructions[0].actions[4].port, ofproto.OFPP_NORMAL)
 
@@ -1190,8 +1190,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x00000000 | portno)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -1205,8 +1205,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
-        eq_(fmd_table_3.match['vlan_vid'], ivid)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.TAG2PBB)
+        eq_(fmd_table_3.match["vlan_vid"], ivid)
         eq_(len(fmd_table_3.instructions), 1)
         eq_(fmd_table_3.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_3.instructions[0].actions), 8)
@@ -1215,15 +1215,15 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[0].len, OFPActionPopVlan().len)
         eq_(fmd_table_3.instructions[0].actions[1].ethertype,
             ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.instructions[0].actions[2].key, 'pbb_isid')
+        eq_(fmd_table_3.instructions[0].actions[2].key, "pbb_isid")
         eq_(fmd_table_3.instructions[0].actions[2].value, pbb_isid)
-        eq_(fmd_table_3.instructions[0].actions[3].key, 'eth_dst')
-        eq_(fmd_table_3.instructions[0].actions[3].value, '00:00:00:00:00:00')
-        eq_(fmd_table_3.instructions[0].actions[4].key, 'eth_src')
+        eq_(fmd_table_3.instructions[0].actions[3].key, "eth_dst")
+        eq_(fmd_table_3.instructions[0].actions[3].value, "00:00:00:00:00:00")
+        eq_(fmd_table_3.instructions[0].actions[4].key, "eth_src")
         eq_(fmd_table_3.instructions[0].actions[4].value, edge_sw_bmac)
         eq_(fmd_table_3.instructions[0].actions[5].ethertype,
             ether.ETH_TYPE_8021AD)
-        eq_(fmd_table_3.instructions[0].actions[6].key, 'vlan_vid')
+        eq_(fmd_table_3.instructions[0].actions[6].key, "vlan_vid")
         eq_(fmd_table_3.instructions[0].actions[6].value, bvid)
         eq_(fmd_table_3.instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
         eq_(fmd_table_3.command, ofproto.OFPFC_MODIFY_STRICT)
@@ -1261,15 +1261,15 @@ class test_flow_mod_genrator(object):
             "olt_ports": [1]
         }]
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 3
         portno = 2
         ivid = 2011
         pbb_isid = 10011
         bvid = 4001
 
-        edge_sw_bmac = switch_infos[0]['sw_bmac']
-        container_sw_bmac = switch_infos[2]['sw_bmac']
+        edge_sw_bmac = switch_infos[0]["sw_bmac"]
+        container_sw_bmac = switch_infos[2]["sw_bmac"]
 
         self.fmg = flow_mod_generator(switch_infos)\
             .add_datapath(multicast_address, datapathid, portno, ivid,
@@ -1285,8 +1285,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 52)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 52)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -1299,10 +1299,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
-        eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
-        eq_(fmd_table_3.match['eth_dst'], container_sw_bmac)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.PBB2TAG)
+        eq_(fmd_table_3.match["eth_type"], ether.ETH_TYPE_8021AH)
+        eq_(fmd_table_3.match["pbb_isid"], pbb_isid)
+        eq_(fmd_table_3.match["eth_dst"], container_sw_bmac)
         eq_(len(fmd_table_3.instructions), 1)
         eq_(fmd_table_3.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_3.instructions[0].actions), 5)
@@ -1314,7 +1314,7 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[1].len, OFPActionPopPbb().len)
         eq_(fmd_table_3.instructions[0].actions[2].ethertype,
             ether.ETH_TYPE_8021Q)
-        eq_(fmd_table_3.instructions[0].actions[3].key, 'vlan_vid')
+        eq_(fmd_table_3.instructions[0].actions[3].key, "vlan_vid")
         eq_(fmd_table_3.instructions[0].actions[3].value, ivid)
         eq_(fmd_table_3.instructions[0].actions[4].port, ofproto.OFPP_NORMAL)
 
@@ -1325,8 +1325,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x00000000 | portno)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 1)
         eq_(fmd_table_4.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_4.instructions[0].actions), 1)
@@ -1340,8 +1340,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
-        eq_(fmd_table_3.match['vlan_vid'], ivid)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.TAG2PBB)
+        eq_(fmd_table_3.match["vlan_vid"], ivid)
         eq_(len(fmd_table_3.instructions), 1)
         eq_(fmd_table_3.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_3.instructions[0].actions), 8)
@@ -1350,15 +1350,15 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[0].len, OFPActionPopVlan().len)
         eq_(fmd_table_3.instructions[0].actions[1].ethertype,
             ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.instructions[0].actions[2].key, 'pbb_isid')
+        eq_(fmd_table_3.instructions[0].actions[2].key, "pbb_isid")
         eq_(fmd_table_3.instructions[0].actions[2].value, pbb_isid)
-        eq_(fmd_table_3.instructions[0].actions[3].key, 'eth_dst')
-        eq_(fmd_table_3.instructions[0].actions[3].value, '00:00:00:00:00:00')
-        eq_(fmd_table_3.instructions[0].actions[4].key, 'eth_src')
+        eq_(fmd_table_3.instructions[0].actions[3].key, "eth_dst")
+        eq_(fmd_table_3.instructions[0].actions[3].value, "00:00:00:00:00:00")
+        eq_(fmd_table_3.instructions[0].actions[4].key, "eth_src")
         eq_(fmd_table_3.instructions[0].actions[4].value, edge_sw_bmac)
         eq_(fmd_table_3.instructions[0].actions[5].ethertype,
             ether.ETH_TYPE_8021AD)
-        eq_(fmd_table_3.instructions[0].actions[6].key, 'vlan_vid')
+        eq_(fmd_table_3.instructions[0].actions[6].key, "vlan_vid")
         eq_(fmd_table_3.instructions[0].actions[6].value, bvid)
         eq_(fmd_table_3.instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
         eq_(fmd_table_3.command, ofproto.OFPFC_MODIFY_STRICT)
@@ -1396,7 +1396,7 @@ class test_flow_mod_genrator(object):
             "olt_ports": [1]
         }]
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 2
         portno = 3
         mc_ivid = 1001
@@ -1404,7 +1404,7 @@ class test_flow_mod_genrator(object):
         pbb_isid = 10011
         bvid = 4001
 
-        container_sw_bmac = switch_infos[1]['sw_bmac']
+        container_sw_bmac = switch_infos[1]["sw_bmac"]
 
         self.fmg = flow_mod_generator(switch_infos)\
             .remove_mg(multicast_address, datapathid, portno, mc_ivid, ivid,
@@ -1420,10 +1420,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_2.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_2.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_2.match['in_port'], 2)
-        eq_(fmd_table_2.match['vlan_vid'], mc_ivid)
-        eq_(fmd_table_2.match['eth_type'], ether.ETH_TYPE_IPV6)
-        eq_(fmd_table_2.match['ipv6_dst'], multicast_address)
+        eq_(fmd_table_2.match["in_port"], 2)
+        eq_(fmd_table_2.match["vlan_vid"], mc_ivid)
+        eq_(fmd_table_2.match["eth_type"], ether.ETH_TYPE_IPV6)
+        eq_(fmd_table_2.match["ipv6_dst"], multicast_address)
         eq_(len(fmd_table_2.instructions), 0)
         eq_(fmd_table_2.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_2.out_port, ofproto.OFPP_ANY)
@@ -1436,8 +1436,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
-        eq_(fmd_table_3.match['vlan_vid'], ivid)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.TAG2PBB)
+        eq_(fmd_table_3.match["vlan_vid"], ivid)
         eq_(len(fmd_table_3.instructions), 0)
         eq_(fmd_table_3.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_3.out_port, ofproto.OFPP_ANY)
@@ -1450,8 +1450,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 49)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 0)
         eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
@@ -1464,8 +1464,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 50)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 0)
         eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
@@ -1479,8 +1479,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 51)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 51)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 0)
         eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
@@ -1493,10 +1493,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
-        eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
-        eq_(fmd_table_3.match['eth_dst'], container_sw_bmac)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.PBB2TAG)
+        eq_(fmd_table_3.match["eth_type"], ether.ETH_TYPE_8021AH)
+        eq_(fmd_table_3.match["pbb_isid"], pbb_isid)
+        eq_(fmd_table_3.match["eth_dst"], container_sw_bmac)
         eq_(len(fmd_table_3.instructions), 0)
         eq_(fmd_table_3.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_3.out_port, ofproto.OFPP_ANY)
@@ -1509,8 +1509,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x00000000 | portno)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 0)
         eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
@@ -1549,7 +1549,7 @@ class test_flow_mod_genrator(object):
             "olt_ports": [1]
         }]
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 3
         portno = 1
         mc_ivid = 1002
@@ -1557,7 +1557,7 @@ class test_flow_mod_genrator(object):
         pbb_isid = 10021
         bvid = 4002
 
-        container_sw_bmac = switch_infos[2]['sw_bmac']
+        container_sw_bmac = switch_infos[2]["sw_bmac"]
 
         self.fmg = flow_mod_generator(switch_infos)\
             .remove_mg(multicast_address, datapathid, portno, mc_ivid, ivid,
@@ -1573,10 +1573,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_2.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_2.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_2.match['in_port'], 2)
-        eq_(fmd_table_2.match['vlan_vid'], mc_ivid)
-        eq_(fmd_table_2.match['eth_type'], ether.ETH_TYPE_IPV6)
-        eq_(fmd_table_2.match['ipv6_dst'], multicast_address)
+        eq_(fmd_table_2.match["in_port"], 2)
+        eq_(fmd_table_2.match["vlan_vid"], mc_ivid)
+        eq_(fmd_table_2.match["eth_type"], ether.ETH_TYPE_IPV6)
+        eq_(fmd_table_2.match["ipv6_dst"], multicast_address)
         eq_(len(fmd_table_2.instructions), 0)
         eq_(fmd_table_2.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_2.out_port, ofproto.OFPP_ANY)
@@ -1589,8 +1589,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
-        eq_(fmd_table_3.match['vlan_vid'], ivid)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.TAG2PBB)
+        eq_(fmd_table_3.match["vlan_vid"], ivid)
         eq_(len(fmd_table_3.instructions), 0)
         eq_(fmd_table_3.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_3.out_port, ofproto.OFPP_ANY)
@@ -1603,8 +1603,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 49)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 49)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 0)
         eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
@@ -1617,8 +1617,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 50)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 50)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 0)
         eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
@@ -1632,8 +1632,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 52)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 52)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 0)
         eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
@@ -1646,10 +1646,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
-        eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
-        eq_(fmd_table_3.match['eth_dst'], container_sw_bmac)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.PBB2TAG)
+        eq_(fmd_table_3.match["eth_type"], ether.ETH_TYPE_8021AH)
+        eq_(fmd_table_3.match["pbb_isid"], pbb_isid)
+        eq_(fmd_table_3.match["eth_dst"], container_sw_bmac)
         eq_(len(fmd_table_3.instructions), 0)
         eq_(fmd_table_3.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_3.out_port, ofproto.OFPP_ANY)
@@ -1662,8 +1662,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x00000000 | portno)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 0)
         eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
@@ -1702,7 +1702,7 @@ class test_flow_mod_genrator(object):
             "olt_ports": [1]
         }]
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 2
         portno = 2
         ivid = 2011
@@ -1723,8 +1723,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x00000000 | portno)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 0)
         eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
@@ -1763,7 +1763,7 @@ class test_flow_mod_genrator(object):
             "olt_ports": [1]
         }]
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 2
         portno = 3
         ivid = 2011
@@ -1784,8 +1784,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x00000000 | portno)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 0)
         eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
@@ -1824,15 +1824,15 @@ class test_flow_mod_genrator(object):
             "olt_ports": [1]
         }]
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 2
         portno = 3
         ivid = 2011
         pbb_isid = 10011
         bvid = 4001
 
-        edge_sw_bmac = switch_infos[0]['sw_bmac']
-        container_sw_bmac = switch_infos[1]['sw_bmac']
+        edge_sw_bmac = switch_infos[0]["sw_bmac"]
+        container_sw_bmac = switch_infos[1]["sw_bmac"]
 
         self.fmg = flow_mod_generator(switch_infos)\
             .remove_datapath(multicast_address, datapathid, portno, ivid,
@@ -1848,8 +1848,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
-        eq_(fmd_table_3.match['vlan_vid'], ivid)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.TAG2PBB)
+        eq_(fmd_table_3.match["vlan_vid"], ivid)
         eq_(len(fmd_table_3.instructions), 1)
         eq_(fmd_table_3.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_3.instructions[0].actions), 8)
@@ -1858,15 +1858,15 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[0].len, OFPActionPopVlan().len)
         eq_(fmd_table_3.instructions[0].actions[1].ethertype,
             ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.instructions[0].actions[2].key, 'pbb_isid')
+        eq_(fmd_table_3.instructions[0].actions[2].key, "pbb_isid")
         eq_(fmd_table_3.instructions[0].actions[2].value, pbb_isid)
-        eq_(fmd_table_3.instructions[0].actions[3].key, 'eth_dst')
-        eq_(fmd_table_3.instructions[0].actions[3].value, '00:00:00:00:00:00')
-        eq_(fmd_table_3.instructions[0].actions[4].key, 'eth_src')
+        eq_(fmd_table_3.instructions[0].actions[3].key, "eth_dst")
+        eq_(fmd_table_3.instructions[0].actions[3].value, "00:00:00:00:00:00")
+        eq_(fmd_table_3.instructions[0].actions[4].key, "eth_src")
         eq_(fmd_table_3.instructions[0].actions[4].value, edge_sw_bmac)
         eq_(fmd_table_3.instructions[0].actions[5].ethertype,
             ether.ETH_TYPE_8021AD)
-        eq_(fmd_table_3.instructions[0].actions[6].key, 'vlan_vid')
+        eq_(fmd_table_3.instructions[0].actions[6].key, "vlan_vid")
         eq_(fmd_table_3.instructions[0].actions[6].value, bvid)
         eq_(fmd_table_3.instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
         eq_(fmd_table_3.command, ofproto.OFPFC_MODIFY_STRICT)
@@ -1879,8 +1879,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 51)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 51)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 0)
         eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
@@ -1893,10 +1893,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
-        eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
-        eq_(fmd_table_3.match['eth_dst'], container_sw_bmac)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.PBB2TAG)
+        eq_(fmd_table_3.match["eth_type"], ether.ETH_TYPE_8021AH)
+        eq_(fmd_table_3.match["pbb_isid"], pbb_isid)
+        eq_(fmd_table_3.match["eth_dst"], container_sw_bmac)
         eq_(len(fmd_table_3.instructions), 0)
         eq_(fmd_table_3.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_3.out_port, ofproto.OFPP_ANY)
@@ -1909,8 +1909,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x00000000 | portno)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 0)
         eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
@@ -1949,15 +1949,15 @@ class test_flow_mod_genrator(object):
             "olt_ports": [1]
         }]
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 3
         portno = 1
         ivid = 2011
         pbb_isid = 10011
         bvid = 4001
 
-        edge_sw_bmac = switch_infos[0]['sw_bmac']
-        container_sw_bmac = switch_infos[2]['sw_bmac']
+        edge_sw_bmac = switch_infos[0]["sw_bmac"]
+        container_sw_bmac = switch_infos[2]["sw_bmac"]
 
         self.fmg = flow_mod_generator(switch_infos)\
             .remove_datapath(multicast_address, datapathid, portno, ivid,
@@ -1973,8 +1973,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.TAG2PBB)
-        eq_(fmd_table_3.match['vlan_vid'], ivid)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.TAG2PBB)
+        eq_(fmd_table_3.match["vlan_vid"], ivid)
         eq_(len(fmd_table_3.instructions), 1)
         eq_(fmd_table_3.instructions[0].type, ofproto.OFPIT_APPLY_ACTIONS)
         eq_(len(fmd_table_3.instructions[0].actions), 8)
@@ -1983,15 +1983,15 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.instructions[0].actions[0].len, OFPActionPopVlan().len)
         eq_(fmd_table_3.instructions[0].actions[1].ethertype,
             ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.instructions[0].actions[2].key, 'pbb_isid')
+        eq_(fmd_table_3.instructions[0].actions[2].key, "pbb_isid")
         eq_(fmd_table_3.instructions[0].actions[2].value, pbb_isid)
-        eq_(fmd_table_3.instructions[0].actions[3].key, 'eth_dst')
-        eq_(fmd_table_3.instructions[0].actions[3].value, '00:00:00:00:00:00')
-        eq_(fmd_table_3.instructions[0].actions[4].key, 'eth_src')
+        eq_(fmd_table_3.instructions[0].actions[3].key, "eth_dst")
+        eq_(fmd_table_3.instructions[0].actions[3].value, "00:00:00:00:00:00")
+        eq_(fmd_table_3.instructions[0].actions[4].key, "eth_src")
         eq_(fmd_table_3.instructions[0].actions[4].value, edge_sw_bmac)
         eq_(fmd_table_3.instructions[0].actions[5].ethertype,
             ether.ETH_TYPE_8021AD)
-        eq_(fmd_table_3.instructions[0].actions[6].key, 'vlan_vid')
+        eq_(fmd_table_3.instructions[0].actions[6].key, "vlan_vid")
         eq_(fmd_table_3.instructions[0].actions[6].value, bvid)
         eq_(fmd_table_3.instructions[0].actions[7].port, ofproto.OFPP_NORMAL)
         eq_(fmd_table_3.command, ofproto.OFPFC_MODIFY_STRICT)
@@ -2004,8 +2004,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x02000000 | 52)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x02000000 | 52)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 0)
         eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
@@ -2018,10 +2018,10 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_3.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_3.match.iteritems()]
         eq_(len(match_items), 4)
-        eq_(fmd_table_3.match['in_port'], apresia_12k.PBB2TAG)
-        eq_(fmd_table_3.match['eth_type'], ether.ETH_TYPE_8021AH)
-        eq_(fmd_table_3.match['pbb_isid'], pbb_isid)
-        eq_(fmd_table_3.match['eth_dst'], container_sw_bmac)
+        eq_(fmd_table_3.match["in_port"], apresia_12k.PBB2TAG)
+        eq_(fmd_table_3.match["eth_type"], ether.ETH_TYPE_8021AH)
+        eq_(fmd_table_3.match["pbb_isid"], pbb_isid)
+        eq_(fmd_table_3.match["eth_dst"], container_sw_bmac)
         eq_(len(fmd_table_3.instructions), 0)
         eq_(fmd_table_3.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_3.out_port, ofproto.OFPP_ANY)
@@ -2034,8 +2034,8 @@ class test_flow_mod_genrator(object):
         eq_(fmd_table_4.priority, PRIORITY_NORMAL)
         match_items = [item for item in fmd_table_4.match.iteritems()]
         eq_(len(match_items), 2)
-        eq_(fmd_table_4.match['in_port'], 0x00000000 | portno)
-        eq_(fmd_table_4.match['vlan_vid'], ivid)
+        eq_(fmd_table_4.match["in_port"], 0x00000000 | portno)
+        eq_(fmd_table_4.match["vlan_vid"], ivid)
         eq_(len(fmd_table_4.instructions), 0)
         eq_(fmd_table_4.command, ofproto.OFPFC_DELETE_STRICT)
         eq_(fmd_table_4.out_port, ofproto.OFPP_ANY)
@@ -2068,7 +2068,7 @@ class test_flow_mod_genrator(object):
             self.fmg = apresia_26k(switch_info)\
                 .initialize_flows(ivid, pbb_isid, bvid, flow_mod_datas)
         except flow_mod_gen_exception as e:
-            eq_(e.value, 'Unsupported Operation')
+            eq_(e.value, "Unsupported Operation")
             eq_(str(e), "'Unsupported Operation'")
             return
 
@@ -2088,7 +2088,7 @@ class test_flow_mod_genrator(object):
             "container_sw_ports": [49, 50]
         }
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 2
         mc_ivid = 1001
         ivid = 2011
@@ -2102,7 +2102,7 @@ class test_flow_mod_genrator(object):
                 .start_mg_edge(multicast_address, datapathid, mc_ivid, ivid,
                                pbb_isid, bvid, flow_mod_datas)
         except flow_mod_gen_exception as e:
-            eq_(e.value, 'Unsupported Operation')
+            eq_(e.value, "Unsupported Operation")
             eq_(str(e), "'Unsupported Operation'")
             return
 
@@ -2122,7 +2122,7 @@ class test_flow_mod_genrator(object):
             "container_sw_ports": [49, 50]
         }
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 2
         ivid = 2011
         pbb_isid = 10011
@@ -2135,7 +2135,7 @@ class test_flow_mod_genrator(object):
                 .add_datapath_edge(multicast_address, datapathid, ivid,
                                    pbb_isid, bvid, flow_mod_datas)
         except flow_mod_gen_exception as e:
-            eq_(e.value, 'Unsupported Operation')
+            eq_(e.value, "Unsupported Operation")
             eq_(str(e), "'Unsupported Operation'")
             return
 
@@ -2155,7 +2155,7 @@ class test_flow_mod_genrator(object):
             "container_sw_ports": [49, 50]
         }
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 2
         mc_ivid = 1001
         ivid = 2011
@@ -2169,7 +2169,7 @@ class test_flow_mod_genrator(object):
                 .remove_mg_edge(multicast_address, datapathid, mc_ivid, ivid,
                                 pbb_isid, bvid, flow_mod_datas)
         except flow_mod_gen_exception as e:
-            eq_(e.value, 'Unsupported Operation')
+            eq_(e.value, "Unsupported Operation")
             eq_(str(e), "'Unsupported Operation'")
             return
 
@@ -2189,7 +2189,7 @@ class test_flow_mod_genrator(object):
             "container_sw_ports": [49, 50]
         }
 
-        multicast_address = 'ff38::1:1'
+        multicast_address = "ff38::1:1"
         datapathid = 2
         ivid = 2011
         pbb_isid = 10011
@@ -2203,7 +2203,7 @@ class test_flow_mod_genrator(object):
                                       pbb_isid, bvid, flow_mod_datas)
 
         except flow_mod_gen_exception as e:
-            eq_(e.value, 'Unsupported Operation')
+            eq_(e.value, "Unsupported Operation")
             eq_(str(e), "'Unsupported Operation'")
             return
 
@@ -2232,7 +2232,7 @@ class test_flow_mod_genrator(object):
                 .start_mg_container(portno, ivid, pbb_isid, bvid,
                                     flow_mod_datas)
         except flow_mod_gen_exception as e:
-            eq_(e.value, 'Unsupported Operation')
+            eq_(e.value, "Unsupported Operation")
             eq_(str(e), "'Unsupported Operation'")
             return
 
@@ -2261,7 +2261,7 @@ class test_flow_mod_genrator(object):
                 .add_port_container(portno, ivid, pbb_isid, bvid,
                                     flow_mod_datas)
         except flow_mod_gen_exception as e:
-            eq_(e.value, 'Unsupported Operation')
+            eq_(e.value, "Unsupported Operation")
             eq_(str(e), "'Unsupported Operation'")
             return
 
@@ -2290,7 +2290,7 @@ class test_flow_mod_genrator(object):
                 .remove_mg_container(portno, ivid, pbb_isid, bvid,
                                      flow_mod_datas)
         except flow_mod_gen_exception as e:
-            eq_(e.value, 'Unsupported Operation')
+            eq_(e.value, "Unsupported Operation")
             eq_(str(e), "'Unsupported Operation'")
             return
 
@@ -2319,7 +2319,7 @@ class test_flow_mod_genrator(object):
                 .remove_port_container(portno, ivid, pbb_isid, bvid,
                                        flow_mod_datas)
         except flow_mod_gen_exception as e:
-            eq_(e.value, 'Unsupported Operation')
+            eq_(e.value, "Unsupported Operation")
             eq_(str(e), "'Unsupported Operation'")
             return
 
