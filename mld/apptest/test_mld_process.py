@@ -28,7 +28,7 @@ from user_manage import channel_info
 
 COMMON_PATH = "../../common/"
 sys.path.append(COMMON_PATH)
-from zmq_dispatch import dispatch
+from zmq_dispatch import dispatch, packet_out_data
 from read_json import read_json
 import mld_const
 
@@ -319,7 +319,7 @@ class test_mld_process():
         eq_(icmpv6.MLDV2_LISTENER_REPORT, icmp6.type_)
         eq_(report, icmp6.data)
 
-    @attr(do=False)
+    @attr(do=True)
     def test_send_packet_to_sw(self):
         # switchに送信できているかは結合時に確認
         eth = ethernet.ethernet()
@@ -433,7 +433,8 @@ class test_mld_process():
 
         actual = self.mld_proc.create_packetout(datapathid, packet)
 
-        eq_(datapathid, actual.datapath)
+        ok_(type(actual) is packet_out_data)
+        eq_(datapathid, actual.datapathid)
         eq_(ofproto_v1_3.OFPP_CONTROLLER, actual.in_port)
         eq_(ofproto_v1_3.OFP_NO_BUFFER, actual.buffer_id)
         eq_(1, len(actual.actions))
@@ -451,7 +452,7 @@ class test_mld_process():
         # タイムアウトのユーザーなし
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
-        datapathid  = self.mld_proc.switches[1]["datapathid"]
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         port_no = 1
         cid = 2101
         self.mld_proc.config["user_time_out"] = 300
@@ -577,7 +578,7 @@ class test_mld_process():
         data = icmpv6.icmpv6(
             type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
 
-        datapathid  = self.mld_proc.switches[1]["datapathid"]
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
         dispatch_ = dispatch(
@@ -607,7 +608,7 @@ class test_mld_process():
         data = icmpv6.icmpv6(
             type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
 
-        datapathid  = self.mld_proc.switches[1]["datapathid"]
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
         dispatch_ = dispatch(
@@ -909,7 +910,7 @@ class test_mld_process():
     def test_reply_to_ryu_del_port(self):
         mc_addr = str(self.mc_info_list[0]["mc_addr"])
         serv_ip = str(self.mc_info_list[0]["serv_ip"])
-        datapathid  = self.mld_proc.switches[1]["datapathid"]
+        datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
         reply_type = mld_const.CON_REPLY_DEL_PORT

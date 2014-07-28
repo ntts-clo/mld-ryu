@@ -323,7 +323,7 @@ class mld_process():
         sendpkt = scapy_packet.Packet(ryu_packet.data)
 
         # send of scapy
-        sendrecv.sendp(sendpkt)
+        sendrecv.sendp(sendpkt, iface=self.config["mld_esw_ifname"])
         self.logger.debug("sent 1 packet to switch.")
 
     # ==================================================================
@@ -403,11 +403,10 @@ class mld_process():
 
         actions = [parser.OFPActionOutput(
             port=self.edge_switch["edge_router_port"])]
-        pout = packet_out_data(datapathid=datapathid,
-                                in_port=ofproto_v1_3.OFPP_CONTROLLER,
-                                buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
-                                actions=actions,
-                                data=packet)
+        pout = packet_out_data(
+            datapathid=datapathid, in_port=ofproto_v1_3.OFPP_CONTROLLER,
+            buffer_id=ofproto_v1_3.OFP_NO_BUFFER, actions=actions,
+            data=packet)
 
         return pout
 
