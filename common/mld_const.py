@@ -16,3 +16,8 @@ CON_REPLY_ADD_PORT = 33
 CON_REPLY_DEL_MC_GROUP = 34
 CON_REPLY_DEL_SWITCH = 35
 CON_REPLY_DEL_PORT = 36
+
+# ログファイル用定数
+LOG_CONF = "logconf.ini"
+# 設定ファイル用定数
+CONF_FILE = "config.json"

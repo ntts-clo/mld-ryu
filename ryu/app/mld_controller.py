@@ -2,6 +2,7 @@
 
 import os
 import sys
+import traceback
 import cPickle
 import zmq
 import logging
@@ -34,10 +35,15 @@ import pdb
 OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 # Socketタイプチェック用定数
 CHECK_URL_IPC = "ipc://"
-# ログファイル用定数
-LOG_CONF = "logconf.ini"
-# 設定ファイル用定数
-CONF_FILE = "config.json"
+CHECK_URL_TCP = "tcp://"
+
+# 設定ファイルの定義名
+SETTING = "settings"
+SOCKET_TIME_OUT = "socket_time_out"
+CHECK_VLAN_FLG = "check_vlan_flg"
+OFC_URL = "ofc_url"
+OFC_SEND = "ofc_send_zmq"
+OFC_RECV = "ofc_recv_zmq"
 
 
 # =============================================================================
@@ -49,235 +55,177 @@ class mld_controller(app_manager.RyuApp):
     dict_msg = {}
 
     def __init__(self, *args, **kwargs):
-        # ログ設定ファイル読み込み
-        logging.config.fileConfig(COMMON_PATH + LOG_CONF)
-        self.logger = logging.getLogger(__name__)
+        try:
+            # ログ設定ファイル読み込み
+            logging.config.fileConfig(COMMON_PATH + mld_const.LOG_CONF)
+            self.logger = logging.getLogger(__name__)
+            self.logger.debug("")
+
+            super(mld_controller, self).__init__(*args, **kwargs)
+
+            # システムモジュールのソケットに対しパッチを適用
+            patcher.monkey_patch()
+
+            # 設定情報の読み込み
+            config = read_json(COMMON_PATH + mld_const.CONF_FILE)
+            self.logger.debug("config_info:%s", str(config.data))
+            self.config = config.data[SETTING]
+            self.SOCKET_TIME_OUT = self.config[SOCKET_TIME_OUT]
+
+            # zmq設定情報の読み込み
+            zmq_url = self.config[OFC_URL]
+            send_path = self.config[OFC_SEND]
+            recv_path = self.config[OFC_RECV]
+
+            # VLANチェックフラグの読み込み
+            self.check_vlan_flg = self.config[CHECK_VLAN_FLG]
+
+            # ループフラグの設定
+            self.loop_flg = True
+
+            # CHECKzmq用URL
+            if zmq_url == CHECK_URL_IPC:
+                # CHECK TMP FILE(SEND)
+                self.check_exists_tmp(send_path)
+                # CHECK TMP FILE(RECV)
+                self.check_exists_tmp(recv_path)
+            elif zmq_url not in CHECK_URL_TCP:
+                self.logger.error("self.config[%s]:%s", OFC_URL, zmq_url)
+                return
+
+            # ZeroMQ送受信用ソケット生成
+            self.cretate_scoket(zmq_url + send_path, zmq_url + recv_path)
+
+            # mldからの受信スレッドを開始
+            hub.spawn(self.receive_from_mld)
+
+        except:
+            self.logger.error("__init__. %s ",
+                              traceback.print_exc())
+
+    # =========================================================================
+    # _switch_features_handler
+    # =========================================================================
+    @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
+    def _switch_features_handler(self, ev):
         self.logger.debug("")
 
-        super(mld_controller, self).__init__(*args, **kwargs)
+        try:
+            msg = ev.msg
+            datapath = ev.msg.datapath
+            self.logger.info("OFPSwitchFeatures.[ver]:%s [dpid]:%s [xid]:%s",
+                              msg.version, msg.datapath.id, msg.datapath.xid)
 
-        # システムモジュールのソケットに対しパッチを適用
-        patcher.monkey_patch()
+            # CHECK Already send
+            if not datapath.id in self.dict_msg:
 
-        # 設定情報の読み込み
-        config = read_json(COMMON_PATH + CONF_FILE)
-        self.logger.info("config_info : %s", str(config.data))
-        self.config = config.data["settings"]
-        self.SOCKET_TIME_OUT = self.config["socket_time_out"]
+                # set msg to Dictionary
+                self.dict_msg[datapath.id] = msg
 
-        # zmq設定情報の読み込み
-        zmq_url = self.config["ofc_url"]
-        send_path = self.config["ofc_send_zmq"]
-        recv_path = self.config["ofc_recv_zmq"]
+                dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
+                                        datapathid=datapath.id)
 
-        # VLANチェックフラグの読み込み
-        self.check_vlan_flg = self.config["check_vlan_flg"]
+                self.logger.debug("dispatch[type_]:%s",
+                                  mld_const.CON_SWITCH_FEATURE)
+                self.logger.debug("dispatch[datapathid]:%s", datapath.id)
 
-        # ループフラグの設定
-        self.loop_flg = True
+                self.send_to_mld(dispatch_)
 
-        if zmq_url == CHECK_URL_IPC:
-            # CHECK TMP FILE(SEND)
-            self.check_exists_tmp(send_path)
-            # CHECK TMP FILE(RECV)
-            self.check_exists_tmp(recv_path)
-
-        # ZeroMQ送受信用ソケット生成
-        self.cretate_scoket(zmq_url + send_path, zmq_url + recv_path)
-
-        # mldからの受信スレッドを開始
-        hub.spawn(self.receive_from_mld)
-
-    # =========================================================================
-    # check_exists_tmp
-    # =========================================================================
-    def check_exists_tmp(self, filename):
-        self.logger.debug(filename)
-
-        # ファイルの存在チェック
-        if os.path.exists(filename):
-            return True
-
-        else:
-            # ディレクトリの存在チェック
-            dirpath = os.path.dirname(filename)
-            if os.path.isdir(dirpath):
-                f = open(filename, "w")
-                f.write("")
-                f.close()
-                self.logger.info("create file[%s]", filename)
             else:
-                os.makedirs(dirpath)
-                f = open(filename, "w")
-                f.write("")
-                f.close()
-                self.logger.info("create dir[%s], file[%s]", dirpath, filename)
+                self.logger.info("dict_msg[datapathid]:Already Exist(%s) \n",
+                                 datapath.id)
+                return True
+
+        except:
+            self.logger.error("switch_features_handler. %s ",
+                              traceback.print_exc())
 
     # =========================================================================
-    # cretate_scoket
+    # packet_in_handler
     # =========================================================================
-    def cretate_scoket(self, sendpath, recvpath):
+    @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
+    def _packet_in_handler(self, ev):
         self.logger.debug("")
+        try:
+            msg = ev.msg
+            pkt = packet.Packet(msg.data)
 
-        ctx = zmq.Context()
+            self.logger.info("OFPPacketIn.[ver]:%s [dpid]:%s [xid]:%s",
+                              msg.version, msg.datapath.id, msg.datapath.xid)
+            self.logger.debug("OFPPacketIn.[data]:%s \n", str(pkt))
 
-        # SEND SOCKET CREATE
-        self.send_sock = ctx.socket(zmq.PUB)
-        self.send_sock.bind(sendpath)
-        self.logger.debug("[SendSocket] %s", sendpath)
+            # CHECK VLAN
+            pkt_vlan = None
+            if self.check_vlan_flg in "True":
+                pkt_vlan = pkt.get_protocol(vlan.vlan)
+                if not pkt_vlan:
+                    self.logger.debug("check vlan:None \n")
 
-        # RECV SOCKET CREATE
-        self.recv_sock = ctx.socket(zmq.SUB) 
-        self.recv_sock.connect(recvpath)
-        self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
-        self.logger.debug("[RecvSocket] %s", recvpath)
-
-    # ==================================================================
-    # analyse_receive_packet
-    # ==================================================================
-    def analyse_receive_packet(self, recvpkt):
-        self.logger.debug("")
-
-        dispatch = recvpkt.dispatch
-
-        self.logger.debug("ryu received dispatch : %s", str(dispatch))
-        self.logger.debug("dict_msg : %s", self.dict_msg.items())
-
-        # CHECK dispatch[type_]
-        if dispatch["type_"] == mld_const.CON_FLOW_MOD:
-            flowmodlist = dispatch["data"]
-            self.logger.debug("FLOW_MOD[data] : %s", dispatch["data"])
-
-            for flowmoddata in flowmodlist:
-                self.logger.debug("[flowmoddata] : %s", flowmoddata)
-
-                # CHECK dict_msg.datapathid=flowmoddata.datapathid
-                if not flowmoddata.datapathid in self.dict_msg:
-                    self.logger.info("dict_msg[datapathid:%s] = None \n",
-                                     flowmoddata.datapathid)
-
-                else:
-                    # flowmoddata.datapathidに紐付くmsgbaseを取得する
-                    msgbase = self.dict_msg[flowmoddata.datapathid]
-
-                    # FLOW_MOD生成
-                    flowmod = self.create_flow_mod(msgbase.datapath,
-                                                   flowmoddata)
-
-                    # FLOW_MOD送信
-                    self.send_msg_to_flowmod(msgbase, flowmod)
-
-                    # BARRIER_REQUEST送信
-                    self.send_msg_to_barrier_request(msgbase)
-
-        elif dispatch["type_"] == mld_const.CON_PACKET_OUT:
-
-            # CHECK dict_msg.datapathid=dispatch["datapathid"]
-            if not dispatch["datapathid"] in self.dict_msg:
-                self.logger.info("dict_msg[datapathid:%s] = None \n",
-                                 dispatch["datapathid"])
+            # CHECK ICMPV6
+            pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
+            if not pkt_icmpv6:
+                self.logger.debug("check icmpv6:None \n")
                 return False
 
-            else:
-                # dispatch["datapathid"]に紐付くmsgbaseを取得する
-                datapathid = dispatch["datapathid"]
-                msgbase = self.dict_msg[datapathid]
-                recvpkt = dispatch["data"]
-                self.logger.debug("PACKET_OUT[data] : %s \n", recvpkt.data)
+            # CHECK MLD TYPE
+            if not pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT,
+                                        icmpv6.MLD_LISTENER_QUERY]:
+                self.logger.debug("check icmpv6.TYPE:%s \n",
+                                  str(pkt_icmpv6.type_))
+                return False
 
-                # PACKET_OUT生成
-                packetout = self.create_packet_out(msgbase.datapath,
-                                                   recvpkt)
+            # CHECK FILTER_MODE
+            if pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT]:
 
-                # PACKET_OUT送信
-                self.send_msg_to_packetout(msgbase, packetout)
+                if pkt_icmpv6.data.record_num == 0:
+                    self.logger.debug("check data.record_num:%s \n",
+                                          str(pkt_icmpv6.data.record_num))
+                    return False
 
-        else:
-            self.logger.error("dispatch[type_] : Not Exist(%s) \n",
-                             dispatch["type_"])
-            return False
+                for mldv2_report_group in pkt_icmpv6.data.records:
 
-    # =========================================================================
-    # create_flow_mod
-    # =========================================================================
-    def create_flow_mod(self, datapath, flowdata):
-        self.logger.info("")
+                    if not mldv2_report_group.type_ \
+                                            in [icmpv6.MODE_IS_INCLUDE,
+                                                icmpv6.CHANGE_TO_INCLUDE_MODE,
+                                                icmpv6.ALLOW_NEW_SOURCES,
+                                                icmpv6.BLOCK_OLD_SOURCES]:
+                        self.logger.debug("check report_group.[type_]:%s \n",
+                                          str(mldv2_report_group.type_))
 
-        # Create flow mod message.
-        flowmod = datapath.ofproto_parser.OFPFlowMod(datapath=datapath,
-                                        table_id=flowdata.table_id,
-                                        command=flowdata.command,
-                                        priority=flowdata.priority,
-                                        out_port=flowdata.out_port,
-                                        out_group=flowdata.out_group,
-                                        match=flowdata.match,
-                                        instructions=flowdata.instructions)
+            # CHECK_VLAN_FLG
+            vid = pkt_vlan.vid if pkt_vlan else 0
 
-        self.logger.debug("flowdata [datapathid] : %s", flowdata.datapathid)
-        self.logger.debug("flowdata [command] : %s", flowdata.command)
-        self.logger.debug("flowdata [out_port] : %s", flowdata.out_port)
-        self.logger.debug("flowdata [out_group] : %s", flowdata.out_group)
-        self.logger.debug("flowdata [table_id] : %s", flowdata.table_id)
-        self.logger.debug("flowdata [priority] : %s", flowdata.priority)
-        self.logger.debug("flowdata [match] : %s", flowdata.match)
-        self.logger.debug("flowdata [instructions] : %s",
-                          flowdata.instructions)
+            # SET dispatch
+            dispatch_ = dispatch(type_=mld_const.CON_PACKET_IN,
+                                   datapathid=msg.datapath.id,
+                                   cid=vid,
+                                   in_port=msg.match["in_port"],
+                                   data=pkt_icmpv6)
 
-        return flowmod
+            self.logger.debug("dispatch [type_]:%s", mld_const.CON_PACKET_IN)
+            self.logger.debug("dispatch [datapathid]:%s", msg.datapath.id)
+            self.logger.debug("dispatch [cid]:%s", str(vid))
+            self.logger.debug("dispatch [in_port]:%s", msg.match["in_port"])
+            self.logger.debug("dispatch [data]:%s", pkt_icmpv6)
 
-    # =========================================================================
-    # create_packet_out
-    # =========================================================================
-    def create_packet_out(self, datapath, pktoutdata):
-        self.logger.info("")
+            self.send_to_mld(dispatch_)
 
-        # Create packetout message.
-        packetout = datapath.ofproto_parser.OFPPacketOut(datapath=datapath,
-                                        buffer_id=pktoutdata.buffer_id,
-                                        in_port=pktoutdata.in_port,
-                                        actions=pktoutdata.actions,
-                                        data=pktoutdata.data.data)
-
-        self.logger.debug("packetout [datapathid] : %s", pktoutdata.datapathid)
-        self.logger.debug("packetout [in_port] : %s", pktoutdata.in_port)
-        self.logger.debug("packetout [buffer_id] : %s", pktoutdata.buffer_id)
-        self.logger.debug("packetout [actions] : %s", pktoutdata.actions)
-        self.logger.debug("packetout [data].data : %s", pktoutdata.data)
-
-        return packetout
+        except:
+            self.logger.error("packet_in_handler. %s ", traceback.print_exc())
 
     # =========================================================================
-    # send_to_mld
+    # barrier_reply_handler
     # =========================================================================
-    def send_to_mld(self, dispatch_):
-        self.logger.debug("")
+    @set_ev_cls(ofp_event.EventOFPBarrierReply, MAIN_DISPATCHER)
+    def _barrier_reply_handler(self, ev):
+        try:
+            msg = ev.msg
+            self.logger.info("OFPBarrierReply.[ver]:%s [dpid]:%s [xid]:%s",
+                          msg.version, msg.datapath.id, msg.datapath.xid)
 
-        # send of zeromq
-        self.send_sock.send(cPickle.dumps(dispatch_, protocol=0))
-        self.logger.info("sent 1 to mld_process. \n")
-
-    # =========================================================================
-    # receive_from_mld
-    # =========================================================================
-    def receive_from_mld(self):
-        self.logger.debug("")
-
-        while self.loop_flg:
-            hub.sleep(1)
-            recvpkt = None
-            try:
-                recvpkt = self.recv_sock.recv(flags=zmq.NOBLOCK)
-            except zmq.ZMQError, e:
-                if e.errno == zmq.EAGAIN:
-                    pass
-
-                else:
-                    self.logger.error("receive_from_mld. %s ", e)
-                    raise e
-
-            if recvpkt is not None:
-                packet = cPickle.loads(recvpkt)
-                self.analyse_receive_packet(packet)
+        except:
+            self.logger.error("barrier_reply_handler. %s ",
+                              traceback.print_exc())
 
     # =========================================================================
     # send_msg_to_flowmod
@@ -299,7 +247,7 @@ class mld_controller(app_manager.RyuApp):
         barrier = ofp_parser.OFPBarrierRequest(msgbase.datapath)
         msgbase.datapath.send_msg(barrier)
 
-        self.logger.info("OFPBarrierRequest.[dpid] : %s [xid] : %s \n",
+        self.logger.info("BarrierRequest.[dpid]:%s [xid]:%s \n",
                          msgbase.datapath.id, msgbase.datapath.xid)
 
     # =========================================================================
@@ -312,110 +260,205 @@ class mld_controller(app_manager.RyuApp):
 
         self.logger.info("sent 1 packet to PacketOut. \n")
 
-    # =========================================================================
-    # _switch_features_handler
-    # =========================================================================
-    @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
-    def _switch_features_handler(self, ev):
+    # ==================================================================
+    # analyse_receive_packet
+    # ==================================================================
+    def analyse_receive_packet(self, recvpkt):
         self.logger.debug("")
 
-        msg = ev.msg
-        datapath = ev.msg.datapath
-        self.logger.info("OFPSwitchFeatures.[ver] : %s [dpid] : %s [xid] : %s",
-                          msg.version, msg.datapath.id, msg.datapath.xid)
+        try:
+            # mld_processの転送用データクラスを取得
+            dispatch = recvpkt.dispatch
 
-        # CHECK Already send
-        if not datapath.id in self.dict_msg:
+            self.logger.debug("ryu received dispatch:%s", str(dispatch))
+            self.logger.debug("dict_msg:%s", self.dict_msg.items())
 
-            # set msg to Dictionary
-            self.dict_msg[datapath.id] = msg
+            # CHECK dispatch[type_]
+            if dispatch["type_"] == mld_const.CON_FLOW_MOD:
+                flowmodlist = dispatch["data"]
+                self.logger.debug("FLOW_MOD[data]:%s", dispatch["data"])
 
-            dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
-                                    datapathid=datapath.id)
+                for flowmoddata in flowmodlist:
+                    self.logger.debug("[flowmoddata]:%s", flowmoddata)
 
-            self.logger.debug("dispatch[type_] : %s",
-                              mld_const.CON_SWITCH_FEATURE)
-            self.logger.debug("dispatch[datapathid] : %s", datapath.id)
+                    # CHECK dict_msg.datapathid=flowmoddata.datapathid
+                    if not flowmoddata.datapathid in self.dict_msg:
+                        self.logger.info("FLOW_MOD dict_msg[dpid:%s] = None \n",
+                                         flowmoddata.datapathid)
 
-            self.send_to_mld(dispatch_)
+                    else:
+                        # flowmoddata.datapathidに紐付くmsgbaseを取得する
+                        msgbase = self.dict_msg[flowmoddata.datapathid]
 
-        else:
-            self.logger.info("dict_msg[datapathid] : Already Exist(%s) \n",
-                             datapath.id)
-            return True
+                        # FLOW_MOD生成
+                        flowmod = self.create_flow_mod(msgbase.datapath,
+                                                       flowmoddata)
 
-    # =========================================================================
-    # packet_in_handler
-    # =========================================================================
-    @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
-    def _packet_in_handler(self, ev):
-        self.logger.debug("")
-        #pdb.set_trace()
-        msg = ev.msg
-        pkt = packet.Packet(msg.data)
+                        # FLOW_MOD送信
+                        self.send_msg_to_flowmod(msgbase, flowmod)
 
-        self.logger.info("OFPPacketIn.[ver] : %s [dpid] : %s [xid] : %s",
-                          msg.version, msg.datapath.id, msg.datapath.xid)
-        self.logger.debug("OFPPacketIn.[data] : %s \n", str(pkt))
+                        # BARRIER_REQUEST送信
+                        self.send_msg_to_barrier_request(msgbase)
 
-        # CHECK VLAN
-        pkt_vlan = None
-        if self.check_vlan_flg in "True":
-            pkt_vlan = pkt.get_protocol(vlan.vlan)
-            if not pkt_vlan:
-                self.logger.debug("# check vlan : None \n")
+            elif dispatch["type_"] == mld_const.CON_PACKET_OUT:
 
-        # CHECK ICMPV6
-        pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
-        if not pkt_icmpv6:
-            self.logger.debug("# check icmpv6 : None \n")
-            return False
+                # CHECK dict_msg.datapathid=dispatch[datapathid]
+                if not dispatch["datapathid"] in self.dict_msg:
+                    self.logger.error("PACKET_OUT dict_msg[dpid:%s] = None \n",
+                                     dispatch["datapathid"])
+                    return False
 
-        # CHECK MLD TYPE
-        if not pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT,
-                                    icmpv6.MLD_LISTENER_QUERY]:
-            self.logger.debug("# check icmpv6.TYPE : %s \n",
-                              str(pkt_icmpv6.type_))
-            return False
+                else:
+                    # dispatch[datapathid]に紐付くmsgbaseを取得する
+                    datapathid = dispatch["datapathid"]
+                    msgbase = self.dict_msg[datapathid]
+                    recvpkt = dispatch["data"]
+                    self.logger.debug("PACKET_OUT[data]:%s \n", recvpkt.data)
 
-        # CHECK FILTER_MODE
-        if pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT]:
+                    # PACKET_OUT生成
+                    packetout = self.create_packet_out(msgbase.datapath,
+                                                       recvpkt)
 
-            if pkt_icmpv6.data.record_num == 0:
-                self.logger.debug("# check data.record_num : %s \n",
-                                      str(pkt_icmpv6.data.record_num))
+                    # PACKET_OUT送信
+                    self.send_msg_to_packetout(msgbase, packetout)
+
+            else:
+                self.logger.error("dispatch[type_]:Not Exist(%s) \n",
+                                 dispatch["type_"])
                 return False
 
-            for mldv2_report_group in pkt_icmpv6.data.records:
-
-                if not mldv2_report_group.type_ \
-                                        in [icmpv6.MODE_IS_INCLUDE,
-                                            icmpv6.CHANGE_TO_INCLUDE_MODE,
-                                            icmpv6.ALLOW_NEW_SOURCES,
-                                            icmpv6.BLOCK_OLD_SOURCES]:
-                    self.logger.debug("# check report_group.[type_] : %s \n",
-                                      str(mldv2_report_group.type_))
-
-        vid = pkt_vlan.vid if pkt_vlan else 0
-        dispatch_ = dispatch(type_=mld_const.CON_PACKET_IN,
-                               datapathid=msg.datapath.id,
-                               cid=vid,
-                               in_port=msg.match["in_port"],
-                               data=pkt_icmpv6)
-
-        self.logger.debug("dispatch [type_] : %s", mld_const.CON_PACKET_IN)
-        self.logger.debug("dispatch [datapathid] : %s", msg.datapath.id)
-        self.logger.debug("dispatch [cid] : %s", str(vid))
-        self.logger.debug("dispatch [in_port] : %s", msg.match["in_port"])
-        self.logger.debug("dispatch [data] : %s", pkt_icmpv6)
-
-        self.send_to_mld(dispatch_)
+        except:
+            self.logger.error("analyse_receive_packet. %s ",
+                              traceback.print_exc())
 
     # =========================================================================
-    # barrier_reply_handler
+    # create_flow_mod
     # =========================================================================
-    @set_ev_cls(ofp_event.EventOFPBarrierReply, MAIN_DISPATCHER)
-    def _barrier_reply_handler(self, ev):
-        msg = ev.msg
-        self.logger.info("OFPBarrierReply.[ver] : %s [dpid] : %s [xid] : %s",
-                      msg.version, msg.datapath.id, msg.datapath.xid)
+    def create_flow_mod(self, datapath, flowdata):
+        self.logger.debug("")
+
+        # Create flow mod message.
+        flowmod = datapath.ofproto_parser.OFPFlowMod(datapath=datapath,
+                                        table_id=flowdata.table_id,
+                                        command=flowdata.command,
+                                        priority=flowdata.priority,
+                                        out_port=flowdata.out_port,
+                                        out_group=flowdata.out_group,
+                                        match=flowdata.match,
+                                        instructions=flowdata.instructions)
+
+        self.logger.debug("flowdata [datapathid]:%s", flowdata.datapathid)
+        self.logger.debug("flowdata [command]:%s", flowdata.command)
+        self.logger.debug("flowdata [out_port]:%s", flowdata.out_port)
+        self.logger.debug("flowdata [out_group]:%s", flowdata.out_group)
+        self.logger.debug("flowdata [table_id]:%s", flowdata.table_id)
+        self.logger.debug("flowdata [priority]:%s", flowdata.priority)
+        self.logger.debug("flowdata [match]:%s", flowdata.match)
+        self.logger.debug("flowdata [instructions]:%s",
+                          flowdata.instructions)
+
+        return flowmod
+
+    # =========================================================================
+    # create_packet_out
+    # =========================================================================
+    def create_packet_out(self, datapath, pktoutdata):
+        self.logger.debug("")
+
+        # Create packetout message.
+        packetout = datapath.ofproto_parser.OFPPacketOut(datapath=datapath,
+                                        buffer_id=pktoutdata.buffer_id,
+                                        in_port=pktoutdata.in_port,
+                                        actions=pktoutdata.actions,
+                                        data=pktoutdata.data.data)
+
+        self.logger.debug("packetout [datapathid]:%s", pktoutdata.datapathid)
+        self.logger.debug("packetout [in_port]:%s", pktoutdata.in_port)
+        self.logger.debug("packetout [buffer_id]:%s", pktoutdata.buffer_id)
+        self.logger.debug("packetout [actions]:%s", pktoutdata.actions)
+        self.logger.debug("packetout [data].data:%s", pktoutdata.data)
+
+        return packetout
+
+    # =========================================================================
+    # send_to_mld
+    # =========================================================================
+    def send_to_mld(self, dispatch_):
+        self.logger.debug("")
+
+        # send of zeromq
+        self.send_sock.send(cPickle.dumps(dispatch_, protocol=0))
+        self.logger.info("sent 1 to mld_process. \n")
+
+    # =========================================================================
+    # receive_from_mld
+    # =========================================================================
+    def receive_from_mld(self):
+        self.logger.debug("")
+
+        try:
+            while self.loop_flg:
+                hub.sleep(1)
+                recvpkt = None
+                try:
+                    recvpkt = self.recv_sock.recv(flags=zmq.NOBLOCK)
+                except zmq.ZMQError, e:
+                    if e.errno == zmq.EAGAIN:
+                        pass
+
+                    else:
+                        self.logger.error("receive_from_mld. %s ", e)
+
+                if recvpkt is not None:
+                    packet = cPickle.loads(recvpkt)
+                    self.analyse_receive_packet(packet)
+
+        except:
+            self.logger.error("receive_from_mld. %s ",
+                              traceback.print_exc())
+
+    # =========================================================================
+    # check_exists_tmp
+    # =========================================================================
+    def check_exists_tmp(self, filename):
+        self.logger.debug("")
+
+        # ファイルの存在チェック
+        if os.path.exists(filename):
+            self.logger.info("[tmp filename]:%s", filename)
+            return True
+
+        else:
+            # ディレクトリの存在チェック
+            dirpath = os.path.dirname(filename)
+            if os.path.isdir(dirpath):
+                f = open(filename, "w")
+                f.write("")
+                f.close()
+                self.logger.info("create [file]:%s", filename)
+            else:
+                os.makedirs(dirpath)
+                f = open(filename, "w")
+                f.write("")
+                f.close()
+                self.logger.info("create [dir]:%s, [file]:%s",
+                                 dirpath, filename)
+
+    # =========================================================================
+    # cretate_scoket
+    # =========================================================================
+    def cretate_scoket(self, sendpath, recvpath):
+        self.logger.debug("")
+
+        ctx = zmq.Context()
+
+        # SEND SOCKET CREATE
+        self.send_sock = ctx.socket(zmq.PUB)
+        self.send_sock.bind(sendpath)
+        self.logger.info("[SendSocket]:%s", sendpath)
+
+        # RECV SOCKET CREATE
+        self.recv_sock = ctx.socket(zmq.SUB) 
+        self.recv_sock.connect(recvpath)
+        self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
+        self.logger.info("[RecvSocket]:%s", recvpath)
