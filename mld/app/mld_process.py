@@ -30,7 +30,7 @@ sys.path.append(COMMON_PATH)
 from icmpv6_extend import icmpv6_extend
 from zmq_dispatch import dispatch, packet_out_data
 from read_json import read_json
-import mld_const
+import mld_const as const
 
 
 # ======================================================================
@@ -38,16 +38,19 @@ import mld_const
 # ======================================================================
 class mld_process():
 
-    BASEPATH = os.path.dirname(os.path.abspath(__file__))
-    ADDRESS_INFO = os.path.normpath(
-        os.path.join(BASEPATH, "./address_info.csv"))
-    MC_SERVICE_INFO = os.path.normpath(
-        os.path.join(BASEPATH, "./multicast_service_info.json"))
+    # 定期クエリのタイプ
+    GENERAL_QUERY = "GQ"
+    SPECIFIC_QUERY = "SQ"
 
     # Queryの設定値
     QUERY_MAX_RESPONSE = 10000
     QUERY_QRV = 2
 
+    # 送受信のループフラグ
+    SEND_LOOP = True
+    RECV_LOOP = True
+
+    # ネイティブスレッドの取得
     org_thread = patcher.original("threading")
     org_thread_time = patcher.original("time")
 
@@ -55,7 +58,7 @@ class mld_process():
 
     def __init__(self):
         # ロガーの設定
-        logging.config.fileConfig(COMMON_PATH + "logconf.ini",
+        logging.config.fileConfig(COMMON_PATH + const.LOG_CONF,
                                   disable_existing_loggers=False)
         self.logger = logging.getLogger(__name__)
         self.logger.debug("")
@@ -67,7 +70,7 @@ class mld_process():
         self.ch_info = channel_info()
 
         # 設定情報読み込み
-        config = read_json(COMMON_PATH + "config.json")
+        config = read_json(COMMON_PATH + const.CONF_FILE)
         self.logger.info("config_info : %s", str(config.data))
         self.config = config.data["settings"]
 
@@ -77,7 +80,7 @@ class mld_process():
 
         # アドレス情報読み込み
         self.addressinfo = []
-        for line in open(self.ADDRESS_INFO, "r"):
+        for line in open(COMMON_PATH + const.ADDRESS_INFO, "r"):
             if line[0] == "#":
                 continue
             else:
@@ -87,7 +90,7 @@ class mld_process():
         self.logger.info("addressinfo : %s", str(self.addressinfo))
 
         # スイッチ情報読み込み
-        switches = read_json(COMMON_PATH + "switch_info.json")
+        switches = read_json(COMMON_PATH + const.SWITCH_INFO)
         self.logger.info("switch_info : %s", str(switches.data))
         self.switch_mld_info = switches.data["switch_mld_info"]
         self.switch_mc_info = switches.data["switch_mc_info"]
@@ -95,12 +98,12 @@ class mld_process():
         self.edge_switch = self.switches[0]
 
         # マルチキャスト情報読み込み
-        mc_info = read_json(self.MC_SERVICE_INFO)
+        mc_info = read_json(COMMON_PATH + const.MULTICAST_INFO)
         self.logger.info("mc_info : %s", str(mc_info.data))
         self.mc_info_list = mc_info.data["mc_info"]
 
         # bvidパターン読み込み
-        bvid_variation = read_json(COMMON_PATH + "bvid_variation.json")
+        bvid_variation = read_json(COMMON_PATH + const.BVID_VARIATION)
         self.logger.info("bvid_variation : %s", str(bvid_variation.data))
         self.bvid_variation = bvid_variation.data["bvid_variation"]
 
@@ -162,38 +165,41 @@ class mld_process():
         self.logger.debug("[RecvSocket] %s", recvpath)
 
     # ==================================================================
-    # send_mldquey_regularly
+    # send_mldquery_regularly
     # ==================================================================
-    def send_mldquey_regularly(self):
+    def send_mldquery_regularly(self):
         self.logger.debug("")
 
         # General Query
-        if self.config["reguraly_query_type"] == "GQ":
+        if self.config["reguraly_query_type"] == self.GENERAL_QUERY:
+            self.logger.debug("create general query")
             mc_info = {"mc_addr": "::", "serv_ip": None}
-            while True:
+            while self.SEND_LOOP:
                 self.send_mldquery([mc_info])
-                hub.sleep(
+                time.sleep(
                     self.config["reguraly_query_interval"] - self.QUERY_QRV)
 
         # Specific Query
-        elif self.config["reguraly_query_type"] == "SQ":
+        elif self.config["reguraly_query_type"] == self.SPECIFIC_QUERY:
+            self.logger.debug("create specific query")
             next_interval = Value(ctypes.c_bool, False)
             send_count = 1
 
-            while True:
+            while self.SEND_LOOP:
                 query_proc = Process(
                     target=self.wait_query_interval, args=(next_interval,))
                 query_proc.start()
-                self.logger.debug("next_interval : %s",
-                                  str(next_interval.value))
-                self.send_mldquery(self.mc_info_list,
-                                   self.config["mc_query_interval"],
-                                   next_interval)
+                self.logger.debug(
+                    "next_interval : %s", str(next_interval.value))
+                self.send_mldquery(
+                    self.mc_info_list, self.config["mc_query_interval"],
+                    next_interval)
 
                 # 定期送信クエリの送信間隔が過ぎていない場合は待ち
                 if not next_interval.value:
-                    self.logger.debug("waiting query interval(%d sec)...",
-                                      self.config["reguraly_query_interval"])
+                    self.logger.debug(
+                        "waiting query interval(%d sec)...",
+                        self.config["reguraly_query_interval"])
                     query_proc.join()
 
                 next_interval.value = False
@@ -208,7 +214,7 @@ class mld_process():
         self.logger.debug("")
         self.logger.debug("waiting %d sec...",
                           self.config["reguraly_query_interval"])
-        hub.sleep(self.config["reguraly_query_interval"])
+        time.sleep(self.config["reguraly_query_interval"])
         self.logger.debug("waited %d sec",
                           self.config["reguraly_query_interval"])
         next_interval.value = True
@@ -239,7 +245,7 @@ class mld_process():
             # 信頼性変数QRV回送信する
             for i in range(self.QUERY_QRV):
                 self.send_packet_to_sw(sendpkt)
-                hub.sleep(1)
+                time.sleep(1)
 
             # 最後のmcアドレス情報以外は送信待ちする
             if not mc_info == mc_info_list[-1]:
@@ -346,10 +352,10 @@ class mld_process():
         self.logger.debug("received [data]: %s", str(dispatch_["data"]))
         receive_type = dispatch_["type_"]
 
-        if receive_type == mld_const.CON_SWITCH_FEATURE:
+        if receive_type == const.CON_SWITCH_FEATURE:
             self.set_switch_config(dispatch_)
 
-        elif receive_type == mld_const.CON_PACKET_IN:
+        elif receive_type == const.CON_PACKET_IN:
             pkt_icmpv6 = dispatch_["data"]
             self.logger.debug("pkt_icmpv6 : " + str(pkt_icmpv6))
 
@@ -389,7 +395,7 @@ class mld_process():
                     bvid=self.switch_mld_info["bvid"],
                     ivid=self.switch_mld_info["ivid"])
                 flowmod = dispatch(
-                    type_=mld_const.CON_FLOW_MOD,
+                    type_=const.CON_FLOW_MOD,
                     datapathid=target_switch, data=flowlist)
                 self.logger.debug("flowmod[data] : %s",
                                   str(flowmod["data"]))
@@ -472,7 +478,7 @@ class mld_process():
                     datapathid=self.edge_switch["datapathid"],
                     packet=sendpkt)
                 packetout = dispatch(
-                    type_=mld_const.CON_PACKET_OUT,
+                    type_=const.CON_PACKET_OUT,
                     datapathid=self.edge_switch["datapathid"], data=pout)
                 self.logger.debug("packetout: %s", str(packetout))
                 self.send_packet_to_ryu(packetout)
@@ -496,7 +502,7 @@ class mld_process():
             reply_type = self.update_user_info(
                 address, src, target_switch, in_port, cid, report)
 
-            if reply_type == mld_const.CON_REPLY_NOTHING:
+            if reply_type == const.CON_REPLY_NOTHING:
                 # Flow追加削除なしの場合何もしない
                 self.logger.debug("reply_type : CON_REPLY_NOTHING")
             else:
@@ -561,14 +567,14 @@ class mld_process():
                                   self.ch_info.get_channel_info())
             else:
                 # 存在した場合はtimeの更新のみでryuへの返信はなし
-                reply_type = mld_const.CON_REPLY_NOTHING
+                reply_type = const.CON_REPLY_NOTHING
 
         # MODE_IS_EXCLUDE
         # CHANGE_TO_INCLUDE_MODE
         # CHANGE_TO_EXCLUDE_MODE の場合は何もしない
         else:
             self.logger.debug("report.type : %s", report.type_)
-            reply_type = mld_const.CON_REPLY_NOTHING
+            reply_type = const.CON_REPLY_NOTHING
 
         return reply_type
 
@@ -611,14 +617,14 @@ class mld_process():
                           pbb_isid, ivid, bvid)
 
         # Flow追加の場合
-        if reply_type == mld_const.CON_REPLY_ADD_MC_GROUP:
+        if reply_type == const.CON_REPLY_ADD_MC_GROUP:
             self.logger.debug("reply_type : CON_REPLY_ADD_MC_GROUP")
             flowlist = self.flowmod_gen.start_mg(
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, mc_ivid=self.switch_mc_info["ivid"],
                 ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
             flowmod = dispatch(
-                type_=mld_const.CON_FLOW_MOD,
+                type_=const.CON_FLOW_MOD,
                 datapathid=self.edge_switch["datapathid"], data=flowlist)
             self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
 
@@ -637,34 +643,34 @@ class mld_process():
                 pout = self.create_packetout(
                     datapathid=self.edge_switch["datapathid"], packet=packet)
                 packetout = dispatch(
-                    type_=mld_const.CON_PACKET_OUT,
+                    type_=const.CON_PACKET_OUT,
                     datapathid=self.edge_switch["datapathid"], data=pout)
                 self.send_packet_to_ryu(packetout)
 
-        elif reply_type == mld_const.CON_REPLY_ADD_SWITCH:
+        elif reply_type == const.CON_REPLY_ADD_SWITCH:
             self.logger.debug("reply_type : CON_REPLY_ADD_SWITCH")
             flowlist = self.flowmod_gen.add_datapath(
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
             flowmod = dispatch(
-                type_=mld_const.CON_FLOW_MOD,
+                type_=const.CON_FLOW_MOD,
                 datapathid=self.edge_switch["datapathid"], data=flowlist)
             self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
             self.send_packet_to_ryu(flowmod)
 
-        elif reply_type == mld_const.CON_REPLY_ADD_PORT:
+        elif reply_type == const.CON_REPLY_ADD_PORT:
             self.logger.debug("reply_type : CON_REPLY_ADD_PORT")
             flowlist = self.flowmod_gen.add_port(
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
             flowmod = dispatch(
-                type_=mld_const.CON_FLOW_MOD,
+                type_=const.CON_FLOW_MOD,
                 datapathid=self.edge_switch["datapathid"], data=flowlist)
             self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
             self.send_packet_to_ryu(flowmod)
 
         # Flow削除の場合
-        elif reply_type == mld_const.CON_REPLY_DEL_MC_GROUP:
+        elif reply_type == const.CON_REPLY_DEL_MC_GROUP:
             self.logger.debug("reply_type : CON_REPLY_DEL_MC_GROUP")
             # ベストエフォートの場合のみ
             if mc_info_type == "BE":
@@ -678,7 +684,7 @@ class mld_process():
                 pout = self.create_packetout(
                     datapathid=self.edge_switch["datapathid"], packet=packet)
                 packetout = dispatch(
-                    type_=mld_const.CON_PACKET_OUT,
+                    type_=const.CON_PACKET_OUT,
                     datapathid=self.edge_switch["datapathid"], data=pout)
                 self.send_packet_to_ryu(packetout)
 
@@ -687,29 +693,29 @@ class mld_process():
                 portno=in_port, mc_ivid=self.switch_mc_info["ivid"],
                 ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
             flowmod = dispatch(
-                type_=mld_const.CON_FLOW_MOD,
+                type_=const.CON_FLOW_MOD,
                 datapathid=self.edge_switch["datapathid"], data=flowlist)
             self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
             self.send_packet_to_ryu(flowmod)
 
-        elif reply_type == mld_const.CON_REPLY_DEL_SWITCH:
+        elif reply_type == const.CON_REPLY_DEL_SWITCH:
             self.logger.debug("reply_type : CON_REPLY_DEL_SWITCH")
             flowlist = self.flowmod_gen.remove_datapath(
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
             flowmod = dispatch(
-                type_=mld_const.CON_FLOW_MOD,
+                type_=const.CON_FLOW_MOD,
                 datapathid=self.edge_switch["datapathid"], data=flowlist)
             self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
             self.send_packet_to_ryu(flowmod)
 
-        elif reply_type == mld_const.CON_REPLY_DEL_PORT:
+        elif reply_type == const.CON_REPLY_DEL_PORT:
             self.logger.debug("reply_type : CON_REPLY_DEL_PORT")
             flowlist = self.flowmod_gen.remove_port(
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
             flowmod = dispatch(
-                type_=mld_const.CON_FLOW_MOD,
+                type_=const.CON_FLOW_MOD,
                 datapathid=self.edge_switch["datapathid"], data=flowlist)
             self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
             self.send_packet_to_ryu(flowmod)
@@ -719,7 +725,7 @@ class mld_process():
     # ==================================================================
     def receive_from_ryu(self):
         self.logger.debug("")
-        while self.loop_flg:
+        while self.RECV_LOOP:
             self.logger.debug("waiting packet...")
             # receive of zeromq
             recvpkt = self.recv_sock.recv()
@@ -731,7 +737,7 @@ if __name__ == "__main__":
     mld_proc = mld_process()
     # Query定期送信スレッド
     send_thre = mld_proc.org_thread.Thread(
-        target=mld_proc.send_mldquey_regularly, name="SendRegThread")
+        target=mld_proc.send_mldquery_regularly, name="SendRegThread")
     send_thre.start()
     # 定期送信開始待ち
     mld_proc.org_thread_time.sleep(1)
