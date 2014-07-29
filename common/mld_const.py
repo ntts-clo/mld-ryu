@@ -17,7 +17,15 @@ CON_REPLY_DEL_MC_GROUP = 34
 CON_REPLY_DEL_SWITCH = 35
 CON_REPLY_DEL_PORT = 36
 
-# ログファイル用定数
+# ログファイル
 LOG_CONF = "logconf.ini"
-# 設定ファイル用定数
+# 設定ファイル
 CONF_FILE = "config.json"
+# マルチキャスト情報ファイル
+MULTICAST_INFO = "multicast_info.json"
+# MLD処理部のアドレス情報ファイル
+ADDRESS_INFO = "address_info.csv"
+# スイッチ情報ファイル
+SWITCH_INFO = "switch_info.json"
+# bvidのバリエーション定義ファイル
+BVID_VARIATION = "bvid_variation.json"

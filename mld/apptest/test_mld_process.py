@@ -32,7 +32,7 @@ COMMON_PATH = "../../common/"
 sys.path.append(COMMON_PATH)
 from zmq_dispatch import dispatch, packet_out_data
 from read_json import read_json
-import mld_const
+import mld_const as const
 
 logger = logging.getLogger(__name__)
 
@@ -45,11 +45,11 @@ class test_mld_process():
         logger.debug("setup")
         cls.mocker = mox.Mox()
 
-        config = read_json(COMMON_PATH + "config.json")
+        config = read_json(COMMON_PATH + const.CONF_FILE)
         cls.config = config.data["settings"]
 
         cls.addressinfo = []
-        for line in open(APP_PATH + "address_info.csv", "r"):
+        for line in open(COMMON_PATH + const.ADDRESS_INFO, "r"):
             if line[0] == "#":
                 continue
             else:
@@ -57,7 +57,7 @@ class test_mld_process():
                 for column in columns:
                     cls.addressinfo.append(column)
 
-        mc_info = read_json(APP_PATH + "multicast_service_info.json")
+        mc_info = read_json(COMMON_PATH + const.MULTICAST_INFO)
         cls.mc_info_list = mc_info.data["mc_info"]
 
         cls.mld_proc = mld_process()
@@ -93,7 +93,7 @@ class test_mld_process():
         eq_(self.mld_proc.addressinfo, self.addressinfo)
 
         # スイッチ情報読み込み
-        switches = read_json(COMMON_PATH + "switch_info.json")
+        switches = read_json(COMMON_PATH + const.SWITCH_INFO)
         eq_(self.mld_proc.switch_mld_info,
             switches.data["switch_mld_info"])
         eq_(self.mld_proc.switch_mc_info,
@@ -103,7 +103,7 @@ class test_mld_process():
         eq_(self.mld_proc.mc_info_list, self.mc_info_list)
 
         # bvidパターン読み込み
-        bvid_variation = read_json(COMMON_PATH + "bvid_variation.json")
+        bvid_variation = read_json(COMMON_PATH + const.BVID_VARIATION)
         eq_(self.mld_proc.bvid_variation,
             bvid_variation.data["bvid_variation"])
 
@@ -172,7 +172,7 @@ class test_mld_process():
         ok_(self.mld_proc.send_sock)
         ok_(self.mld_proc.recv_sock)
 
-    @attr(do=True)
+    @attr(do=False)
     def test_send_mldquey_regularly_gq(self):
 
         self.mld_proc.config["reguraly_query_type"] = "GQ"
@@ -189,7 +189,7 @@ class test_mld_process():
         send_hub.kill()
         self.mld_proc.SEND_LOOP = True
 
-    @attr(do=True)
+    @attr(do=False)
     def test_send_mldquey_regularly_sq(self):
 
         self.mld_proc.config["reguraly_query_type"] = "SQ"
@@ -372,7 +372,7 @@ class test_mld_process():
     @attr(do=False)
     def test_analyse_receive_packet_switch_feature(self):
         # switchとの初回接続時：set_switch_configを呼び出す
-        dispatch_ = dispatch(mld_const.CON_SWITCH_FEATURE, 1)
+        dispatch_ = dispatch(const.CON_SWITCH_FEATURE, 1)
 
         self.mocker.StubOutWithMock(self.mld_proc, "set_switch_config")
         self.mld_proc.set_switch_config(dispatch_.dispatch).AndReturn(0)
@@ -391,7 +391,7 @@ class test_mld_process():
         query = self.mld_proc.create_mldquery(mc_addr, serv_ip)
         data = icmpv6.icmpv6(
             type_=icmpv6.ICMPV6_MEMBERSHIP_QUERY, data=query)
-        dispatch_ = dispatch(mld_const.CON_PACKET_IN, 1, data=data)
+        dispatch_ = dispatch(const.CON_PACKET_IN, 1, data=data)
 
         self.mocker.StubOutWithMock(self.mld_proc, "reply_proxy")
         self.mld_proc.reply_proxy().AndReturn(0)
@@ -413,7 +413,7 @@ class test_mld_process():
         report = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
         data = icmpv6.icmpv6(
             type_=icmpv6.MLDV2_LISTENER_REPORT, data=report)
-        dispatch_ = dispatch(mld_const.CON_PACKET_IN, 1, data=data)
+        dispatch_ = dispatch(const.CON_PACKET_IN, 1, data=data)
 
         self.mocker.StubOutWithMock(self.mld_proc, "manage_user")
         self.mld_proc.manage_user(dispatch_.dispatch).AndReturn(0)
@@ -436,7 +436,7 @@ class test_mld_process():
     def test_set_switch_config(self):
 
         datapathid = self.mld_proc.switches[1]["datapathid"]
-        dispatch_ = dispatch(mld_const.CON_SWITCH_FEATURE, datapathid)
+        dispatch_ = dispatch(const.CON_SWITCH_FEATURE, datapathid)
 
         self.mocker.StubOutWithMock(
             self.mld_proc.flowmod_gen, "initialize_flows")
@@ -605,14 +605,14 @@ class test_mld_process():
         in_port = 1
         cid = 100
         dispatch_ = dispatch(
-            mld_const.CON_PACKET_IN, datapathid, in_port, cid, data)
+            const.CON_PACKET_IN, datapathid, in_port, cid, data)
 
         report = mld.records[0]
 
         self.mocker.StubOutWithMock(self.mld_proc, "update_user_info")
         self.mld_proc.update_user_info(
             mc_addr, serv_ip, datapathid, in_port, cid, report).AndReturn(
-            mld_const.CON_REPLY_NOTHING)
+            const.CON_REPLY_NOTHING)
         self.mocker.ReplayAll()
 
         self.mld_proc.manage_user(dispatch_)
@@ -635,18 +635,18 @@ class test_mld_process():
         in_port = 1
         cid = 100
         dispatch_ = dispatch(
-            mld_const.CON_PACKET_IN, datapathid, in_port, cid, data)
+            const.CON_PACKET_IN, datapathid, in_port, cid, data)
 
         report = mld.records[0]
 
         self.mocker.StubOutWithMock(self.mld_proc, "update_user_info")
         self.mld_proc.update_user_info(
             mc_addr, serv_ip, datapathid, in_port, cid, report).AndReturn(
-            mld_const.CON_REPLY_ADD_MC_GROUP)
+            const.CON_REPLY_ADD_MC_GROUP)
         self.mocker.StubOutWithMock(self.mld_proc, "reply_to_ryu")
         self.mld_proc.reply_to_ryu(
             mc_addr, serv_ip, datapathid, in_port,
-            mld_const.CON_REPLY_ADD_MC_GROUP).AndReturn(0)
+            const.CON_REPLY_ADD_MC_GROUP).AndReturn(0)
         self.mocker.ReplayAll()
 
         self.mld_proc.manage_user(dispatch_)
@@ -669,13 +669,13 @@ class test_mld_process():
         self.mocker.StubOutWithMock(self.mld_proc.ch_info, "add_ch_info")
         self.mld_proc.ch_info.add_ch_info(
             mc_addr=mc_addr, serv_ip=serv_ip, datapathid=datapathid,
-            port_no=in_port, cid=cid).AndReturn(mld_const.CON_REPLY_NOTHING)
+            port_no=in_port, cid=cid).AndReturn(const.CON_REPLY_NOTHING)
         self.mocker.ReplayAll()
 
         actual = self.mld_proc.update_user_info(
             mc_addr, serv_ip, datapathid, in_port, cid, report)
 
-        eq_(mld_const.CON_REPLY_NOTHING, actual)
+        eq_(const.CON_REPLY_NOTHING, actual)
 
         self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
@@ -695,7 +695,7 @@ class test_mld_process():
         self.mocker.StubOutWithMock(self.mld_proc.ch_info, "remove_ch_info")
         self.mld_proc.ch_info.remove_ch_info(
             mc_addr=mc_addr, serv_ip=serv_ip, datapathid=datapathid,
-            port_no=in_port, cid=cid).AndReturn(mld_const.CON_REPLY_NOTHING)
+            port_no=in_port, cid=cid).AndReturn(const.CON_REPLY_NOTHING)
         self.mocker.StubOutWithMock(self.mld_proc, "send_mldquery")
         mc_info = {"mc_addr": mc_addr, "serv_ip": serv_ip}
         self.mld_proc.send_mldquery([mc_info]).AndReturn(0)
@@ -704,7 +704,7 @@ class test_mld_process():
         actual = self.mld_proc.update_user_info(
             mc_addr, serv_ip, datapathid, in_port, cid, report)
 
-        eq_(mld_const.CON_REPLY_NOTHING, actual)
+        eq_(const.CON_REPLY_NOTHING, actual)
 
         self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
@@ -731,7 +731,7 @@ class test_mld_process():
         actual = self.mld_proc.update_user_info(
             mc_addr, serv_ip, datapathid, in_port, cid, report)
 
-        eq_(mld_const.CON_REPLY_NOTHING, actual)
+        eq_(const.CON_REPLY_NOTHING, actual)
 
         self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
@@ -756,13 +756,13 @@ class test_mld_process():
         self.mocker.StubOutWithMock(self.mld_proc.ch_info, "add_ch_info")
         self.mld_proc.ch_info.add_ch_info(
             mc_addr=mc_addr, serv_ip=serv_ip, datapathid=datapathid,
-            port_no=in_port, cid=cid).AndReturn(mld_const.CON_REPLY_NOTHING)
+            port_no=in_port, cid=cid).AndReturn(const.CON_REPLY_NOTHING)
         self.mocker.ReplayAll()
 
         actual = self.mld_proc.update_user_info(
             mc_addr, serv_ip, datapathid, in_port, cid, report)
 
-        eq_(mld_const.CON_REPLY_NOTHING, actual)
+        eq_(const.CON_REPLY_NOTHING, actual)
 
         self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
@@ -777,12 +777,13 @@ class test_mld_process():
         cid = 100
 
         types = [icmpv6.CHANGE_TO_EXCLUDE_MODE,
-                 icmpv6.CHANGE_TO_INCLUDE_MODE, icmpv6.MODE_IS_EXCLUDE]
+                 icmpv6.CHANGE_TO_INCLUDE_MODE,
+                 icmpv6.MODE_IS_EXCLUDE]
         mld = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
         for report in mld.records:
             actual = self.mld_proc.update_user_info(
                 mc_addr, serv_ip, datapathid, in_port, cid, report)
-            eq_(mld_const.CON_REPLY_NOTHING, actual)
+            eq_(const.CON_REPLY_NOTHING, actual)
 
     @attr(do=False)
     def test_reply_to_ryu_add_mc_be(self):
@@ -791,7 +792,7 @@ class test_mld_process():
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
-        reply_type = mld_const.CON_REPLY_ADD_MC_GROUP
+        reply_type = const.CON_REPLY_ADD_MC_GROUP
 
         self.mld_proc.ch_info.add_ch_info(
             mc_addr, serv_ip, datapathid, in_port, cid)
@@ -824,7 +825,7 @@ class test_mld_process():
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
-        reply_type = mld_const.CON_REPLY_ADD_SWITCH
+        reply_type = const.CON_REPLY_ADD_SWITCH
 
         self.mld_proc.ch_info.channel_info = {}
         self.mld_proc.ch_info.user_info_list = []
@@ -850,7 +851,7 @@ class test_mld_process():
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
-        reply_type = mld_const.CON_REPLY_ADD_PORT
+        reply_type = const.CON_REPLY_ADD_PORT
 
         self.mld_proc.ch_info.channel_info = {}
         self.mld_proc.ch_info.user_info_list = []
@@ -876,7 +877,7 @@ class test_mld_process():
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
-        reply_type = mld_const.CON_REPLY_DEL_MC_GROUP
+        reply_type = const.CON_REPLY_DEL_MC_GROUP
 
         self.mld_proc.ch_info.add_ch_info(
             mc_addr, serv_ip, datapathid, in_port, cid)
@@ -909,7 +910,7 @@ class test_mld_process():
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
-        reply_type = mld_const.CON_REPLY_DEL_SWITCH
+        reply_type = const.CON_REPLY_DEL_SWITCH
 
         self.mld_proc.ch_info.channel_info = {}
         self.mld_proc.ch_info.user_info_list = []
@@ -936,7 +937,7 @@ class test_mld_process():
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
-        reply_type = mld_const.CON_REPLY_DEL_PORT
+        reply_type = const.CON_REPLY_DEL_PORT
 
         self.mld_proc.ch_info.channel_info = {}
         self.mld_proc.ch_info.user_info_list = []
