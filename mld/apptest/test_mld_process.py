@@ -8,18 +8,20 @@
 #
 
 import os
-import logging
 import sys
+import logging
 import unittest
 import mox
-import ctypes
 import time
-import nose
+import ctypes
+import cPickle
 from nose.tools import *
+from ryu.lib import hub
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from ryu.ofproto import ofproto_v1_3, inet
 from multiprocessing import Value
 from nose.plugins.attrib import attr
+hub.patch()
 
 APP_PATH = "../app/"
 sys.path.append(APP_PATH)
@@ -36,10 +38,6 @@ logger = logging.getLogger(__name__)
 
 
 class test_mld_process():
-
-    # Queryの設定値
-    QUERY_MAX_RESPONSE = 10000
-    QUERY_QRV = 2
 
     # このクラスのテストケースを実行する前に１度だけ実行する
     @classmethod
@@ -75,11 +73,8 @@ class test_mld_process():
         self.mld_proc.ch_info.user_info_list = []
         self.mld_proc.config = self.config
 
-    def teardown(self):
-        # 設定値の初期化
-        self.mld_proc.ch_info.channel_info = {}
-        self.mld_proc.ch_info.user_info_list = []
-        self.mld_proc.config = self.config
+#    def teardown(self):
+#        pass
 
     @attr(do=False)
     def test_init(self):
@@ -144,11 +139,6 @@ class test_mld_process():
         os.remove(filepath)
         os.rmdir(filedir)
 
-#    @attr(do=False)
-#    def test_send_mldquey_regularly(self):
-#        # 無限ループがあるため結合試験にて動作確認を行う
-#        pass
-
     @attr(do=False)
     def test_cretate_scoket001(self):
         zmq_url = "ipc://"
@@ -181,6 +171,40 @@ class test_mld_process():
 
         ok_(self.mld_proc.send_sock)
         ok_(self.mld_proc.recv_sock)
+
+    @attr(do=True)
+    def test_send_mldquey_regularly_gq(self):
+
+        self.mld_proc.config["reguraly_query_type"] = "GQ"
+        self.mld_proc.config["reguraly_query_interval"] = 5
+        self.mld_proc.config["mld_esw_ifname"] = "eth0"
+
+        send_hub = hub.spawn(self.mld_proc.send_mldquery_regularly)
+        # ループに入る分処理待ち
+        hub.sleep(3)
+        # ループを抜ける
+        self.mld_proc.SEND_LOOP = False
+        hub.sleep(1)
+        send_hub.wait()
+        send_hub.kill()
+        self.mld_proc.SEND_LOOP = True
+
+    @attr(do=True)
+    def test_send_mldquey_regularly_sq(self):
+
+        self.mld_proc.config["reguraly_query_type"] = "SQ"
+        self.mld_proc.config["reguraly_query_interval"] = 6
+        self.mld_proc.config["mc_query_interval"] = 1
+        self.mld_proc.config["mld_esw_ifname"] = "eth0"
+
+        send_hub = hub.spawn(self.mld_proc.send_mldquery_regularly)
+        # ループに入る分処理待ち
+        hub.sleep(5)
+        # ループを抜けさせる
+        self.mld_proc.SEND_LOOP = False
+        send_hub.wait()
+        send_hub.kill()
+        self.mld_proc.SEND_LOOP = True
 
     @attr(do=False)
     def test_wait_query_interval(self):
@@ -319,7 +343,7 @@ class test_mld_process():
         eq_(icmpv6.MLDV2_LISTENER_REPORT, icmp6.type_)
         eq_(report, icmp6.data)
 
-    @attr(do=True)
+    @attr(do=False)
     def test_send_packet_to_sw(self):
         # switchに送信できているかは結合時に確認
         eth = ethernet.ethernet()
@@ -340,6 +364,8 @@ class test_mld_process():
         icmp6 = icmpv6.icmpv6()
         packet = eth / vln / ip6 / icmp6
         packet.serialize()
+
+        self.mld_proc.config["mld_esw_ifname"] = "eth0"
 
         self.mld_proc.send_packet_to_ryu(packet)
 
@@ -503,13 +529,10 @@ class test_mld_process():
 
         # check_user_timeout実行前の件数確認
         eq_(5, len(self.mld_proc.ch_info.user_info_list))
-        print "******** before check_user_timeout() ********"
 
         self.mld_proc.check_user_timeout()
 
-        print "******** after check_user_timeout() ********"
-
-        # 2件タイムアウト
+        # sleep前の2件がタイムアウト
         eq_(3, len(self.mld_proc.ch_info.user_info_list))
 
         user_info = self.mld_proc.ch_info.user_info_list[0].user_info
@@ -932,9 +955,24 @@ class test_mld_process():
         self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
-#    def test_receive_from_ryu(self):
-#        # 無限ループがあるため結合試験にて動作確認を行う
-#        pass
+    @attr(do=False)
+    def test_receive_from_ryu(self):
+        # 受信処理はdummyのメソッドに置き換える
+        self.mld_proc.recv_sock = dummy_socket()
+
+        # 無限ループを脱出して終了すること
+        hub.spawn(self.mld_proc.receive_from_ryu)
+        hub.sleep(1)
+        self.mld_proc.RECV_LOOP = False
+        hub.sleep(1)
+        self.mld_proc.RECV_LOOP = True
+
+
+class dummy_socket():
+    def recv(self):
+        logger.debug("dummy recv...")
+        dummydata = dispatch(type_=0, datapathid=0, data="dummy")
+        return cPickle.dumps(dummydata)
 
 
 if __name__ == '__main__':

@@ -172,14 +172,16 @@ class mld_process():
 
         # General Query
         if self.config["reguraly_query_type"] == "GQ":
+            self.logger.debug("create general query")
             mc_info = {"mc_addr": "::", "serv_ip": None}
             while self.SEND_LOOP:
                 self.send_mldquery([mc_info])
-                hub.sleep(
+                time.sleep(
                     self.config["reguraly_query_interval"] - self.QUERY_QRV)
 
         # Specific Query
         elif self.config["reguraly_query_type"] == "SQ":
+            self.logger.debug("create specific query")
             next_interval = Value(ctypes.c_bool, False)
             send_count = 1
 
@@ -187,16 +189,17 @@ class mld_process():
                 query_proc = Process(
                     target=self.wait_query_interval, args=(next_interval,))
                 query_proc.start()
-                self.logger.debug("next_interval : %s",
-                                  str(next_interval.value))
-                self.send_mldquery(self.mc_info_list,
-                                   self.config["mc_query_interval"],
-                                   next_interval)
+                self.logger.debug(
+                    "next_interval : %s", str(next_interval.value))
+                self.send_mldquery(
+                    self.mc_info_list, self.config["mc_query_interval"],
+                    next_interval)
 
                 # 定期送信クエリの送信間隔が過ぎていない場合は待ち
                 if not next_interval.value:
-                    self.logger.debug("waiting query interval(%d sec)...",
-                                      self.config["reguraly_query_interval"])
+                    self.logger.debug(
+                        "waiting query interval(%d sec)...",
+                        self.config["reguraly_query_interval"])
                     query_proc.join()
 
                 next_interval.value = False
@@ -211,7 +214,7 @@ class mld_process():
         self.logger.debug("")
         self.logger.debug("waiting %d sec...",
                           self.config["reguraly_query_interval"])
-        hub.sleep(self.config["reguraly_query_interval"])
+        time.sleep(self.config["reguraly_query_interval"])
         self.logger.debug("waited %d sec",
                           self.config["reguraly_query_interval"])
         next_interval.value = True
@@ -242,7 +245,7 @@ class mld_process():
             # 信頼性変数QRV回送信する
             for i in range(self.QUERY_QRV):
                 self.send_packet_to_sw(sendpkt)
-                hub.sleep(1)
+                time.sleep(1)
 
             # 最後のmcアドレス情報以外は送信待ちする
             if not mc_info == mc_info_list[-1]:
