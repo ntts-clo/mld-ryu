@@ -25,7 +25,7 @@ from zmq_dispatch import flow_mod_data
 from read_json import read_json
 import mld_const
 
-import pdb
+#import pdb #[breakpoint]pdb.set_trace()
 
 
 # =============================================================================
@@ -83,15 +83,12 @@ class mld_controller(app_manager.RyuApp):
             # ループフラグの設定
             self.loop_flg = True
 
-            # CHECKzmq用URL
-            if zmq_url == CHECK_URL_IPC:
+            # CHECK zmq用URL
+            if self.check_url(zmq_url):
                 # CHECK TMP FILE(SEND)
                 self.check_exists_tmp(send_path)
                 # CHECK TMP FILE(RECV)
                 self.check_exists_tmp(recv_path)
-            elif zmq_url not in CHECK_URL_TCP:
-                self.logger.error("self.config[%s]:%s", OFC_URL, zmq_url)
-                return
 
             # ZeroMQ送受信用ソケット生成
             self.cretate_scoket(zmq_url + send_path, zmq_url + recv_path)
@@ -276,14 +273,14 @@ class mld_controller(app_manager.RyuApp):
             # CHECK dispatch[type_]
             if dispatch["type_"] == mld_const.CON_FLOW_MOD:
                 flowmodlist = dispatch["data"]
-                self.logger.debug("FLOW_MOD[data]:%s", dispatch["data"])
+                self.logger.debug("FlowMod[data]:%s", dispatch["data"])
 
                 for flowmoddata in flowmodlist:
                     self.logger.debug("[flowmoddata]:%s", flowmoddata)
 
                     # CHECK dict_msg.datapathid=flowmoddata.datapathid
                     if not flowmoddata.datapathid in self.dict_msg:
-                        self.logger.info("FLOW_MOD dict_msg[dpid:%s] = None \n",
+                        self.logger.info("FlowMod dict_msg[dpid:%s] = None \n",
                                          flowmoddata.datapathid)
 
                     else:
@@ -304,7 +301,7 @@ class mld_controller(app_manager.RyuApp):
 
                 # CHECK dict_msg.datapathid=dispatch[datapathid]
                 if not dispatch["datapathid"] in self.dict_msg:
-                    self.logger.error("PACKET_OUT dict_msg[dpid:%s] = None \n",
+                    self.logger.error("PacketOut dict_msg[dpid:%s] = None \n",
                                      dispatch["datapathid"])
                     return False
 
@@ -416,6 +413,22 @@ class mld_controller(app_manager.RyuApp):
         except:
             self.logger.error("receive_from_mld. %s ",
                               traceback.print_exc())
+
+    # =========================================================================
+    # check_url
+    # =========================================================================
+    def check_url(self, zmq_url):
+        self.logger.debug("")
+
+        if zmq_url == CHECK_URL_IPC:
+            return True
+
+        elif zmq_url == CHECK_URL_TCP:
+            return False
+
+        else:
+            self.logger.error("self.config[%s]:%s", OFC_URL, zmq_url)
+            raise Exception.message("self.config[%s]:%s", OFC_URL, zmq_url)
 
     # =========================================================================
     # check_exists_tmp
