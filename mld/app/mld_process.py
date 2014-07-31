@@ -434,16 +434,16 @@ class mld_process():
             timeout = time.time() - self.config["user_time_out"]
             self.logger.debug("timeout : %f", timeout)
 
-            dummy_user_info = channel_user_info("", "", 0, 0, 0, timeout)
-            idx = self.ch_info.find(
-                self.ch_info.user_info_list, dummy_user_info, True)
+            timeout_user = channel_user_info("", "", 0, 0, 0, timeout)
+            idx = self.ch_info.find_user(timeout_user)
             self.logger.debug("idx : %s", str(idx))
             if not idx == 0:
                 for i in range(idx):
                     del_user_info = self.ch_info.user_info_list[idx - i - 1]
-                    keys = del_user_info.user_info.keys()[0]
                     self.ch_info.remove_ch_info(
-                        keys[0], keys[1], keys[2], keys[3], keys[4])
+                        del_user_info.mc_addr, del_user_info.serv_ip,
+                        del_user_info.datapathid, del_user_info.port_no,
+                        del_user_info.cid)
 
                     # TODO 削除後のQuery送信が必要か要確認
 
@@ -558,22 +558,11 @@ class mld_process():
             self.logger.debug("MODE_IS_INCLUDE")
 
             # 視聴情報のタイマ更新
-            user = self.ch_info.update_user_info_list(
+            reply_type = self.ch_info.update_user_info_list(
                 mc_addr=address, serv_ip=src,
                 datapathid=target_switch, port_no=in_port, cid=cid)
             self.logger.debug("user_info_list : %s",
                               self.ch_info.get_user_info_list())
-
-            if not user:
-                # 更新対象ユーザが存在しなかった場合は視聴情報に追加する
-                reply_type = self.ch_info.add_ch_info(
-                    mc_addr=address, serv_ip=src,
-                    datapathid=target_switch, port_no=in_port, cid=cid)
-                self.logger.debug("added self.ch_info : %s",
-                                  self.ch_info.get_channel_info())
-            else:
-                # 存在した場合はtimeの更新のみでryuへの返信はなし
-                reply_type = const.CON_REPLY_NOTHING
 
         # MODE_IS_EXCLUDE
         # CHANGE_TO_INCLUDE_MODE
