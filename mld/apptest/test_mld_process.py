@@ -11,22 +11,23 @@ import os
 import sys
 import logging
 import unittest
-import mox
 import time
 import ctypes
 import cPickle
-from nose.tools import *
+from mox import Mox, ExpectedMethodCallsError, IsA
+from nose.tools import ok_, eq_
+from nose.tools.nontrivial import raises
+from nose.plugins.attrib import attr
 from ryu.lib import hub
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from ryu.ofproto import ofproto_v1_3, inet
 from multiprocessing import Value
-from nose.plugins.attrib import attr
 hub.patch()
 
 APP_PATH = "../app/"
 sys.path.append(APP_PATH)
 from mld_process import mld_process
-from user_manage import channel_info
+# from user_manage import channel_info
 
 COMMON_PATH = "../../common/"
 sys.path.append(COMMON_PATH)
@@ -43,7 +44,6 @@ class test_mld_process():
     @classmethod
     def setup_class(cls):
         logger.debug("setup")
-        cls.mocker = mox.Mox()
 
         config = read_json(COMMON_PATH + const.CONF_FILE)
         cls.config = config.data["settings"]
@@ -68,13 +68,14 @@ class test_mld_process():
         logger.debug("teardown")
 
     def setup(self):
+        self.mocker = Mox()
         # 設定値の初期化
         self.mld_proc.ch_info.channel_info = {}
         self.mld_proc.ch_info.user_info_list = []
         self.mld_proc.config = self.config
 
-#    def teardown(self):
-#        pass
+    def teardown(self):
+        self.mocker.UnsetStubs()
 
     @attr(do=False)
     def test_init(self):
@@ -126,6 +127,7 @@ class test_mld_process():
         filedir = "/tmp/tempdir"
         filepath = filedir + "/tempfile"
         os.makedirs(filedir)
+
         self.mld_proc.check_exists_tmp(filepath)
         os.remove(filepath)
         os.rmdir(filedir)
@@ -135,6 +137,7 @@ class test_mld_process():
         # 存在しないファイルパスを指定
         filedir = "/tmp/tempdir"
         filepath = filedir + "/tempfile"
+
         self.mld_proc.check_exists_tmp(filepath)
         os.remove(filepath)
         os.rmdir(filedir)
@@ -179,6 +182,12 @@ class test_mld_process():
         self.mld_proc.config["reguraly_query_interval"] = 5
         self.mld_proc.config["mld_esw_ifname"] = "eth0"
 
+        # send_mldquery([mc_info])呼び出し確認
+        mc_info = {"mc_addr": "::", "serv_ip": None}
+        self.mocker.StubOutWithMock(self.mld_proc, "send_mldquery")
+        self.mld_proc.send_mldquery([mc_info])
+        self.mocker.ReplayAll()
+
         send_hub = hub.spawn(self.mld_proc.send_mldquery_regularly)
         # ループに入る分処理待ち
         hub.sleep(3)
@@ -189,17 +198,18 @@ class test_mld_process():
         send_hub.kill()
         self.mld_proc.SEND_LOOP = True
 
+        self.mocker.VerifyAll()
+
     @attr(do=False)
     def test_send_mldquey_regularly_sq(self):
-
         self.mld_proc.config["reguraly_query_type"] = "SQ"
-        self.mld_proc.config["reguraly_query_interval"] = 6
+        self.mld_proc.config["reguraly_query_interval"] = 3
         self.mld_proc.config["mc_query_interval"] = 1
         self.mld_proc.config["mld_esw_ifname"] = "eth0"
 
         send_hub = hub.spawn(self.mld_proc.send_mldquery_regularly)
         # ループに入る分処理待ち
-        hub.sleep(5)
+        hub.sleep(4)
         # ループを抜けさせる
         self.mld_proc.SEND_LOOP = False
         send_hub.wait()
@@ -239,8 +249,6 @@ class test_mld_process():
 
         self.mld_proc.send_mldquery(mc_info_list, wait_time)
 
-        # スタブを元に戻す
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
@@ -353,6 +361,7 @@ class test_mld_process():
         packet = eth / vln / ip6 / icmp6
         packet.serialize()
 
+        self.mld_proc.config["mld_esw_ifname"] = "eth0"
         self.mld_proc.send_packet_to_sw(packet)
 
     @attr(do=False)
@@ -365,8 +374,6 @@ class test_mld_process():
         packet = eth / vln / ip6 / icmp6
         packet.serialize()
 
-        self.mld_proc.config["mld_esw_ifname"] = "eth0"
-
         self.mld_proc.send_packet_to_ryu(packet)
 
     @attr(do=False)
@@ -375,12 +382,10 @@ class test_mld_process():
         dispatch_ = dispatch(const.CON_SWITCH_FEATURE, 1)
 
         self.mocker.StubOutWithMock(self.mld_proc, "set_switch_config")
-        self.mld_proc.set_switch_config(dispatch_.dispatch).AndReturn(0)
+        self.mld_proc.set_switch_config(dispatch_.dispatch)
         self.mocker.ReplayAll()
 
         self.mld_proc.analyse_receive_packet(dispatch_)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
@@ -393,15 +398,14 @@ class test_mld_process():
             type_=icmpv6.ICMPV6_MEMBERSHIP_QUERY, data=query)
         dispatch_ = dispatch(const.CON_PACKET_IN, 1, data=data)
 
+        # reply_proxy、check_user_timeoutの呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc, "reply_proxy")
-        self.mld_proc.reply_proxy().AndReturn(0)
+        self.mld_proc.reply_proxy()
         self.mocker.StubOutWithMock(self.mld_proc, "check_user_timeout")
-        self.mld_proc.check_user_timeout().AndReturn(0)
+        self.mld_proc.check_user_timeout()
         self.mocker.ReplayAll()
 
         self.mld_proc.analyse_receive_packet(dispatch_)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
@@ -415,15 +419,14 @@ class test_mld_process():
             type_=icmpv6.MLDV2_LISTENER_REPORT, data=report)
         dispatch_ = dispatch(const.CON_PACKET_IN, 1, data=data)
 
+        # reply_proxy、check_user_timeoutの呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc, "manage_user")
-        self.mld_proc.manage_user(dispatch_.dispatch).AndReturn(0)
+        self.mld_proc.manage_user(dispatch_.dispatch)
         self.mocker.StubOutWithMock(self.mld_proc, "check_user_timeout")
-        self.mld_proc.check_user_timeout().AndReturn(0)
+        self.mld_proc.check_user_timeout()
         self.mocker.ReplayAll()
 
         self.mld_proc.analyse_receive_packet(dispatch_)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
@@ -438,6 +441,7 @@ class test_mld_process():
         datapathid = self.mld_proc.switches[1]["datapathid"]
         dispatch_ = dispatch(const.CON_SWITCH_FEATURE, datapathid)
 
+        # flowmod_gen.initialize_flowsのスタブ化
         self.mocker.StubOutWithMock(
             self.mld_proc.flowmod_gen, "initialize_flows")
         self.mld_proc.flowmod_gen.initialize_flows(
@@ -445,11 +449,14 @@ class test_mld_process():
             pbb_isid=self.mld_proc.switch_mld_info["pbb_isid"],
             bvid=self.mld_proc.switch_mld_info["bvid"],
             ivid=self.mld_proc.switch_mld_info["ivid"]).AndReturn(0)
+
+        # send_packet_to_ryuの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+
         self.mocker.ReplayAll()
 
         self.mld_proc.set_switch_config(dispatch_)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
@@ -469,9 +476,17 @@ class test_mld_process():
         eq_(packet, actual.data)
 
     @attr(do=False)
+    @raises(ExpectedMethodCallsError)
     def test_check_user_timeout_no_user(self):
         # 視聴ユーザーがいない場合は何もしない
+
+        # time.time()が呼び出されないことを確認
+        mock_time = self.mocker.CreateMock(time)
+        mock_time.time()
+        self.mocker.ReplayAll()
+
         self.mld_proc.check_user_timeout()
+        self.mocker.VerifyAll()
 
     @attr(do=False)
     def test_check_user_timeout_no_timeout(self):
@@ -485,7 +500,12 @@ class test_mld_process():
 
         self.mld_proc.ch_info.add_ch_info(
             mc_addr, serv_ip, datapathid, port_no, cid)
+        before_size = len(self.mld_proc.ch_info.user_info_list)
+
         self.mld_proc.check_user_timeout()
+        after_size = len(self.mld_proc.ch_info.user_info_list)
+
+        eq_(before_size, after_size)
 
         # 元の値に戻す
         self.mld_proc.config["user_time_out"] = self.config["user_time_out"]
@@ -565,12 +585,12 @@ class test_mld_process():
     @attr(do=False)
     def test_reply_proxy_no_user(self):
         # 視聴情報がない場合は何もしない
-        self.mld_proc.reply_proxy()
+        actual = self.mld_proc.reply_proxy()
+        eq_(-1, actual)
 
     @attr(do=False)
     def test_reply_proxy_exists_user(self):
         # 視聴情報がある場合、視聴中のmcアドレス分p-out
-        # TODO どうやって確認するか
         mc_addr1 = "ff38::1:1"
         serv_ip = "2001::1:20"
         datapathid2 = 2
@@ -588,12 +608,18 @@ class test_mld_process():
         self.mld_proc.ch_info.add_ch_info(
             mc_addr2, serv_ip, datapathid2, port_no1, cid3)
 
+        # send_packet_to_ryuがmcアドレス分(2回)呼び出されることを確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+        self.mocker.ReplayAll()
+
         self.mld_proc.reply_proxy()
+        self.mocker.VerifyAll()
 
     @attr(do=False)
     def test_manage_user_reply_nothing(self):
         # update_user_infoがCON_REPLY_NOTHINGを返却する場合なにもしない
-        # TODO どうやって確認？
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
         types = [icmpv6.MODE_IS_INCLUDE]
@@ -615,15 +641,14 @@ class test_mld_process():
             const.CON_REPLY_NOTHING)
         self.mocker.ReplayAll()
 
-        self.mld_proc.manage_user(dispatch_)
+        actual = self.mld_proc.manage_user(dispatch_)
+        eq_(-1, actual)
 
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
     def test_manage_user_reply(self):
-        # update_user_infoがCON_REPLY_NOTHINGを返却する場合なにもしない
-        # TODO どうやって確認？
+        # update_user_infoがCON_REPLY_NOTHING以外を返却する場合はreply_to_ryuを呼び出す
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
         types = [icmpv6.MODE_IS_INCLUDE]
@@ -639,19 +664,20 @@ class test_mld_process():
 
         report = mld.records[0]
 
+        # update_user_infoがCON_REPLY_ADD_MC_GROUPを返却
         self.mocker.StubOutWithMock(self.mld_proc, "update_user_info")
         self.mld_proc.update_user_info(
             mc_addr, serv_ip, datapathid, in_port, cid, report).AndReturn(
             const.CON_REPLY_ADD_MC_GROUP)
+
+        # reply_to_ryuの呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc, "reply_to_ryu")
         self.mld_proc.reply_to_ryu(
             mc_addr, serv_ip, datapathid, in_port,
-            const.CON_REPLY_ADD_MC_GROUP).AndReturn(0)
+            const.CON_REPLY_ADD_MC_GROUP)
         self.mocker.ReplayAll()
 
         self.mld_proc.manage_user(dispatch_)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
@@ -666,6 +692,7 @@ class test_mld_process():
         mld = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
         report = mld.records[0]
 
+        # add_ch_infoの呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc.ch_info, "add_ch_info")
         self.mld_proc.ch_info.add_ch_info(
             mc_addr=mc_addr, serv_ip=serv_ip, datapathid=datapathid,
@@ -674,10 +701,7 @@ class test_mld_process():
 
         actual = self.mld_proc.update_user_info(
             mc_addr, serv_ip, datapathid, in_port, cid, report)
-
         eq_(const.CON_REPLY_NOTHING, actual)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
@@ -692,25 +716,26 @@ class test_mld_process():
         mld = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
         report = mld.records[0]
 
+        # remove_ch_infoの呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc.ch_info, "remove_ch_info")
         self.mld_proc.ch_info.remove_ch_info(
             mc_addr=mc_addr, serv_ip=serv_ip, datapathid=datapathid,
             port_no=in_port, cid=cid).AndReturn(const.CON_REPLY_NOTHING)
-        self.mocker.StubOutWithMock(self.mld_proc, "send_mldquery")
+
+        # send_mldqueryの呼び出し確認
         mc_info = {"mc_addr": mc_addr, "serv_ip": serv_ip}
-        self.mld_proc.send_mldquery([mc_info]).AndReturn(0)
+        self.mocker.StubOutWithMock(self.mld_proc, "send_mldquery")
+        self.mld_proc.send_mldquery([mc_info])
         self.mocker.ReplayAll()
 
         actual = self.mld_proc.update_user_info(
             mc_addr, serv_ip, datapathid, in_port, cid, report)
-
         eq_(const.CON_REPLY_NOTHING, actual)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
     def test_update_user_info_include_exist_user(self):
+        # 既存ユーザのMODE_IS_INCLUDEの場合
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
         datapathid = self.mld_proc.switches[1]["datapathid"]
@@ -721,6 +746,7 @@ class test_mld_process():
         mld = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
         report = mld.records[0]
 
+        # update_user_info_listの呼び出し確認がTrueを返す
         self.mocker.StubOutWithMock(
             self.mld_proc.ch_info, "update_user_info_list")
         self.mld_proc.ch_info.update_user_info_list(
@@ -730,14 +756,12 @@ class test_mld_process():
 
         actual = self.mld_proc.update_user_info(
             mc_addr, serv_ip, datapathid, in_port, cid, report)
-
         eq_(const.CON_REPLY_NOTHING, actual)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
     def test_update_user_info_include_no_user(self):
+        # 未登録ユーザのMODE_IS_INCLUDEの場合
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
         datapathid = self.mld_proc.switches[1]["datapathid"]
@@ -748,11 +772,14 @@ class test_mld_process():
         mld = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
         report = mld.records[0]
 
+        # update_user_info_listの呼び出し確認がNoneを返す
         self.mocker.StubOutWithMock(
             self.mld_proc.ch_info, "update_user_info_list")
         self.mld_proc.ch_info.update_user_info_list(
             mc_addr=mc_addr, serv_ip=serv_ip, datapathid=datapathid,
             port_no=in_port, cid=cid).AndReturn(None)
+
+        # add_ch_infoの呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc.ch_info, "add_ch_info")
         self.mld_proc.ch_info.add_ch_info(
             mc_addr=mc_addr, serv_ip=serv_ip, datapathid=datapathid,
@@ -761,10 +788,7 @@ class test_mld_process():
 
         actual = self.mld_proc.update_user_info(
             mc_addr, serv_ip, datapathid, in_port, cid, report)
-
         eq_(const.CON_REPLY_NOTHING, actual)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
@@ -780,6 +804,7 @@ class test_mld_process():
                  icmpv6.CHANGE_TO_INCLUDE_MODE,
                  icmpv6.MODE_IS_EXCLUDE]
         mld = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
+
         for report in mld.records:
             actual = self.mld_proc.update_user_info(
                 mc_addr, serv_ip, datapathid, in_port, cid, report)
@@ -787,6 +812,7 @@ class test_mld_process():
 
     @attr(do=False)
     def test_reply_to_ryu_add_mc_be(self):
+        # reply_typeがCON_REPLY_ADD_MC_GROUPの場合
         mc_addr = str(self.mc_info_list[0]["mc_addr"])
         serv_ip = str(self.mc_info_list[0]["serv_ip"])
         datapathid = self.mld_proc.switches[1]["datapathid"]
@@ -794,10 +820,12 @@ class test_mld_process():
         cid = 100
         reply_type = const.CON_REPLY_ADD_MC_GROUP
 
+        # ベストエフォートサービス
+        self.mld_proc.mc_info_list[0]["type"] = self.mld_proc.BEST_EFFORT
         self.mld_proc.ch_info.add_ch_info(
             mc_addr, serv_ip, datapathid, in_port, cid)
-        self.mld_proc.mc_info_list[0]["type"] = "BE"
 
+        # flowmod_gen.start_mgをスタブ化
         self.mocker.StubOutWithMock(self.mld_proc.flowmod_gen, "start_mg")
         self.mld_proc.flowmod_gen.start_mg(
             multicast_address=mc_addr, datapathid=datapathid,
@@ -805,69 +833,123 @@ class test_mld_process():
             ivid=self.mc_info_list[0]["ivid"],
             pbb_isid=self.mc_info_list[0]["pbb_isid"],
             bvid=4001).AndReturn(0)
+
+        # send_packet_to_ryuの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+
+        # create_mldreportの呼び出し確認
+        report_types = [icmpv6.ALLOW_NEW_SOURCES,
+                        icmpv6.CHANGE_TO_INCLUDE_MODE]
+        mld_report = self.mld_proc.create_mldreport(
+            mc_address=mc_addr, mc_serv_ip=serv_ip, report_types=report_types)
+        self.mocker.StubOutWithMock(self.mld_proc, "create_mldreport")
+        self.mld_proc.create_mldreport(
+            mc_address=mc_addr, mc_serv_ip=serv_ip,
+            report_types=report_types).AndReturn(mld_report)
+
         self.mocker.ReplayAll()
 
         self.mld_proc.reply_to_ryu(
             mc_addr, serv_ip, datapathid, in_port, reply_type)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
-        # 視聴情報,mc情報初期化
-        self.mld_proc.ch_info.channel_info = {}
-        self.mld_proc.ch_info.user_info_list = []
         self.mld_proc.mc_info_list[0]["type"] = self.mc_info_list[0]["type"]
 
     @attr(do=False)
-    def test_reply_to_ryu_add_sw(self):
+    @raises(ExpectedMethodCallsError)
+    def test_reply_to_ryu_add_mc_qa(self):
+        # reply_typeがCON_REPLY_ADD_MC_GROUPの場合
         mc_addr = str(self.mc_info_list[0]["mc_addr"])
         serv_ip = str(self.mc_info_list[0]["serv_ip"])
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
+        reply_type = const.CON_REPLY_ADD_MC_GROUP
+
+        # 品質保証サービス
+        self.mld_proc.mc_info_list[0]["type"] = self.mld_proc.QUALITY_ASSURANCE
+        self.mld_proc.ch_info.add_ch_info(
+            mc_addr, serv_ip, datapathid, in_port, cid)
+
+        # flowmod_gen.start_mgをスタブ化
+        self.mocker.StubOutWithMock(self.mld_proc.flowmod_gen, "start_mg")
+        self.mld_proc.flowmod_gen.start_mg(
+            multicast_address=mc_addr, datapathid=datapathid,
+            portno=in_port, mc_ivid=self.mld_proc.switch_mc_info["ivid"],
+            ivid=self.mc_info_list[0]["ivid"],
+            pbb_isid=self.mc_info_list[0]["pbb_isid"],
+            bvid=4001).AndReturn(0)
+
+        # send_packet_to_ryuの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+
+        # create_mldreportが呼び出されないことの確認
+        self.mocker.StubOutWithMock(self.mld_proc, "create_mldreport")
+        self.mld_proc.create_mldreport(IsA(str), IsA(str), IsA(list))
+
+        self.mocker.ReplayAll()
+
+        self.mld_proc.reply_to_ryu(
+            mc_addr, serv_ip, datapathid, in_port, reply_type)
+        self.mocker.VerifyAll()
+
+        self.mld_proc.mc_info_list[0]["type"] = self.mc_info_list[0]["type"]
+
+    @attr(do=False)
+    def test_reply_to_ryu_add_sw(self):
+        # reply_typeがCON_REPLY_ADD_SWITCHの場合
+        mc_addr = str(self.mc_info_list[0]["mc_addr"])
+        serv_ip = str(self.mc_info_list[0]["serv_ip"])
+        datapathid = self.mld_proc.switches[1]["datapathid"]
+        in_port = 1
         reply_type = const.CON_REPLY_ADD_SWITCH
 
-        self.mld_proc.ch_info.channel_info = {}
-        self.mld_proc.ch_info.user_info_list = []
-
+        # flowmod_gen.add_datapathをスタブ化
         self.mocker.StubOutWithMock(self.mld_proc.flowmod_gen, "add_datapath")
         self.mld_proc.flowmod_gen.add_datapath(
             multicast_address=mc_addr, datapathid=datapathid,
             portno=in_port, ivid=self.mc_info_list[0]["ivid"],
             pbb_isid=self.mc_info_list[0]["pbb_isid"],
             bvid=-1).AndReturn(0)
+
+        # send_packet_to_ryuの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+
         self.mocker.ReplayAll()
 
         self.mld_proc.reply_to_ryu(
             mc_addr, serv_ip, datapathid, in_port, reply_type)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
     def test_reply_to_ryu_add_port(self):
+        # reply_typeがCON_REPLY_ADD_PORTの場合
         mc_addr = str(self.mc_info_list[0]["mc_addr"])
         serv_ip = str(self.mc_info_list[0]["serv_ip"])
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
-        cid = 100
         reply_type = const.CON_REPLY_ADD_PORT
 
-        self.mld_proc.ch_info.channel_info = {}
-        self.mld_proc.ch_info.user_info_list = []
-
+        # flowmod_gen.add_portをスタブ化
         self.mocker.StubOutWithMock(self.mld_proc.flowmod_gen, "add_port")
         self.mld_proc.flowmod_gen.add_port(
             multicast_address=mc_addr, datapathid=datapathid,
             portno=in_port, ivid=self.mc_info_list[0]["ivid"],
             pbb_isid=self.mc_info_list[0]["pbb_isid"],
             bvid=-1).AndReturn(0)
+
+        # send_packet_to_ryuの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+
         self.mocker.ReplayAll()
 
         self.mld_proc.reply_to_ryu(
             mc_addr, serv_ip, datapathid, in_port, reply_type)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
@@ -879,10 +961,25 @@ class test_mld_process():
         cid = 100
         reply_type = const.CON_REPLY_DEL_MC_GROUP
 
+        # ベストエフォートサービス
+        self.mld_proc.mc_info_list[0]["type"] = self.mld_proc.BEST_EFFORT
         self.mld_proc.ch_info.add_ch_info(
             mc_addr, serv_ip, datapathid, in_port, cid)
-        self.mld_proc.mc_info_list[0]["type"] = "BE"
 
+        # create_mldreportの呼び出し確認
+        report_types = [icmpv6.BLOCK_OLD_SOURCES]
+        mld_report = self.mld_proc.create_mldreport(
+            mc_address=mc_addr, mc_serv_ip=serv_ip, report_types=report_types)
+        self.mocker.StubOutWithMock(self.mld_proc, "create_mldreport")
+        self.mld_proc.create_mldreport(
+            mc_address=mc_addr, mc_serv_ip=serv_ip,
+            report_types=report_types).AndReturn(mld_report)
+
+        # send_packet_to_ryuの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+
+        # flowmod_gen.remove_mgをスタブ化
         self.mocker.StubOutWithMock(self.mld_proc.flowmod_gen, "remove_mg")
         self.mld_proc.flowmod_gen.remove_mg(
             multicast_address=mc_addr, datapathid=datapathid,
@@ -890,31 +987,68 @@ class test_mld_process():
             ivid=self.mc_info_list[0]["ivid"],
             pbb_isid=self.mc_info_list[0]["pbb_isid"],
             bvid=4001).AndReturn(0)
+
+        # send_packet_to_ryuの呼び出し確認
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+
         self.mocker.ReplayAll()
 
         self.mld_proc.reply_to_ryu(
             mc_addr, serv_ip, datapathid, in_port, reply_type)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
-        # 視聴情報,mc情報初期化
-        self.mld_proc.ch_info.channel_info = {}
-        self.mld_proc.ch_info.user_info_list = []
         self.mld_proc.mc_info_list[0]["type"] = self.mc_info_list[0]["type"]
 
     @attr(do=False)
-    def test_reply_to_ryu_del_sw(self):
+    @raises(ExpectedMethodCallsError)
+    def test_reply_to_ryu_del_mc_qa(self):
         mc_addr = str(self.mc_info_list[0]["mc_addr"])
         serv_ip = str(self.mc_info_list[0]["serv_ip"])
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
+        reply_type = const.CON_REPLY_DEL_MC_GROUP
+
+        # 品質保証サービス
+        self.mld_proc.mc_info_list[0]["type"] = self.mld_proc.QUALITY_ASSURANCE
+        self.mld_proc.ch_info.add_ch_info(
+            mc_addr, serv_ip, datapathid, in_port, cid)
+
+        # create_mldreportが呼び出されないことの確認
+        self.mocker.StubOutWithMock(self.mld_proc, "create_mldreport")
+        self.mld_proc.create_mldreport(IsA(str), IsA(str), IsA(list))
+
+        # flowmod_gen.remove_mgをスタブ化
+        self.mocker.StubOutWithMock(self.mld_proc.flowmod_gen, "remove_mg")
+        self.mld_proc.flowmod_gen.remove_mg(
+            multicast_address=mc_addr, datapathid=datapathid,
+            portno=in_port, mc_ivid=self.mld_proc.switch_mc_info["ivid"],
+            ivid=self.mc_info_list[0]["ivid"],
+            pbb_isid=self.mc_info_list[0]["pbb_isid"],
+            bvid=4001).AndReturn(0)
+
+        # send_packet_to_ryuの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+
+        self.mocker.ReplayAll()
+
+        self.mld_proc.reply_to_ryu(
+            mc_addr, serv_ip, datapathid, in_port, reply_type)
+        self.mocker.VerifyAll()
+
+        self.mld_proc.mc_info_list[0]["type"] = self.mc_info_list[0]["type"]
+
+    @attr(do=False)
+    def test_reply_to_ryu_del_sw(self):
+        # reply_typeがCON_REPLY_DEL_SWITCHの場合
+        mc_addr = str(self.mc_info_list[0]["mc_addr"])
+        serv_ip = str(self.mc_info_list[0]["serv_ip"])
+        datapathid = self.mld_proc.switches[1]["datapathid"]
+        in_port = 1
         reply_type = const.CON_REPLY_DEL_SWITCH
 
-        self.mld_proc.ch_info.channel_info = {}
-        self.mld_proc.ch_info.user_info_list = []
-
+        # flowmod_gen.remove_datapathをスタブ化
         self.mocker.StubOutWithMock(
             self.mld_proc.flowmod_gen, "remove_datapath")
         self.mld_proc.flowmod_gen.remove_datapath(
@@ -922,38 +1056,42 @@ class test_mld_process():
             portno=in_port, ivid=self.mc_info_list[0]["ivid"],
             pbb_isid=self.mc_info_list[0]["pbb_isid"],
             bvid=-1).AndReturn(0)
+
+        # send_packet_to_ryuの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+
         self.mocker.ReplayAll()
 
         self.mld_proc.reply_to_ryu(
             mc_addr, serv_ip, datapathid, in_port, reply_type)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
     def test_reply_to_ryu_del_port(self):
+        # reply_typeがCON_REPLY_DEL_PORTの場合
         mc_addr = str(self.mc_info_list[0]["mc_addr"])
         serv_ip = str(self.mc_info_list[0]["serv_ip"])
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
-        cid = 100
         reply_type = const.CON_REPLY_DEL_PORT
 
-        self.mld_proc.ch_info.channel_info = {}
-        self.mld_proc.ch_info.user_info_list = []
-
+        # flowmod_gen.remove_portをスタブ化
         self.mocker.StubOutWithMock(self.mld_proc.flowmod_gen, "remove_port")
         self.mld_proc.flowmod_gen.remove_port(
             multicast_address=mc_addr, datapathid=datapathid,
             portno=in_port, ivid=self.mc_info_list[0]["ivid"],
             pbb_isid=self.mc_info_list[0]["pbb_isid"],
             bvid=-1).AndReturn(0)
+
+        # send_packet_to_ryuの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+
         self.mocker.ReplayAll()
 
         self.mld_proc.reply_to_ryu(
             mc_addr, serv_ip, datapathid, in_port, reply_type)
-
-        self.mocker.UnsetStubs()
         self.mocker.VerifyAll()
 
     @attr(do=False)
@@ -967,6 +1105,41 @@ class test_mld_process():
         self.mld_proc.RECV_LOOP = False
         hub.sleep(1)
         self.mld_proc.RECV_LOOP = True
+
+
+# class test_user_manage():
+#
+#    mc_addr1 = "ff38::1:1"
+#    mc_addr2 = "ff38::1:2"
+#    serv_ip = "2001::1:20"
+#    datapathid1 = 276595101184
+#    datapathid2 = 276596903168
+#    in_port1 = 1
+#    in_port2 = 2
+#
+#    # このクラスのテストケースを実行する前に１度だけ実行する
+#    @classmethod
+#    def setup_class(cls):
+#        logger.debug("setup")
+#        cls.mocker = Mox()
+#        cls.mld_proc = mld_process()
+#
+#    # このクラスのテストケースをすべて実行した後に１度だけ実行する
+#    @classmethod
+#    def teardown_class(cls):
+#        logger.debug("teardown")
+#
+#    def setup(self):
+#        # 設定値の初期化
+#        self.mld_proc.ch_info.channel_info = {}
+#        self.mld_proc.ch_info.user_info_list = []
+#
+#    def teardown(self):
+#        pass
+#
+#    @attr(do=False)
+#    def test_add_user_01(self):
+#        pass
 
 
 class dummy_socket():
