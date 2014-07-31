@@ -435,9 +435,11 @@ class mld_process():
             self.logger.debug("timeout : %f", timeout)
 
             timeout_user = channel_user_info("", "", 0, 0, 0, timeout)
-            idx = self.ch_info.find_user(timeout_user)
+            # タイムアウトとなる時間を持ったユーザーを挿入する箇所を取得
+            idx = self.ch_info.find_insert_point(timeout_user)
             self.logger.debug("idx : %s", str(idx))
             if not idx == 0:
+                # 挿入箇所がuser_info_listの先頭でない場合、それ以前のユーザーを削除
                 for i in range(idx):
                     del_user_info = self.ch_info.user_info_list[idx - i - 1]
                     self.ch_info.remove_ch_info(
@@ -532,7 +534,7 @@ class mld_process():
         # ALLOW_NEW_SOURCES：視聴情報に追加
         if report.type_ == icmpv6.ALLOW_NEW_SOURCES:
             self.logger.debug("ALLOW_NEW_SOURCES")
-            reply_type = self.ch_info.add_ch_info(
+            reply_type = self.ch_info.update_ch_info(
                 mc_addr=address, serv_ip=src,
                 datapathid=target_switch, port_no=in_port, cid=cid)
             self.logger.debug("reply_type : %s", reply_type)
@@ -558,7 +560,7 @@ class mld_process():
             self.logger.debug("MODE_IS_INCLUDE")
 
             # 視聴情報のタイマ更新
-            reply_type = self.ch_info.update_user_info_list(
+            reply_type = self.ch_info.update_ch_info(
                 mc_addr=address, serv_ip=src,
                 datapathid=target_switch, port_no=in_port, cid=cid)
             self.logger.debug("user_info_list : %s",
