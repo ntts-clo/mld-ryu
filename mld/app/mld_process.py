@@ -13,8 +13,9 @@ from scapy import packet as scapy_packet
 from eventlet import patcher
 from multiprocessing import Process, Value
 import os
+import traceback
 import logging
-import logging.config
+#import logging.config
 import cPickle
 import zmq
 import sys
@@ -31,6 +32,12 @@ from icmpv6_extend import icmpv6_extend
 from zmq_dispatch import dispatch, packet_out_data
 from read_json import read_json
 import mld_const as const
+
+CHECK_URL_IPC = "ipc://"
+CHECK_URL_TCP = "tcp://"
+MLD_URL = "mld_url"
+MLD_SEND = "mld_send_zmq"
+MLD_RECV = "mld_recv_zmq"
 
 
 # ======================================================================
@@ -58,72 +65,89 @@ class mld_process():
     org_thread = patcher.original("threading")
     org_thread_time = patcher.original("time")
 
-    CHECK_URL_IPC = "ipc://"
-
     def __init__(self):
-        # ロガーの設定
-        logging.config.fileConfig(COMMON_PATH + const.LOG_CONF,
-                                  disable_existing_loggers=False)
-        self.logger = logging.getLogger(__name__)
+        try:
+            # ロガーの設定
+            logging.config.fileConfig(COMMON_PATH + const.LOG_CONF,
+                                      disable_existing_loggers=False)
+            self.logger = logging.getLogger(__name__)
+            self.logger.debug("")
+
+            # ループフラグの設定
+            self.loop_flg = True
+
+            # 視聴情報初期化
+            self.ch_info = channel_info()
+
+            # 設定情報読み込み
+            config = read_json(COMMON_PATH + const.CONF_FILE)
+            self.logger.debug("config_info:%s", str(config.data))
+            self.config = config.data["settings"]
+
+            zmq_url = self.config[MLD_URL]
+            send_path = self.config[MLD_SEND]
+            recv_path = self.config[MLD_RECV]
+
+            # アドレス情報読み込み
+            self.addressinfo = []
+            for line in open(COMMON_PATH + const.ADDRESS_INFO, "r"):
+                if line[0] == "#":
+                    continue
+                else:
+                    columns = list(line[:-1].split(","))
+                    for column in columns:
+                        self.addressinfo.append(column)
+            self.logger.debug("addressinfo:%s", str(self.addressinfo))
+
+            # スイッチ情報読み込み
+            switches = read_json(COMMON_PATH + const.SWITCH_INFO)
+            self.logger.debug("switch_info:%s", str(switches.data))
+            self.switch_mld_info = switches.data["switch_mld_info"]
+            self.switch_mc_info = switches.data["switch_mc_info"]
+            self.switches = switches.data["switches"]
+            self.edge_switch = self.switches[0]
+
+            # マルチキャスト情報読み込み
+            mc_info = read_json(COMMON_PATH + const.MULTICAST_INFO)
+            self.logger.debug("mc_info:%s", str(mc_info.data))
+            self.mc_info_list = mc_info.data["mc_info"]
+
+            # bvidパターン読み込み
+            bvid_variation = read_json(COMMON_PATH + const.BVID_VARIATION)
+            self.logger.debug("bvid_variation:%s", str(bvid_variation.data))
+            self.bvid_variation = bvid_variation.data["bvid_variation"]
+
+            # ZeroMQ送受信用設定
+            if self.check_url(zmq_url):
+                # CHECK TMP FILE(SEND)
+                self.check_exists_tmp(send_path)
+                # CHECK TMP FILE(RECV)
+                self.check_exists_tmp(recv_path)
+
+            # ZeroMQ送受信用ソケット生成
+            self.cretate_scoket(zmq_url + send_path, zmq_url + recv_path)
+
+            # Flowmod生成用インスタンス
+            self.flowmod_gen = flow_mod_generator(self.switches)
+
+        except:
+            self.logger.error("__init__. %s ", traceback.print_exc())
+
+    # =========================================================================
+    # check_url
+    # =========================================================================
+    def check_url(self, zmq_url):
         self.logger.debug("")
 
-        # ループフラグの設定
-        self.loop_flg = True
+        if zmq_url == CHECK_URL_IPC:
+            return True
 
-        # 視聴情報初期化
-        self.ch_info = channel_info()
+        elif zmq_url == CHECK_URL_TCP:
+            return False
 
-        # 設定情報読み込み
-        config = read_json(COMMON_PATH + const.CONF_FILE)
-        self.logger.info("config_info : %s", str(config.data))
-        self.config = config.data["settings"]
-
-        zmq_url = self.config["mld_url"]
-        send_path = self.config["mld_send_zmq"]
-        recv_path = self.config["mld_recv_zmq"]
-
-        # アドレス情報読み込み
-        self.addressinfo = []
-        for line in open(COMMON_PATH + const.ADDRESS_INFO, "r"):
-            if line[0] == "#":
-                continue
-            else:
-                columns = list(line[:-1].split(","))
-                for column in columns:
-                    self.addressinfo.append(column)
-        self.logger.info("addressinfo : %s", str(self.addressinfo))
-
-        # スイッチ情報読み込み
-        switches = read_json(COMMON_PATH + const.SWITCH_INFO)
-        self.logger.info("switch_info : %s", str(switches.data))
-        self.switch_mld_info = switches.data["switch_mld_info"]
-        self.switch_mc_info = switches.data["switch_mc_info"]
-        self.switches = switches.data["switches"]
-        self.edge_switch = self.switches[0]
-
-        # マルチキャスト情報読み込み
-        mc_info = read_json(COMMON_PATH + const.MULTICAST_INFO)
-        self.logger.info("mc_info : %s", str(mc_info.data))
-        self.mc_info_list = mc_info.data["mc_info"]
-
-        # bvidパターン読み込み
-        bvid_variation = read_json(COMMON_PATH + const.BVID_VARIATION)
-        self.logger.info("bvid_variation : %s", str(bvid_variation.data))
-        self.bvid_variation = bvid_variation.data["bvid_variation"]
-
-        # ZeroMQ送受信用設定
-
-        if zmq_url == self.CHECK_URL_IPC:
-            # CHECK TMP FILE(SEND)
-            self.check_exists_tmp(send_path)
-            # CHECK TMP FILE(RECV)
-            self.check_exists_tmp(recv_path)
-
-        # ZeroMQ送受信用ソケット生成
-        self.cretate_scoket(zmq_url + send_path, zmq_url + recv_path)
-
-        # Flowmod生成用インスタンス
-        self.flowmod_gen = flow_mod_generator(self.switches)
+        else:
+            self.logger.error("self.config[%s]:%s", MLD_URL, zmq_url)
+            raise Exception.message("self.config[%s]:%s", MLD_URL, zmq_url)
 
     # ==================================================================
     # check_exists_tmp
@@ -132,6 +156,7 @@ class mld_process():
         self.logger.debug("")
 
         if os.path.exists(filename):
+            self.logger.info("[tmp filename]:%s", filename)
             return
 
         else:
@@ -140,13 +165,13 @@ class mld_process():
                 f = open(filename, "w")
                 f.write("")
                 f.close()
-                self.logger.info("create file[%s]", filename)
+                self.logger.info("create [file]:%s", filename)
             else:
                 os.makedirs(dirpath)
                 f = open(filename, "w")
                 f.write("")
                 f.close()
-                self.logger.info("create dir[%s], file[%s]",
+                self.logger.info("create [dir]:%s, [file]:%s",
                                  dirpath, filename)
 
     # =========================================================================
@@ -160,13 +185,13 @@ class mld_process():
         # SEND SOCKET CREATE
         self.send_sock = ctx.socket(zmq.PUB)
         self.send_sock.bind(sendpath)
-        self.logger.debug("[SendSocket] %s", sendpath)
+        self.logger.info("[SendSocket]:%s", sendpath)
 
         # RECV SOCKET CREATE
         self.recv_sock = ctx.socket(zmq.SUB)
         self.recv_sock.connect(recvpath)
         self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
-        self.logger.debug("[RecvSocket] %s", recvpath)
+        self.logger.info("[RecvSocket]:%s", recvpath)
 
     # ==================================================================
     # send_mldquery_regularly
@@ -334,7 +359,7 @@ class mld_process():
 
         # send of scapy
         sendrecv.sendp(sendpkt, iface=self.config["mld_esw_ifname"])
-        self.logger.debug("sent 1 packet to switch.")
+        self.logger.info("sent 1 packet to switch.")
 
     # ==================================================================
     # send_packet_to_ryu
@@ -344,41 +369,48 @@ class mld_process():
 
         # send of zeromq
         self.send_sock.send(cPickle.dumps(packet, protocol=0))
-        self.logger.debug("sent 1 packet to ryu.")
+        self.logger.info("sent 1 packet to ryu.")
 
     # ==================================================================
     # analyse_receive_packet
     # ==================================================================
     def analyse_receive_packet(self, recvpkt):
         self.logger.debug("")
-        dispatch_ = recvpkt.dispatch
-        self.logger.debug("received [type_]: %s", str(dispatch_["type_"]))
-        self.logger.debug("received [data]: %s", str(dispatch_["data"]))
-        receive_type = dispatch_["type_"]
 
-        if receive_type == const.CON_SWITCH_FEATURE:
-            self.set_switch_config(dispatch_)
+        try:
+            dispatch_ = recvpkt.dispatch
+            self.logger.debug("received [type_]: %s", str(dispatch_["type_"]))
+            self.logger.debug("received [data]: %s", str(dispatch_["data"]))
+            receive_type = dispatch_["type_"]
 
-        elif receive_type == const.CON_PACKET_IN:
-            pkt_icmpv6 = dispatch_["data"]
-            self.logger.debug("pkt_icmpv6 : " + str(pkt_icmpv6))
+            if receive_type == const.CON_SWITCH_FEATURE:
+                self.set_switch_config(dispatch_)
 
-            # MLDv2 Query
-            if pkt_icmpv6.type_ == icmpv6.MLD_LISTENER_QUERY:
-                self.logger.debug("MLDv2 Query : %s", str(pkt_icmpv6.data))
-                self.reply_proxy()
+            elif receive_type == const.CON_PACKET_IN:
+                pkt_icmpv6 = dispatch_["data"]
+                self.logger.debug("pkt_icmpv6 : " + str(pkt_icmpv6))
 
-            # MLDv2 Report
-            if pkt_icmpv6.type_ == icmpv6.MLDV2_LISTENER_REPORT:
-                self.logger.debug("MLDv2 Report : %s",
-                                  str(pkt_icmpv6.data))
-                self.manage_user(dispatch_)
+                # MLDv2 Query
+                if pkt_icmpv6.type_ == icmpv6.MLD_LISTENER_QUERY:
+                    self.logger.debug("MLDv2 Query : %s", str(pkt_icmpv6.data))
+                    self.reply_proxy()
 
-            # タイムアウトチェック
-            self.check_user_timeout()
+                # MLDv2 Report
+                if pkt_icmpv6.type_ == icmpv6.MLDV2_LISTENER_REPORT:
+                    self.logger.debug("MLDv2 Report : %s",
+                                      str(pkt_icmpv6.data))
+                    self.manage_user(dispatch_)
 
-        else:
-            self.logger.debug("received type : %s", dispatch_["type_"])
+                # タイムアウトチェック
+                self.check_user_timeout()
+
+            else:
+                self.logger.error("dispatch[type_]:Not Exist(%s) \n",
+                                 dispatch_["type_"])
+
+        except:
+            self.logger.error("analyse_receive_packet. %s ",
+                              traceback.print_exc())
 
     # ==================================================================
     # set_switch_config

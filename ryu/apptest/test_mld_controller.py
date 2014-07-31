@@ -16,7 +16,7 @@
 # coverage run test_mld_controller.py（テストコードの実行/計測)
 # coverage report（カバレッジの計測結果の表示)
 # coverage html（HTMLレポート作成)
-
+import pdb
 import nose
 import os
 import logging
@@ -56,7 +56,8 @@ from icmpv6_extend import icmpv6_extend
 from zmq_dispatch import dispatch
 from zmq_dispatch import flow_mod_data, packet_out_data
 from read_json import read_json
-
+from ryu.lib import hub
+hub.patch()
 
 #from common.mld_const import mld_const
 import mld_const
@@ -105,9 +106,9 @@ class test_mld_controller():
     # 各設定ファイルの読み込み
     BASEPATH = os.path.dirname(os.path.abspath(__file__))
     MULTICAST_SERVICE_INFO = os.path.normpath(
-        os.path.join(BASEPATH, "../../mld/app/multicast_service_info.csv"))
+        os.path.join(BASEPATH, COMMON_PATH + "multicast_service_info.csv"))
     ADDRESS_INFO = os.path.normpath(
-        os.path.join(BASEPATH, "../../mld/app/address_info.csv"))
+        os.path.join(BASEPATH, COMMON_PATH + "address_info.csv"))
     addressinfo = []
 
     logger.debug(BASEPATH)
@@ -195,7 +196,6 @@ class test_mld_controller():
         ok_(self.mld_ctrl.send_sock)
         ok_(self.mld_ctrl.recv_sock)
 
-
     def test_analyse_receive_packet_Success001(self):
         logger.debug("test_analyse_receive_packet_Success001")
         # mld_controller.analyse_receive_packet(self, recvpkt):
@@ -224,7 +224,8 @@ class test_mld_controller():
 
         # VLAN
         vln = vlan.vlan(vid=100, ethertype=ether.ETH_TYPE_IPV6)
-        #vln = vlan.vlan(vid=self.config["c_tag_id"], ethertype=ether.ETH_TYPE_IPV6)
+        #vln = vlan.vlan(vid=self.config["c_tag_id"],
+        #ethertype=ether.ETH_TYPE_IPV6)
 
         # IPV6 with Hop-By-Hop
         ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6, data=[
@@ -278,12 +279,13 @@ class test_mld_controller():
         self.mld_ctrl.send_msg_to_packetout(ev.msg, packet).AndReturn(0)
 
         #【実行】
-        #self.mocker.ReplayAll()
+        self.mocker.ReplayAll()
         result = self.mld_ctrl.analyse_receive_packet(packet)
 
         # 【結果】
         #self.mocker.VerifyAll()
-        print("result %s", str(result))
+        logger.debug("test_analyse_receive_packet_Success001 [result] %s",
+                     str(result))
         assert_not_equal(result, False)
 
     def test_analyse_receive_packet_Success002(self):
@@ -331,7 +333,8 @@ class test_mld_controller():
                                 data=flowmoddatalist)
 
         # モック作成
-        self.mocker.StubOutWithMock(self.mld_ctrl, "send_msg_to_barrier_request")
+        self.mocker.StubOutWithMock(self.mld_ctrl,
+                                    "send_msg_to_barrier_request")
         self.mld_ctrl.send_msg_to_barrier_request(ev.msg).AndReturn(0)
 
         #【実行】
@@ -340,7 +343,8 @@ class test_mld_controller():
 
         # 【結果】
         self.mocker.VerifyAll()
-        print("result %s", str(result))
+        logger.debug("test_analyse_receive_packet_Success002 [result] %s",
+                     str(result))
         assert_not_equal(result, False)
 
     def test_analyse_receive_packet_Success003(self):
@@ -397,7 +401,8 @@ class test_mld_controller():
                                 data=flowmoddatalist)
 
         # モック作成
-        self.mocker.StubOutWithMock(self.mld_ctrl, "send_msg_to_barrier_request")
+        self.mocker.StubOutWithMock(self.mld_ctrl,
+                                    "send_msg_to_barrier_request")
         self.mld_ctrl.send_msg_to_barrier_request(ev.msg).AndReturn(0)
 
         #【実行】
@@ -406,7 +411,8 @@ class test_mld_controller():
 
         # 【結果】
         self.mocker.VerifyAll()
-        print("result %s", str(result))
+        logger.debug("test_analyse_receive_packet_Success003 [result] %s",
+                     str(result))
         assert_not_equal(result, False)
 
     def test_analyse_receive_packet_Failure001(self):
@@ -431,7 +437,8 @@ class test_mld_controller():
         result = self.mld_ctrl.analyse_receive_packet(packet)
 
         #【結果】
-        print("result %s", str(result))
+        logger.debug("test_analyse_receive_packet_Failure001 [result] %s",
+                     str(result))
         assert_equal(result, False)
 
     def test_analyse_receive_packet_Failure002(self):
@@ -462,7 +469,8 @@ class test_mld_controller():
 
         # VLAN
         vln = vlan.vlan(vid=100, ethertype=ether.ETH_TYPE_IPV6)
-        #vln = vlan.vlan(vid=self.config["c_tag_id"], ethertype=ether.ETH_TYPE_IPV6)
+        #vln = vlan.vlan(vid=self.config["c_tag_id"],
+        #ethertype=ether.ETH_TYPE_IPV6)
 
         # IPV6 with Hop-By-Hop
         ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6, data=[
@@ -499,8 +507,53 @@ class test_mld_controller():
         result = self.mld_ctrl.analyse_receive_packet(packet)
 
         #【結果】
-        print("result %s", str(result))
+        logger.debug("test_analyse_receive_packet_Failure002 [result] %s",
+                     str(result))
         assert_equal(result, False)
+
+    def test_analyse_receive_packet_Failure003(self):
+        # mld_controller.analyse_receive_packet(self, recvpkt):
+        logger.debug("test_analyse_receive_packet_Failure003")
+        """
+        概要：zmqにてmld_plocessより受信したpacketを検証し処理を振り分ける
+        条件：例外が発生する様packetにNoneを設定し、実行する
+        結果：Exceptionが発生すること
+        """
+        try:
+            #【前処理】
+            # DummyDatapathを生成
+            datapath = _Datapath()
+            # DummyDatapathidを設定
+            datapath.id = 1
+            datapath.xid = 999
+
+            # dict_msgの作成
+            featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
+            ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
+            self.mld_ctrl.dict_msg[datapath.id] = ev.msg
+
+            switches = read_json(COMMON_PATH + "switch_info.json")
+            self.switch_mld_info = switches.data["switch_mld_info"]
+            self.switch_mc_info = switches.data["switch_mc_info"]
+            self.switches = switches.data["switches"]
+            self.edge_switch = self.switches[0]
+
+            packet = None
+
+            # モック作成
+            self.mocker.StubOutWithMock(self.mld_ctrl, "send_msg_to_packetout")
+            self.mld_ctrl.send_msg_to_packetout(ev.msg, packet).AndReturn(0)
+
+            #【実行】
+            #self.mocker.ReplayAll()
+            self.mld_ctrl.analyse_receive_packet(packet)
+
+        except Exception as e:
+            # 【結果】
+            logger.debug("test_analyse_receive_packet_Failure003[Exception]%s",
+                         e)
+            assert_raises(Exception, e)
+        return
 
     def test_create_flow_mod_Success001(self):
         # mld_controller.create_flow_mod(self, datapath, flowmoddata):
@@ -525,15 +578,21 @@ class test_mld_controller():
 
         # DummyFLOW_MODのデータを作成
         flowmoddata = flow_mod_data(datapathid=datapath.id,
-                                    table_id=ch_table_id, command=ch_command, priority=ch_priority,
+                                    table_id=ch_table_id, command=ch_command,
+                                    priority=ch_priority,
                                     out_port=ch_out_port,
                                     out_group=ch_out_group,
                                     match=0,
                                     instructions=[])
 
-        ofp_match = ofproto_v1_3_parser.OFPMatch(eth_type=ether.ETH_TYPE_IPV6, ip_proto=inet.IPPROTO_ICMPV6)
-        actions = [ofproto_v1_3_parser.OFPActionOutput(ofproto_v1_3.OFPP_CONTROLLER, ofproto_v1_3.OFPCML_NO_BUFFER)]
-        instructions = [ofproto_v1_3_parser.OFPInstructionActions(ofproto_v1_3.OFPIT_APPLY_ACTIONS, actions)]
+        ofp_match = ofproto_v1_3_parser.OFPMatch(eth_type=ether.ETH_TYPE_IPV6,
+                                                 ip_proto=inet.IPPROTO_ICMPV6)
+        actions = [ofproto_v1_3_parser.OFPActionOutput(
+                                            ofproto_v1_3.OFPP_CONTROLLER,
+                                            ofproto_v1_3.OFPCML_NO_BUFFER)]
+        instructions = [ofproto_v1_3_parser.OFPInstructionActions(
+                                            ofproto_v1_3.OFPIT_APPLY_ACTIONS,
+                                            actions)]
         flowmoddata.match = ofp_match
         flowmoddata.instructions = instructions
 
@@ -542,12 +601,12 @@ class test_mld_controller():
 
         #【結果】
         # 結果確認用flowmoddata作成
-        ch_match = ofproto_v1_3_parser.OFPMatch(eth_type=ether.ETH_TYPE_IPV6, ip_proto=inet.IPPROTO_ICMPV6)
-        ch_actions = [ofproto_v1_3_parser.OFPActionOutput(ofproto_v1_3.OFPP_CONTROLLER, ofproto_v1_3.OFPCML_NO_BUFFER)]
-        ch_instructions = [ofproto_v1_3_parser.OFPInstructionActions(ofproto_v1_3.OFPIT_APPLY_ACTIONS, ch_actions)]
+        ch_match = ofproto_v1_3_parser.OFPMatch(eth_type=ether.ETH_TYPE_IPV6,
+                                                ip_proto=inet.IPPROTO_ICMPV6)
 
         # 結果確認
-        print("result %s", result)
+        logger.debug("test_create_flow_mod_Success001 [result] %s", result)
+
         assert_equal(result.table_id, ch_table_id)
         assert_equal(result.command, ch_command)
         assert_equal(result.priority, ch_priority)
@@ -584,7 +643,8 @@ class test_mld_controller():
 
         # VLAN
         vln = vlan.vlan(vid=100, ethertype=ether.ETH_TYPE_IPV6)
-        #vln = vlan.vlan(vid=self.config["c_tag_id"], ethertype=ether.ETH_TYPE_IPV6)
+        #vln = vlan.vlan(vid=self.config["c_tag_id"],
+        #ethertype=ether.ETH_TYPE_IPV6)
 
         # IPV6 with Hop-By-Hop
         ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6, data=[
@@ -632,10 +692,11 @@ class test_mld_controller():
         #【実行】
         result = self.mld_ctrl.create_packet_out(datapath, packetdata)
         #【結果】
+        logger.debug("test_create_packet_out_Success001 [result] %s",
+                     result.data)
         # 結果確認用flowmoddata作成
 
         # 結果確認
-        print("result %s", result)
 
     def test_send_to_mld_Success001(self):
         # mld_controller.send_to_mld
@@ -659,7 +720,7 @@ class test_mld_controller():
         result = self.mld_ctrl.send_to_mld(dispatch_)
 
         # 【結果】
-        print("result %s", result)
+        logger.debug("test_send_to_mld_Success001 [result] %s", str(result))
         assert_equal(result, None)
 
     def test_receive_from_mld_Success001(self):
@@ -679,11 +740,59 @@ class test_mld_controller():
         # DummyDatapathidを設定
         datapath.id = 1
         datapath.xid = 999
+        self.mld_ctrl.loop_flg = True
+
+        config = read_json(COMMON_PATH + mld_const.CONF_FILE)
+        self.config = config.data["settings"]
+
+        zmq_url = "ipc://"
+        send_mld_ryu_file_path = self.config["mld_send_zmq"]
+        recv_mld_ryu_file_path = self.config["mld_recv_zmq"]
+        # CHECK TMP FILE(SEND)
+        self.mld_ctrl.check_exists_tmp(send_mld_ryu_file_path)
+        self.mld_ctrl.check_exists_tmp(recv_mld_ryu_file_path)
+        send_mld_ryu_path = zmq_url + send_mld_ryu_file_path
+        recv_mld_ryu_path = zmq_url + recv_mld_ryu_file_path
+
+        ctx = zmq.Context()
+
+        # SEND SOCKET CREATE
+        self.send_sock_mld_ryu = ctx.socket(zmq.PUB)
+        self.send_sock_mld_ryu.bind(send_mld_ryu_path)
+        print("send_mld_ryu_path %s", send_mld_ryu_path)
+        # RECV SOCKET CREATE
+        self.recv_sock_mld_ryu = ctx.socket(zmq.SUB) 
+        self.recv_sock_mld_ryu.connect(recv_mld_ryu_path)
+        self.recv_sock_mld_ryu.setsockopt(zmq.SUBSCRIBE, "")
+        print("recv_mld_ryu_path %s", recv_mld_ryu_path)
+
+        # Packetの作成
+        eth = ethernet.ethernet(ethertype=ether.ETH_TYPE_8021Q,
+                                src=HOST_MACADDR1,
+                                dst=HOST_MACADDR2)
+        vln = vlan.vlan(ethertype=ether.ETH_TYPE_IPV6, vid=100)
+        hop = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6,
+                            data=[ipv6.option(type_=5, len_=2, data=""),
+                                  ipv6.option(type_=1, len_=0)])]
+        ip6 = ipv6.ipv6(src=SRC_IP, dst=DST_IP,
+                        nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=hop)
+        mld = icmpv6_extend(type_=icmpv6.ICMPV6_MEMBERSHIP_QUERY,
+                            data=icmpv6.mldv2_query(address=MC_ADDR1))
+
+        packet = eth / vln / ip6 / mld
+        packet.serialize()
+
+        #【実行】
+        send_hub = hub.spawn(self.mld_ctrl.receive_from_mld)
+        # ループに入る分処理待ち
+        self.send_sock_mld_ryu.send(cPickle.dumps(packet, protocol=0))
+        #self.mld_ctrl.recv_sock.send(cPickle.dumps(packet, protocol=0))
+        hub.sleep(3)
+        # ループを抜ける
         self.mld_ctrl.loop_flg = False
-
-        result = self.mld_ctrl.receive_from_mld()
-
-        
+        send_hub.wait()
+        send_hub.kill()
+        self.mld_ctrl.loop_flg = True
         """
         # 【実行】
         result = self.mld_ctrl.receive_from_mld()
@@ -692,6 +801,85 @@ class test_mld_controller():
         print("result %s", result)
         assert_equal(result, None)
         """
+
+    def test_receive_from_mld_Failuer001(self):
+        # mld_controller.receive_from_mld
+        logger.debug("test_receive_from_mld_Failuer001")
+        """
+        試験方法自体を検討する必要あり、
+        まず、無限ループを止められる実装を行う必要があり。
+        概要：MLD_Process受信処理
+        条件：正常に動作するであろうデータを設定し、実行する
+        結果：resultがNoneであること
+        """
+
+        # 【前処理】
+        # DummyDatapathを生成
+        datapath = _Datapath()
+        # DummyDatapathidを設定
+        datapath.id = 1
+        datapath.xid = 999
+        self.mld_ctrl.loop_flg = True
+
+        config = read_json(COMMON_PATH + mld_const.CONF_FILE)
+        self.config = config.data["settings"]
+
+        zmq_url = "ipc://"
+        send_mld_ryu_file_path = self.config["mld_send_zmq"]
+        recv_mld_ryu_file_path = self.config["mld_recv_zmq"]
+        # CHECK TMP FILE(SEND)
+        self.mld_ctrl.check_exists_tmp(send_mld_ryu_file_path)
+        self.mld_ctrl.check_exists_tmp(recv_mld_ryu_file_path)
+        send_mld_ryu_path = zmq_url + send_mld_ryu_file_path
+        recv_mld_ryu_path = zmq_url + recv_mld_ryu_file_path
+
+        ctx = zmq.Context()
+
+        # SEND SOCKET CREATE
+        self.send_sock_mld_ryu = ctx.socket(zmq.PUB)
+        self.send_sock_mld_ryu.bind(send_mld_ryu_path)
+        print("send_mld_ryu_path %s", send_mld_ryu_path)
+        # RECV SOCKET CREATE
+        self.recv_sock_mld_ryu = ctx.socket(zmq.SUB) 
+        self.recv_sock_mld_ryu.connect(recv_mld_ryu_path)
+        self.recv_sock_mld_ryu.setsockopt(zmq.SUBSCRIBE, "")
+        print("recv_mld_ryu_path %s", recv_mld_ryu_path)
+
+        # Packetの作成
+        eth = ethernet.ethernet(ethertype=ether.ETH_TYPE_8021Q,
+                                src=HOST_MACADDR1,
+                                dst=HOST_MACADDR2)
+        vln = vlan.vlan(ethertype=ether.ETH_TYPE_IPV6, vid=100)
+        hop = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6,
+                            data=[ipv6.option(type_=5, len_=2, data=""),
+                                  ipv6.option(type_=1, len_=0)])]
+        ip6 = ipv6.ipv6(src=SRC_IP, dst=DST_IP,
+                        nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=hop)
+        mld = icmpv6_extend(type_=icmpv6.ICMPV6_MEMBERSHIP_QUERY,
+                            data=icmpv6.mldv2_query(address=MC_ADDR1))
+
+        packet = eth / vln / ip6 / mld
+        packet.serialize()
+
+        try:
+            #【実行】
+            send_hub = hub.spawn(self.mld_ctrl.receive_from_mld)
+            # ループに入る分処理待ち
+            self.send_sock_mld_ryu.send(cPickle.dumps(None, protocol=0))
+            logger.debug("test_receive_from_mld_Failuer001 [self.mld_ctrl.recv_sock.send]")
+
+            hub.sleep(10)
+
+        except Exception as e:
+            # 【結果】
+            logger.debug("test_receive_from_mld_Failuer001 [Exception] %s", e)
+            assert_raises(Exception, e)
+        finally:
+            # ループを抜ける
+            self.mld_ctrl.loop_flg = False
+            send_hub.wait()
+            send_hub.kill()
+            self.mld_ctrl.loop_flg = True
 
     def test_send_msg_to_flowmod_Success001(self):
         # mld_controller.send_msg_to_flowmod(self, msgbase, flowmod):
@@ -717,9 +905,13 @@ class test_mld_controller():
                                     command=ofproto_v1_3.OFPFC_ADD,
                                     out_port=0, out_group=0)
 
-        actions = [ofproto_v1_3_parser.OFPActionOutput(ofproto_v1_3.OFPP_NORMAL)]
-        instructions = [ofproto_v1_3_parser.OFPInstructionActions(ofproto_v1_3.OFPIT_APPLY_ACTIONS,actions)]
-        ofp_match = ofproto_v1_3_parser.OFPMatch(eth_type=ether.ETH_TYPE_IPV6,ip_proto=inet.IPPROTO_ICMPV6)
+        actions = [ofproto_v1_3_parser.OFPActionOutput(
+                                                    ofproto_v1_3.OFPP_NORMAL)]
+        instructions = [ofproto_v1_3_parser.OFPInstructionActions(
+                                            ofproto_v1_3.OFPIT_APPLY_ACTIONS,
+                                            actions)]
+        ofp_match = ofproto_v1_3_parser.OFPMatch(eth_type=ether.ETH_TYPE_IPV6,
+                                            ip_proto=inet.IPPROTO_ICMPV6)
 
         flowmoddata.instructions = instructions
         flowmoddata.match = ofp_match
@@ -730,7 +922,8 @@ class test_mld_controller():
         result = self.mld_ctrl.send_msg_to_flowmod(ev.msg, flowmod)
 
         # 【結果】
-        print("result %s", result)
+        logger.debug("test_send_msg_to_flowmod_Success001 [result] %s",
+                     str(result))
         assert_equal(result, None)
 
     def test_send_msg_to_barrier_request_Success001(self):
@@ -756,7 +949,8 @@ class test_mld_controller():
         result = self.mld_ctrl.send_msg_to_barrier_request(ev.msg)
 
         # 【結果】
-        print("result %s", str(result))
+        logger.debug("test_send_msg_to_barrier_request_Success001 [result] %s",
+                     str(result))
         assert_equal(result, None)
 
     def test_send_msg_to_packetout_Success001(self):
@@ -783,8 +977,65 @@ class test_mld_controller():
         result = self.mld_ctrl.send_msg_to_packetout(ev.msg, packetoutdata)
 
         # 【結果】
-        print("result %s", str(result))
+        logger.debug("test_send_msg_to_packetout_Success001 [result] %s",
+                     str(result))
         assert_equal(result, None)
+
+    def test_check_url_Success001(self):
+        # mld_controller.check_url(self, zmq_url)
+        logger.debug("test_check_url_Success001")
+        """
+        概要：zmqで使用するurlの妥当性チェック
+        条件：zmq_url=ipc://
+        結果：resultがTrueであること
+        """
+        # 【前処理】
+        zmq_url = "ipc://"
+
+        # 【実行】
+        result = self.mld_ctrl.check_url(zmq_url)
+
+        # 【結果】
+        logger.debug("test_check_url_Success001 [result] %s", str(result))
+        assert_equal(result, True)
+
+    def test_check_url_Success002(self):
+        # mld_controller.check_url(self, zmq_url)
+        logger.debug("test_check_url_Success002")
+        """
+        概要：zmqで使用するurlの妥当性チェック
+        条件：zmq_url=tcp://
+        結果：resultがTrueであること
+        """
+        # 【前処理】
+        zmq_url = "tcp://"
+
+        # 【実行】
+        result = self.mld_ctrl.check_url(zmq_url)
+
+        # 【結果】
+        logger.debug("test_check_url_Success002 [result] %s", str(result))
+        assert_equal(result, False)
+
+    def test_check_url_Failer001(self):
+        # mld_controller.check_url(self, zmq_url)
+        logger.debug("test_check_url_Failer001")
+        """
+        概要：zmqで使用するurlの妥当性チェック
+        条件：zmq_url=ipf:///
+        結果：Exceptionが発生すること
+        """
+        # 【前処理】
+        zmq_url = "ipf:///"
+        try:
+            # 【実行】
+            result = self.mld_ctrl.check_url(zmq_url)
+            logger.debug("test_check_url_Failer001 [result] %s", str(result))
+        except Exception as e:
+            # 【結果】
+            logger.debug("test_check_url_Failer001 [Exception] %s", e)
+            assert_raises(Exception, e)
+        return
 
     def test_check_exists_tmp_Success001(self):
         # mld_controller.check_exists_tmp(self, filename)
@@ -802,6 +1053,8 @@ class test_mld_controller():
         self.mld_ctrl.check_exists_tmp(send_file_path)
 
         # 【結果】
+        logger.debug("test_check_exists_tmp_Success001 [failepath] %s",
+                     os.path.exists(send_file_path))
         assert_equal(os.path.exists(send_file_path), True)
 
     def test_check_exists_tmp_Success002(self):
@@ -819,6 +1072,8 @@ class test_mld_controller():
         self.mld_ctrl.check_exists_tmp(send_file_path)
 
         # 【結果】
+        logger.debug("test_check_exists_tmp_Success002 [failepath] %s",
+                     os.path.exists(send_file_path))
         assert_equal(os.path.exists(send_file_path), True)
 
         # 【後処理】後続試験のため、作成したファイルを削除
@@ -839,6 +1094,8 @@ class test_mld_controller():
         self.mld_ctrl.check_exists_tmp(send_file_path)
 
         # 【結果】
+        logger.debug("test_check_exists_tmp_Success003 [failepath] %s",
+                     os.path.exists(send_file_path))
         assert_equal(os.path.exists(send_file_path), True)
 
         # 【後処理】後続試験のため、作成したファイルを削除
@@ -847,7 +1104,7 @@ class test_mld_controller():
 
     def test_switch_features_handler_Success001(self):
         # mld_controller._switch_features_handler
-        logger.debug("test_switch_features_handlerSuccess001")
+        logger.debug("test_switch_features_handler_Success001")
         """
         概要：SwitchFeaturesイベント発生時の処理
         条件：dict_msgに存在しないdatapath.idを設定し、実行する
@@ -869,7 +1126,8 @@ class test_mld_controller():
         result = self.mld_ctrl._switch_features_handler(ev)
 
         # 【結果】
-        print ("result %s", str(result))
+        logger.debug("test_switch_features_handler_Success001 [result] %s",
+                     str(result))
         assert_equal(result, None)
         assert_equal(self.mld_ctrl.dict_msg[datapath.id], ev.msg)
 
@@ -898,12 +1156,43 @@ class test_mld_controller():
         result = self.mld_ctrl._switch_features_handler(ev)
 
         # 【結果】
-        print("result %s", str(result))
+        logger.debug("test_switch_features_handler_Success002 [result] %s",
+                     str(result))
         assert_equal(result, True)
+
+    def test_switch_features_handler_Failuer001(self):
+        # mld_controller._switch_features_handler
+        logger.debug("test_switch_features_handler_Failuer001")
+        """
+        概要：SwitchFeaturesイベント発生時の処理
+        条件：例外が発生する様ev.msgにNoneを設定し、実行する
+        結果：Exceptionが発生すること
+        """
+        try:
+            # 【前処理】
+            # DummyDatapathを生成
+            datapath = _Datapath()
+            # DummyDatapathidを設定
+            datapath.id = 888
+            datapath.xid = 999
+            # FeaturesRequestEventの作成
+            featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
+            ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
+            ev.msg = None
+
+            #【実行】
+            self.mld_ctrl._switch_features_handler(ev)
+
+        except Exception as e:
+            # 【結果】
+            logger.debug("test_barrier_reply_handler_Failuer001[Exception] %s",
+                         e)
+            assert_raises(Exception, e)
+        return
 
     def test_barrier_reply_handler_Success001(self):
         # mld_controller._barrier_reply_handler(self, ev)
-        logger.debug("test_barrier_reply_handler001")
+        logger.debug("test_barrier_reply_handler_Success001")
         """
         概要：BarrierReplyイベント発生時の処理
         条件：正常に動作するであろうdatapathを設定し、実行する
@@ -924,8 +1213,39 @@ class test_mld_controller():
         result = self.mld_ctrl._barrier_reply_handler(ev)
 
         # 【結果】
-        print("result %s", result)
+        logger.debug("test_barrier_reply_handler_Success001 [result] %s",
+                     str(result))
         assert_equal(result, None)
+
+    def test_barrier_reply_handler_Failuer001(self):
+        # mld_controller._barrier_reply_handler(self, ev)
+        logger.debug("test_barrier_reply_handler_Failuer001")
+        """
+        概要：BarrierReplyイベント発生時の処理
+        条件：例外が発生する様ev.msgにNoneを設定し、実行する
+        結果：Exceptionが発生すること
+        """
+        try:
+            # 【前処理】
+            # DummyDatapathを生成
+            datapath = _Datapath()
+            # DummyDatapathidを設定
+            datapath.id = None
+            datapath.xid = 55555
+
+            # OFPBarrierReplyEventの作成
+            barrierReply = ofproto_v1_3_parser.OFPBarrierReply(datapath)
+            ev = ofp_event.EventOFPBarrierReply(barrierReply)
+            ev.msg = None
+            # 【実行】
+            self.mld_ctrl._barrier_reply_handler(ev)
+
+        except Exception as e:
+            # 【結果】
+            logger.debug("test_barrier_reply_handler_Failuer001[Exception]%s",
+                         e)
+            assert_raises(Exception, e)
+        return
 
     def test_packet_in_handler_Success001(self):
         # mld_controller._packet_in_handler(self, ev)
@@ -968,7 +1288,8 @@ class test_mld_controller():
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", str(result))
+        logger.debug("test_packet_in_handler_Success001 [result] %s",
+                     str(result))
         assert_equal(result, None)
 
     def test_packet_in_handler_Success002(self):
@@ -1009,20 +1330,24 @@ class test_mld_controller():
                                   ipv6.option(type_=1, len_=0)])]
         ip6 = ipv6.ipv6(src=SRC_IP, dst=DST_IP,
                         nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=hop)
-        mld = icmpv6_extend(type_=icmpv6.MLDV2_LISTENER_REPORT, data=mldv2_report_)
+        mld = icmpv6_extend(type_=icmpv6.MLDV2_LISTENER_REPORT,
+                            data=mldv2_report_)
 
         packet = eth / vln / ip6 / mld
         packet.serialize()
 
         # PacketInEventの作成
-        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER, match=OFPMatch(in_port=1), data=buffer(packet.data))
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                               match=OFPMatch(in_port=1),
+                               data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", str(result))
+        logger.debug("test_packet_in_handler_Success002 [result] %s",
+                     str(result))
         assert_equal(result, None)
 
     def test_packet_in_handler_Success003(self):
@@ -1059,20 +1384,24 @@ class test_mld_controller():
                                   ipv6.option(type_=1, len_=0)])]
         ip6 = ipv6.ipv6(src=SRC_IP, dst=DST_IP,
                         nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=hop)
-        mld = icmpv6_extend(type_=icmpv6.MLDV2_LISTENER_REPORT, data=mldv2_report_)
+        mld = icmpv6_extend(type_=icmpv6.MLDV2_LISTENER_REPORT,
+                            data=mldv2_report_)
 
         packet = eth / vln / ip6 / mld
         packet.serialize()
 
         # PacketInEventの作成
-        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER, match=OFPMatch(in_port=1), data=buffer(packet.data))
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                               match=OFPMatch(in_port=1),
+                               data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", str(result))
+        logger.debug("test_packet_in_handler_Success003 [result] %s",
+                     str(result))
         assert_equal(result, None)
 
     def test_packet_in_handler_Success004(self):
@@ -1109,21 +1438,83 @@ class test_mld_controller():
                                   ipv6.option(type_=1, len_=0)])]
         ip6 = ipv6.ipv6(src=SRC_IP, dst=DST_IP,
                         nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=hop)
-        mld = icmpv6_extend(type_=icmpv6.MLDV2_LISTENER_REPORT, data=mldv2_report_)
+        mld = icmpv6_extend(type_=icmpv6.MLDV2_LISTENER_REPORT,
+                            data=mldv2_report_)
 
         packet = eth / vln / ip6 / mld
         packet.serialize()
 
         # PacketInEventの作成
-        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER, match=OFPMatch(in_port=1), data=buffer(packet.data))
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                               match=OFPMatch(in_port=1),
+                               data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", str(result))
+        logger.debug("test_packet_in_handler_Success004 [result] %s",
+                     str(result))
         assert_equal(result, None)
+
+    def test_packet_in_handler_Success005(self):
+        # mld_controller._packet_in_handler(self, ev)
+        logger.debug("test_packet_in_handler_Success005")
+        """
+        概要：PacketInイベント発生時の処理
+        条件：self.check_vlan_flgに「True/False」を設定し、実行する
+        結果：mldにパケットが送信されること
+        """
+        # 【前処理】
+        # DummyDatapathを生成
+        datapath = _Datapath()
+        # DummyDatapathidを設定
+        datapath.id = 1
+        datapath.xid = 999
+        # Packetの作成
+        records = []
+        record_block = icmpv6.mldv2_report_group()
+        record_block.type_ = icmpv6.BLOCK_OLD_SOURCES
+        records.append(record_block)
+
+        mldv2_report_ = icmpv6.mldv2_report()
+        mldv2_report_.records = records
+
+        eth = ethernet.ethernet(ethertype=ether.ETH_TYPE_8021Q,
+                                src=HOST_MACADDR1,
+                                dst=HOST_MACADDR2)
+        vln = vlan.vlan(ethertype=ether.ETH_TYPE_IPV6, vid=100)
+        hop = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6,
+                            data=[ipv6.option(type_=5, len_=2, data=""),
+                                  ipv6.option(type_=1, len_=0)])]
+        ip6 = ipv6.ipv6(src=SRC_IP, dst=DST_IP,
+                        nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=hop)
+        mld = icmpv6_extend(type_=icmpv6.MLDV2_LISTENER_REPORT,
+                            data=mldv2_report_)
+
+        packet = eth / vln / ip6 / mld
+        packet.serialize()
+
+        # PacketInEventの作成
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                               match=OFPMatch(in_port=1),
+                               data=buffer(packet.data))
+        ev = ofp_event.EventOFPPacketIn(packetIn)
+
+        # 【実行】
+        self.mld_ctrl.check_vlan_flg = "True"
+        result_ture = self.mld_ctrl._packet_in_handler(ev)
+        self.mld_ctrl.check_vlan_flg = "False"
+        result_false = self.mld_ctrl._packet_in_handler(ev)
+
+        # 【結果】
+        logger.debug("test_packet_in_handler_Success005 [result_ture] %s",
+                     str(result_ture))
+        logger.debug("test_packet_in_handler_Success005 [result_false] %s",
+                     str(result_false))
+        assert_equal(result_ture, None)
+        assert_equal(result_false, None)
 
     def test_packet_in_handler_Failure001(self):
         # mld_controller._packet_in_handler(self, ev)
@@ -1158,7 +1549,8 @@ class test_mld_controller():
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", str(result))
+        logger.debug("test_packet_in_handler_Failure001 [result] %s",
+                     str(result))
         assert_equal(result, False)
 
     def test_packet_in_handler_Failure002(self):
@@ -1186,14 +1578,16 @@ class test_mld_controller():
 
         # PacketInEventの作成
         packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
-                               match=OFPMatch(in_port=1), data=buffer(packet.data))
+                               match=OFPMatch(in_port=1),
+                               data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", str(result))
+        logger.debug("test_packet_in_handler_Failure002 [result] %s",
+                     str(result))
         assert_equal(result, False)
 
     def test_packet_in_handler_Failure003(self):
@@ -1221,14 +1615,16 @@ class test_mld_controller():
 
         # PacketInEventの作成
         packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
-                               match=OFPMatch(in_port=1), data=buffer(packet.data))
+                               match=OFPMatch(in_port=1),
+                               data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", str(result))
+        logger.debug("test_packet_in_handler_Failure003 [result] %s",
+                     str(result))
         assert_equal(result, False)
 
     def test_packet_in_handler_Failure004(self):
@@ -1257,14 +1653,16 @@ class test_mld_controller():
 
         # PacketInEventの作成
         packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
-                               match=OFPMatch(in_port=1), data=buffer(packet.data))
+                               match=OFPMatch(in_port=1),
+                               data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", str(result))
+        logger.debug("test_packet_in_handler_Failure004 [result] %s",
+                     str(result))
         assert_equal(result, False)
 
     def test_packet_in_handler_Failure005(self):
@@ -1293,14 +1691,15 @@ class test_mld_controller():
 
         # PacketInEventの作成
         packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
-                               match=OFPMatch(in_port=1), data=buffer(packet.data))
+                               match=OFPMatch(in_port=1),
+                               data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", str(result))
+        logger.debug("test_packet_in_handler_Failure005 [result] %s", str(result))
         assert_equal(result, False)
 
     def test_packet_in_handler_Failure006(self):
@@ -1339,15 +1738,179 @@ class test_mld_controller():
 
         # PacketInEventの作成
         packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
-                               match=OFPMatch(in_port=1), data=buffer(packet.data))
+                               match=OFPMatch(in_port=1),
+                               data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
 
         # 【実行】
         result = self.mld_ctrl._packet_in_handler(ev)
 
         # 【結果】
-        print("result %s", str(result))
+        logger.debug("test_packet_in_handler_Failure006 [result] %s",
+                     str(result))
         assert_equal(result, None)
+
+    def test_packet_in_handler_Failure007(self):
+        # mld_controller._packet_in_handler(self, ev)
+        logger.debug("test_packet_in_handler_Failure007")
+        """
+        概要：PacketInイベント発生時の処理
+        条件：self.check_vlan_flgに「True」を設定し、VLANを設定せずに実行する
+        結果：エラーとならずにmldにパケットが送信されること
+        """
+        # 【前処理】
+        # DummyDatapathを生成
+        datapath = _Datapath()
+        # DummyDatapathidを設定
+        datapath.id = 1
+        datapath.xid = 999
+        # Packetの作成
+        records = []
+        record_allow = icmpv6.mldv2_report_group()
+        record_allow.type_ = icmpv6.ALLOW_NEW_SOURCES
+        records.append(record_allow)
+
+        record_change = icmpv6.mldv2_report_group()
+        record_change.type_ = icmpv6.CHANGE_TO_INCLUDE_MODE
+        records.append(record_change)
+
+        mldv2_report_ = icmpv6.mldv2_report()
+        mldv2_report_.records = records
+
+#        eth = ethernet.ethernet(ethertype=ether.ETH_TYPE_8021Q,
+#                                src=HOST_MACADDR1,
+#                                dst=HOST_MACADDR2)
+        eth = ethernet.ethernet(ethertype=ether.ETH_TYPE_IPV6,
+                                src=HOST_MACADDR1,
+                                dst=HOST_MACADDR2)
+
+#        vln = vlan.vlan(ethertype=ether.ETH_TYPE_IPV6, vid=100)
+        hop = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6,
+                            data=[ipv6.option(type_=5, len_=2, data=""),
+                                  ipv6.option(type_=1, len_=0)])]
+        ip6 = ipv6.ipv6(src=SRC_IP, dst=DST_IP,
+                        nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=hop)
+        mld = icmpv6_extend(type_=icmpv6.MLDV2_LISTENER_REPORT,
+                            data=mldv2_report_)
+
+#        packet = eth / vln / ip6 / mld
+        packet = eth / ip6 / mld
+        packet.serialize()
+
+        # PacketInEventの作成
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                               match=OFPMatch(in_port=1),
+                               data=buffer(packet.data))
+        ev = ofp_event.EventOFPPacketIn(packetIn)
+
+        # 【実行】
+        self.mld_ctrl.check_vlan_flg = "True"
+        result_ture = self.mld_ctrl._packet_in_handler(ev)
+
+        # 【結果】
+        logger.debug("test_packet_in_handler_Failure007 [result_ture] %s",
+                     str(result_ture))
+        assert_equal(result_ture, None)
+
+    def test_packet_in_handler_Failure008(self):
+        # mld_controller._packet_in_handler(self, ev)
+        logger.debug("test_packet_in_handler_Failure008")
+        """
+        概要：PacketInイベント発生時の処理
+        条件：例外を発生させるためmatchにNoneを設定し、実行する
+        結果：Exceptionが発生すること
+        """
+        try:
+            # 【前処理】
+            # DummyDatapathを生成
+            datapath = _Datapath()
+            # DummyDatapathidを設定
+            datapath.id = 1
+            datapath.xid = 999
+            # Packetの作成
+            records = []
+            record_allow = icmpv6.mldv2_report_group()
+            record_allow.type_ = icmpv6.ALLOW_NEW_SOURCES
+            records.append(record_allow)
+
+            record_change = icmpv6.mldv2_report_group()
+            record_change.type_ = icmpv6.CHANGE_TO_INCLUDE_MODE
+            records.append(record_change)
+
+            mldv2_report_ = icmpv6.mldv2_report()
+            mldv2_report_.records = records
+
+            eth = ethernet.ethernet(ethertype=ether.ETH_TYPE_8021Q,
+                                    src=HOST_MACADDR1,
+                                    dst=HOST_MACADDR2)
+
+            vln = vlan.vlan(ethertype=ether.ETH_TYPE_IPV6, vid=100)
+            hop = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6,
+                                data=[ipv6.option(type_=5, len_=2, data=""),
+                                      ipv6.option(type_=1, len_=0)])]
+            ip6 = ipv6.ipv6(src=SRC_IP, dst=DST_IP,
+                            nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=hop)
+            mld = icmpv6_extend(type_=icmpv6.MLDV2_LISTENER_REPORT,
+                                data=mldv2_report_)
+
+            packet = eth / vln / ip6 / mld
+            packet.serialize()
+
+            # PacketInEventの作成
+            packetIn = OFPPacketIn(datapath,
+                                   buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
+                                   match=None, data=buffer(packet.data))
+            ev = ofp_event.EventOFPPacketIn(packetIn)
+
+            # 【実行】
+            self.mld_ctrl.check_vlan_flg = "True"
+            self.mld_ctrl._packet_in_handler(ev)
+
+        except Exception as e:
+            # 【結果】
+            logger.debug("test_packet_in_handler_Failure008 [Exception] %s", e)
+            assert_raises(Exception, e)
+        return
+
+    def test_init_Success001(self):
+        # mld_controller.__init__(self, *args, **kwargs)
+        try:
+            # システムモジュールのソケットに対しパッチを適用
+            patcher.monkey_patch()
+
+            # 設定情報の読み込み
+            config = read_json(COMMON_PATH + mld_const.CONF_FILE)
+            self.logger.debug("config_info:%s", str(config.data))
+            self.config = config.data[SETTING]
+            self.SOCKET_TIME_OUT = self.config[SOCKET_TIME_OUT]
+
+            # zmq設定情報の読み込み
+            zmq_url = self.config[OFC_URL]
+            send_path = self.config[OFC_SEND]
+            recv_path = self.config[OFC_RECV]
+
+            # VLANチェックフラグの読み込み
+            self.check_vlan_flg = self.config[CHECK_VLAN_FLG]
+
+            # ループフラグの設定
+            self.loop_flg = True
+
+            # CHECK zmq用URL
+            if self.check_url(zmq_url):
+                # CHECK TMP FILE(SEND)
+                self.check_exists_tmp(send_path)
+                # CHECK TMP FILE(RECV)
+                self.check_exists_tmp(recv_path)
+
+            # ZeroMQ送受信用ソケット生成
+            self.cretate_scoket(zmq_url + send_path, zmq_url + recv_path)
+
+        except Exception as e:
+            # 【結果】
+            logger.debug("test_init_Success001")
+            logger.debug("test_packet_in_handler_Failure008 [Exception] %s", e)
+            assert_raises(Exception, e)
+        return
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,4 +1,6 @@
+# coding: utf-8
 import json
+
 
 class read_json():
     def __init__(self, filename):
@@ -7,8 +9,3 @@ class read_json():
 
     def __getitem__(self, key):
         return self.data[key]
-
-
-if __name__ == "__main__":
-    test = read_json("./config.json")
-    print str(test.data)
