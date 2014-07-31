@@ -97,8 +97,7 @@ class mld_controller(app_manager.RyuApp):
             hub.spawn(self.receive_from_mld)
 
         except:
-            self.logger.error("__init__. %s ",
-                              traceback.print_exc())
+            self.logger.error("__init__. %s ", traceback.print_exc())
 
     # =========================================================================
     # _switch_features_handler
@@ -411,8 +410,7 @@ class mld_controller(app_manager.RyuApp):
                     self.analyse_receive_packet(packet)
 
         except:
-            self.logger.error("receive_from_mld. %s ",
-                              traceback.print_exc())
+            self.logger.error("receive_from_mld. %s ", traceback.print_exc())
 
     # =========================================================================
     # check_url
