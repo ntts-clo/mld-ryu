@@ -279,7 +279,7 @@ class test_mld_controller():
         self.mld_ctrl.send_msg_to_packetout(ev.msg, packet).AndReturn(0)
 
         #【実行】
-        #self.mocker.ReplayAll()
+        self.mocker.ReplayAll()
         result = self.mld_ctrl.analyse_receive_packet(packet)
 
         # 【結果】
@@ -783,14 +783,10 @@ class test_mld_controller():
         packet.serialize()
 
         #【実行】
-
-#        result = self.mld_ctrl.receive_from_mld()
-#        logger.debug("test_receive_from_mld_Success001 [result] %s",
-#                     str(result))
         send_hub = hub.spawn(self.mld_ctrl.receive_from_mld)
         # ループに入る分処理待ち
         self.send_sock_mld_ryu.send(cPickle.dumps(packet, protocol=0))
-
+        #self.mld_ctrl.recv_sock.send(cPickle.dumps(packet, protocol=0))
         hub.sleep(3)
         # ループを抜ける
         self.mld_ctrl.loop_flg = False
@@ -805,6 +801,85 @@ class test_mld_controller():
         print("result %s", result)
         assert_equal(result, None)
         """
+
+    def test_receive_from_mld_Failuer001(self):
+        # mld_controller.receive_from_mld
+        logger.debug("test_receive_from_mld_Failuer001")
+        """
+        試験方法自体を検討する必要あり、
+        まず、無限ループを止められる実装を行う必要があり。
+        概要：MLD_Process受信処理
+        条件：正常に動作するであろうデータを設定し、実行する
+        結果：resultがNoneであること
+        """
+
+        # 【前処理】
+        # DummyDatapathを生成
+        datapath = _Datapath()
+        # DummyDatapathidを設定
+        datapath.id = 1
+        datapath.xid = 999
+        self.mld_ctrl.loop_flg = True
+
+        config = read_json(COMMON_PATH + mld_const.CONF_FILE)
+        self.config = config.data["settings"]
+
+        zmq_url = "ipc://"
+        send_mld_ryu_file_path = self.config["mld_send_zmq"]
+        recv_mld_ryu_file_path = self.config["mld_recv_zmq"]
+        # CHECK TMP FILE(SEND)
+        self.mld_ctrl.check_exists_tmp(send_mld_ryu_file_path)
+        self.mld_ctrl.check_exists_tmp(recv_mld_ryu_file_path)
+        send_mld_ryu_path = zmq_url + send_mld_ryu_file_path
+        recv_mld_ryu_path = zmq_url + recv_mld_ryu_file_path
+
+        ctx = zmq.Context()
+
+        # SEND SOCKET CREATE
+        self.send_sock_mld_ryu = ctx.socket(zmq.PUB)
+        self.send_sock_mld_ryu.bind(send_mld_ryu_path)
+        print("send_mld_ryu_path %s", send_mld_ryu_path)
+        # RECV SOCKET CREATE
+        self.recv_sock_mld_ryu = ctx.socket(zmq.SUB) 
+        self.recv_sock_mld_ryu.connect(recv_mld_ryu_path)
+        self.recv_sock_mld_ryu.setsockopt(zmq.SUBSCRIBE, "")
+        print("recv_mld_ryu_path %s", recv_mld_ryu_path)
+
+        # Packetの作成
+        eth = ethernet.ethernet(ethertype=ether.ETH_TYPE_8021Q,
+                                src=HOST_MACADDR1,
+                                dst=HOST_MACADDR2)
+        vln = vlan.vlan(ethertype=ether.ETH_TYPE_IPV6, vid=100)
+        hop = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6,
+                            data=[ipv6.option(type_=5, len_=2, data=""),
+                                  ipv6.option(type_=1, len_=0)])]
+        ip6 = ipv6.ipv6(src=SRC_IP, dst=DST_IP,
+                        nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=hop)
+        mld = icmpv6_extend(type_=icmpv6.ICMPV6_MEMBERSHIP_QUERY,
+                            data=icmpv6.mldv2_query(address=MC_ADDR1))
+
+        packet = eth / vln / ip6 / mld
+        packet.serialize()
+
+        try:
+            #【実行】
+            send_hub = hub.spawn(self.mld_ctrl.receive_from_mld)
+            # ループに入る分処理待ち
+            self.send_sock_mld_ryu.send(cPickle.dumps(None, protocol=0))
+            logger.debug("test_receive_from_mld_Failuer001 [self.mld_ctrl.recv_sock.send]")
+
+            hub.sleep(10)
+
+        except Exception as e:
+            # 【結果】
+            logger.debug("test_receive_from_mld_Failuer001 [Exception] %s", e)
+            assert_raises(Exception, e)
+        finally:
+            # ループを抜ける
+            self.mld_ctrl.loop_flg = False
+            send_hub.wait()
+            send_hub.kill()
+            self.mld_ctrl.loop_flg = True
 
     def test_send_msg_to_flowmod_Success001(self):
         # mld_controller.send_msg_to_flowmod(self, msgbase, flowmod):
