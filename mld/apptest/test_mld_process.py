@@ -27,7 +27,6 @@ hub.patch()
 APP_PATH = "../app/"
 sys.path.append(APP_PATH)
 from mld_process import mld_process
-# from user_manage import channel_info
 
 COMMON_PATH = "../../common/"
 sys.path.append(COMMON_PATH)
@@ -498,7 +497,7 @@ class test_mld_process():
         cid = 2101
         self.mld_proc.config["user_time_out"] = 300
 
-        self.mld_proc.ch_info.add_ch_info(
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr, serv_ip, datapathid, port_no, cid)
         before_size = len(self.mld_proc.ch_info.user_info_list)
 
@@ -522,10 +521,10 @@ class test_mld_process():
         datapathid2 = self.mld_proc.switches[1]["datapathid"]
         port_no1 = 1
         cid1 = 12101
-        self.mld_proc.ch_info.add_ch_info(
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr1, serv_ip, datapathid2, port_no1, cid1)
         cid2 = 12102
-        self.mld_proc.ch_info.add_ch_info(
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr1, serv_ip, datapathid2, port_no1, cid2)
 
         # タイムアウトを起こすために処理待ち
@@ -533,18 +532,18 @@ class test_mld_process():
 
         port_no2 = 2
         cid3 = 12201
-        self.mld_proc.ch_info.add_ch_info(
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr1, serv_ip, datapathid2, port_no2, cid3)
         datapathid3 = self.mld_proc.switches[2]["datapathid"]
 
         port_no3 = 3
         cid4 = 13301
-        self.mld_proc.ch_info.add_ch_info(
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr1, serv_ip, datapathid3, port_no3, cid4)
 
         mc_addr2 = "ff38::1:2"
         cid5 = 22102
-        self.mld_proc.ch_info.add_ch_info(
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr2, serv_ip, datapathid2, port_no1, cid5)
 
         # check_user_timeout実行前の件数確認
@@ -555,32 +554,26 @@ class test_mld_process():
         # sleep前の2件がタイムアウト
         eq_(3, len(self.mld_proc.ch_info.user_info_list))
 
-        user_info = self.mld_proc.ch_info.user_info_list[0].user_info
-        eq_(1, len(user_info.keys()))
-        keys = user_info.keys()[0]
-        eq_(mc_addr1, keys[0])
-        eq_(serv_ip, keys[1])
-        eq_(datapathid2, keys[2])
-        eq_(port_no2, keys[3])
-        eq_(cid3, keys[4])
+        user_info = self.mld_proc.ch_info.user_info_list[0]
+        eq_(mc_addr1, user_info.mc_addr)
+        eq_(serv_ip, user_info.serv_ip)
+        eq_(datapathid2, user_info.datapathid)
+        eq_(port_no2, user_info.port_no)
+        eq_(cid3, user_info.cid)
 
-        user_info = self.mld_proc.ch_info.user_info_list[1].user_info
-        eq_(1, len(user_info.keys()))
-        keys = user_info.keys()[0]
-        eq_(mc_addr1, keys[0])
-        eq_(serv_ip, keys[1])
-        eq_(datapathid3, keys[2])
-        eq_(port_no3, keys[3])
-        eq_(cid4, keys[4])
+        user_info = self.mld_proc.ch_info.user_info_list[1]
+        eq_(mc_addr1, user_info.mc_addr)
+        eq_(serv_ip, user_info.serv_ip)
+        eq_(datapathid3, user_info.datapathid)
+        eq_(port_no3, user_info.port_no)
+        eq_(cid4, user_info.cid)
 
-        user_info = self.mld_proc.ch_info.user_info_list[2].user_info
-        eq_(1, len(user_info.keys()))
-        keys = user_info.keys()[0]
-        eq_(mc_addr2, keys[0])
-        eq_(serv_ip, keys[1])
-        eq_(datapathid2, keys[2])
-        eq_(port_no1, keys[3])
-        eq_(cid5, keys[4])
+        user_info = self.mld_proc.ch_info.user_info_list[2]
+        eq_(mc_addr2, user_info.mc_addr)
+        eq_(serv_ip, user_info.serv_ip)
+        eq_(datapathid2, user_info.datapathid)
+        eq_(port_no1, user_info.port_no)
+        eq_(cid5, user_info.cid)
 
     @attr(do=False)
     def test_reply_proxy_no_user(self):
@@ -596,16 +589,16 @@ class test_mld_process():
         datapathid2 = 2
         port_no1 = 1
         cid1 = 12101
-        self.mld_proc.ch_info.add_ch_info(
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr1, serv_ip, datapathid2, port_no1, cid1)
         cid2 = 12102
-        self.mld_proc.ch_info.add_ch_info(
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr1, serv_ip, datapathid2, port_no1, cid2)
 
         mc_addr2 = "ff38::1:2"
         serv_ip = "2001::1:20"
         cid3 = 22101
-        self.mld_proc.ch_info.add_ch_info(
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr2, serv_ip, datapathid2, port_no1, cid3)
 
         # send_packet_to_ryuがmcアドレス分(2回)呼び出されることを確認
@@ -692,9 +685,9 @@ class test_mld_process():
         mld = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
         report = mld.records[0]
 
-        # add_ch_infoの呼び出し確認
-        self.mocker.StubOutWithMock(self.mld_proc.ch_info, "add_ch_info")
-        self.mld_proc.ch_info.add_ch_info(
+        # update_ch_infoの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc.ch_info, "update_ch_info")
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr=mc_addr, serv_ip=serv_ip, datapathid=datapathid,
             port_no=in_port, cid=cid).AndReturn(const.CON_REPLY_NOTHING)
         self.mocker.ReplayAll()
@@ -734,7 +727,7 @@ class test_mld_process():
         self.mocker.VerifyAll()
 
     @attr(do=False)
-    def test_update_user_info_include_exist_user(self):
+    def test_update_user_info_include(self):
         # 既存ユーザのMODE_IS_INCLUDEの場合
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
@@ -746,42 +739,10 @@ class test_mld_process():
         mld = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
         report = mld.records[0]
 
-        # update_user_info_listの呼び出し確認がTrueを返す
+        # update_ch_infoの呼び出し確認がCON_REPLY_NOTHINGを返す
         self.mocker.StubOutWithMock(
-            self.mld_proc.ch_info, "update_user_info_list")
-        self.mld_proc.ch_info.update_user_info_list(
-            mc_addr=mc_addr, serv_ip=serv_ip, datapathid=datapathid,
-            port_no=in_port, cid=cid).AndReturn(True)
-        self.mocker.ReplayAll()
-
-        actual = self.mld_proc.update_user_info(
-            mc_addr, serv_ip, datapathid, in_port, cid, report)
-        eq_(const.CON_REPLY_NOTHING, actual)
-        self.mocker.VerifyAll()
-
-    @attr(do=False)
-    def test_update_user_info_include_no_user(self):
-        # 未登録ユーザのMODE_IS_INCLUDEの場合
-        mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
-        datapathid = self.mld_proc.switches[1]["datapathid"]
-        in_port = 1
-        cid = 100
-
-        types = [icmpv6.MODE_IS_INCLUDE]
-        mld = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
-        report = mld.records[0]
-
-        # update_user_info_listの呼び出し確認がNoneを返す
-        self.mocker.StubOutWithMock(
-            self.mld_proc.ch_info, "update_user_info_list")
-        self.mld_proc.ch_info.update_user_info_list(
-            mc_addr=mc_addr, serv_ip=serv_ip, datapathid=datapathid,
-            port_no=in_port, cid=cid).AndReturn(None)
-
-        # add_ch_infoの呼び出し確認
-        self.mocker.StubOutWithMock(self.mld_proc.ch_info, "add_ch_info")
-        self.mld_proc.ch_info.add_ch_info(
+            self.mld_proc.ch_info, "update_ch_info")
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr=mc_addr, serv_ip=serv_ip, datapathid=datapathid,
             port_no=in_port, cid=cid).AndReturn(const.CON_REPLY_NOTHING)
         self.mocker.ReplayAll()
@@ -822,7 +783,7 @@ class test_mld_process():
 
         # ベストエフォートサービス
         self.mld_proc.mc_info_list[0]["type"] = self.mld_proc.BEST_EFFORT
-        self.mld_proc.ch_info.add_ch_info(
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr, serv_ip, datapathid, in_port, cid)
 
         # flowmod_gen.start_mgをスタブ化
@@ -870,7 +831,7 @@ class test_mld_process():
 
         # 品質保証サービス
         self.mld_proc.mc_info_list[0]["type"] = self.mld_proc.QUALITY_ASSURANCE
-        self.mld_proc.ch_info.add_ch_info(
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr, serv_ip, datapathid, in_port, cid)
 
         # flowmod_gen.start_mgをスタブ化
@@ -963,7 +924,7 @@ class test_mld_process():
 
         # ベストエフォートサービス
         self.mld_proc.mc_info_list[0]["type"] = self.mld_proc.BEST_EFFORT
-        self.mld_proc.ch_info.add_ch_info(
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr, serv_ip, datapathid, in_port, cid)
 
         # create_mldreportの呼び出し確認
@@ -1011,7 +972,7 @@ class test_mld_process():
 
         # 品質保証サービス
         self.mld_proc.mc_info_list[0]["type"] = self.mld_proc.QUALITY_ASSURANCE
-        self.mld_proc.ch_info.add_ch_info(
+        self.mld_proc.ch_info.update_ch_info(
             mc_addr, serv_ip, datapathid, in_port, cid)
 
         # create_mldreportが呼び出されないことの確認
