@@ -42,6 +42,10 @@ class mld_process():
     GENERAL_QUERY = "GQ"
     SPECIFIC_QUERY = "SQ"
 
+    # 対象マルチキャストのサービスのタイプ
+    BEST_EFFORT = "BE"
+    QUALITY_ASSURANCE = "QA"
+
     # Queryの設定値
     QUERY_MAX_RESPONSE = 10000
     QUERY_QRV = 2
@@ -463,6 +467,7 @@ class mld_process():
         if not self.ch_info.channel_info:
             # 未視聴状態の場合は何もしない
             self.logger.info("No one shows any channels.")
+            return -1
 
         else:
             vid = self.config["c_tag_id"]
@@ -505,6 +510,7 @@ class mld_process():
             if reply_type == const.CON_REPLY_NOTHING:
                 # Flow追加削除なしの場合何もしない
                 self.logger.debug("reply_type : CON_REPLY_NOTHING")
+                return -1
             else:
                 # reply_typeにより、Flowmod、Packetoutを生成し、ryuに返却する
                 self.reply_to_ryu(
@@ -610,7 +616,7 @@ class mld_process():
                     bvid = bvid_variation["bvid"]
                     break
         else:
-            # 当該mcグループが視聴されていない（離脱によって視聴ユーザがいなくなった）場合
+            # 全く視聴されていない（離脱によって視聴ユーザがいなくなった）場合
             bvid = -1
 
         self.logger.debug("pbb_isid, ivid, bvid : %s, %s, %s",
@@ -631,7 +637,7 @@ class mld_process():
             self.send_packet_to_ryu(flowmod)
 
             # ベストエフォートの場合のみ
-            if mc_info_type == "BE":
+            if mc_info_type == self.BEST_EFFORT:
                 # エッジスイッチへ投げるReportを作成
                 report_types = [icmpv6.ALLOW_NEW_SOURCES,
                                 icmpv6.CHANGE_TO_INCLUDE_MODE]
@@ -673,7 +679,7 @@ class mld_process():
         elif reply_type == const.CON_REPLY_DEL_MC_GROUP:
             self.logger.debug("reply_type : CON_REPLY_DEL_MC_GROUP")
             # ベストエフォートの場合のみ
-            if mc_info_type == "BE":
+            if mc_info_type == self.BEST_EFFORT:
                 # エッジスイッチへ投げるReportを作成
                 report_types = [icmpv6.BLOCK_OLD_SOURCES]
                 mld_report = self.create_mldreport(
