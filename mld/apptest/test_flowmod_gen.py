@@ -8,8 +8,8 @@ from ryu.ofproto import ether, inet
 from ryu.ofproto import ofproto_v1_3 as ofproto
 from ryu.ofproto.ofproto_v1_3_parser import OFPActionPopVlan, OFPActionPopPbb
 
-from mld.app.flowmod_gen import flow_mod_generator, apresia_12k, apresia_26k, flow_mod_gen_exception, \
-    PRIORITY_NORMAL
+from mld.app.flowmod_gen import flow_mod_generator, flow_mod_gen_impl, \
+    apresia_12k, apresia_26k, flow_mod_gen_exception, PRIORITY_NORMAL
 
 
 class test_flow_mod_genrator(object):
@@ -4742,16 +4742,24 @@ class test_flow_mod_genrator(object):
     # 以下、Apresia26000について
     # (Apresia26000は収容SWでは使用されないため、エラーが返ることの確認)
     # =========================================================================
-    def test_start_mg_container_apresia_26k_001(self):
+    def test_ap26k_start_mg_container_001(self):
 
         switch_info = {
-            "sw_name": "sw1",
-            "sw_type": 12000,
-            "datapathid": 2,
-            "sw_bmac": "00:00:00:00:00:02",
-            "edge_switch_port": 51,
-            "olt_ports": [1, 2, 3]
-        },
+            "sw_name": "esw",
+            "sw_type": 26000,
+            "datapathid": 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 257,
+            "mld_port": 258,
+            "container_sw_port": {
+                "lag": 4,
+                "physical": 513
+            },
+            "fcrp_port": {
+                "fcrp": 1,
+                "physical": 259
+            }
+        }
 
         portno = 1
         ivid = 2011
@@ -4771,16 +4779,24 @@ class test_flow_mod_genrator(object):
 
         raise Exception()
 
-    def test_add_port_container_apresia_26k_001(self):
+    def test_ap26k_add_port_container_001(self):
 
         switch_info = {
-            "sw_name": "sw1",
-            "sw_type": 12000,
-            "datapathid": 2,
-            "sw_bmac": "00:00:00:00:00:02",
-            "edge_switch_port": 51,
-            "olt_ports": [1, 2, 3]
-        },
+            "sw_name": "esw",
+            "sw_type": 26000,
+            "datapathid": 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 257,
+            "mld_port": 258,
+            "container_sw_port": {
+                "lag": 4,
+                "physical": 513
+            },
+            "fcrp_port": {
+                "fcrp": 1,
+                "physical": 259
+            }
+        }
 
         portno = 1
         ivid = 2011
@@ -4800,16 +4816,24 @@ class test_flow_mod_genrator(object):
 
         raise Exception()
 
-    def test_remove_mg_container_apresia_26k_001(self):
+    def test_ap26k_remove_mg_container_001(self):
 
         switch_info = {
-            "sw_name": "sw1",
-            "sw_type": 12000,
-            "datapathid": 2,
-            "sw_bmac": "00:00:00:00:00:02",
-            "edge_switch_port": 51,
-            "olt_ports": [1, 2, 3]
-        },
+            "sw_name": "esw",
+            "sw_type": 26000,
+            "datapathid": 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 257,
+            "mld_port": 258,
+            "container_sw_port": {
+                "lag": 4,
+                "physical": 513
+            },
+            "fcrp_port": {
+                "fcrp": 1,
+                "physical": 259
+            }
+        }
 
         portno = 1
         ivid = 2011
@@ -4829,16 +4853,24 @@ class test_flow_mod_genrator(object):
 
         raise Exception()
 
-    def test_remove_port_container_apresia_26k_001(self):
+    def test_ap26k_remove_port_container_001(self):
 
         switch_info = {
-            "sw_name": "sw1",
-            "sw_type": 12000,
-            "datapathid": 2,
-            "sw_bmac": "00:00:00:00:00:02",
-            "edge_switch_port": 51,
-            "olt_ports": [1, 2, 3]
-        },
+            "sw_name": "esw",
+            "sw_type": 26000,
+            "datapathid": 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 257,
+            "mld_port": 258,
+            "container_sw_port": {
+                "lag": 4,
+                "physical": 513
+            },
+            "fcrp_port": {
+                "fcrp": 1,
+                "physical": 259
+            }
+        }
 
         portno = 1
         ivid = 2011
@@ -4849,6 +4881,346 @@ class test_flow_mod_genrator(object):
 
         try:
             self.fmg = apresia_26k(switch_info)\
+                .remove_port_container(portno, ivid, pbb_isid, bvid,
+                                       flow_mod_datas)
+        except flow_mod_gen_exception as e:
+            eq_(e.value, "Unsupported Operation.")
+            eq_(str(e), "'Unsupported Operation.'")
+            return
+
+        raise Exception()
+
+    # =========================================================================
+    # 以下、インターフェースについてエラーが返ることの確認
+    # =========================================================================
+    def test_initialize_flow(self):
+
+        switch_info = {
+            "sw_name": "esw",
+            "sw_type": 26000,
+            "datapathid": 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 257,
+            "mld_port": 258,
+            "container_sw_port": {
+                "lag": 4,
+                "physical": 513
+            },
+            "fcrp_port": {
+                "fcrp": 1,
+                "physical": 259
+            }
+        }
+
+        ivid = 2011
+        pbb_isid = 10011
+        bvid = 4001
+
+        flow_mod_datas = []
+
+        try:
+            self.fmg = flow_mod_gen_impl(switch_info)\
+                .initialize_flows(ivid, pbb_isid, bvid, flow_mod_datas)
+        except flow_mod_gen_exception as e:
+            eq_(e.value, "Unsupported Operation.")
+            eq_(str(e), "'Unsupported Operation.'")
+            return
+
+        raise Exception()
+
+    def test_start_mg_edge(self):
+
+        switch_info = {
+            "sw_name": "esw",
+            "sw_type": 26000,
+            "datapathid": 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 257,
+            "mld_port": 258,
+            "container_sw_port": {
+                "lag": 4,
+                "physical": 513
+            },
+            "fcrp_port": {
+                "fcrp": 1,
+                "physical": 259
+            }
+        }
+
+        multicast_address = "ff38::1:1"
+        datapathid = 1
+        mc_ivid = 1001
+        ivid = 2011
+        pbb_isid = 10011
+        bvid = 4001
+
+        flow_mod_datas = []
+
+        try:
+            self.fmg = flow_mod_gen_impl(switch_info)\
+                .start_mg_edge(multicast_address, datapathid, mc_ivid, ivid,
+                               pbb_isid, bvid, flow_mod_datas)
+        except flow_mod_gen_exception as e:
+            eq_(e.value, "Unsupported Operation.")
+            eq_(str(e), "'Unsupported Operation.'")
+            return
+
+        raise Exception()
+
+    def test_add_datapath_edge(self):
+
+        switch_info = {
+            "sw_name": "esw",
+            "sw_type": 26000,
+            "datapathid": 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 257,
+            "mld_port": 258,
+            "container_sw_port": {
+                "lag": 4,
+                "physical": 513
+            },
+            "fcrp_port": {
+                "fcrp": 1,
+                "physical": 259
+            }
+        }
+
+        multicast_address = "ff38::1:1"
+        datapathid = 1
+        ivid = 2011
+        pbb_isid = 10011
+        bvid = 4001
+
+        flow_mod_datas = []
+
+        try:
+            self.fmg = flow_mod_gen_impl(switch_info)\
+                .add_datapath_edge(multicast_address, datapathid, ivid,
+                                   pbb_isid, bvid, flow_mod_datas)
+        except flow_mod_gen_exception as e:
+            eq_(e.value, "Unsupported Operation.")
+            eq_(str(e), "'Unsupported Operation.'")
+            return
+
+        raise Exception()
+
+    def test_remove_mg_edge(self):
+
+        switch_info = {
+            "sw_name": "esw",
+            "sw_type": 26000,
+            "datapathid": 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 257,
+            "mld_port": 258,
+            "container_sw_port": {
+                "lag": 4,
+                "physical": 513
+            },
+            "fcrp_port": {
+                "fcrp": 1,
+                "physical": 259
+            }
+        }
+
+        multicast_address = "ff38::1:1"
+        datapathid = 1
+        mc_ivid = 1001
+        ivid = 2011
+        pbb_isid = 10011
+        bvid = 4001
+
+        flow_mod_datas = []
+
+        try:
+            self.fmg = flow_mod_gen_impl(switch_info)\
+                .remove_mg_edge(multicast_address, datapathid, mc_ivid, ivid,
+                                pbb_isid, bvid, flow_mod_datas)
+        except flow_mod_gen_exception as e:
+            eq_(e.value, "Unsupported Operation.")
+            eq_(str(e), "'Unsupported Operation.'")
+            return
+
+        raise Exception()
+
+    def test_remove_datapath_edge(self):
+
+        switch_info = {
+            "sw_name": "esw",
+            "sw_type": 26000,
+            "datapathid": 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 257,
+            "mld_port": 258,
+            "container_sw_port": {
+                "lag": 4,
+                "physical": 513
+            },
+            "fcrp_port": {
+                "fcrp": 1,
+                "physical": 259
+            }
+        }
+
+        multicast_address = "ff38::1:1"
+        datapathid = 1
+        ivid = 2011
+        pbb_isid = 10011
+        bvid = 4001
+
+        flow_mod_datas = []
+
+        try:
+            self.fmg = flow_mod_gen_impl(switch_info)\
+                .remove_datapath_edge(multicast_address, datapathid, ivid,
+                                      pbb_isid, bvid, flow_mod_datas)
+        except flow_mod_gen_exception as e:
+            eq_(e.value, "Unsupported Operation.")
+            eq_(str(e), "'Unsupported Operation.'")
+            return
+
+        raise Exception()
+
+    def test_start_mg_container(self):
+
+        switch_info = {
+            "sw_name": "esw",
+            "sw_type": 26000,
+            "datapathid": 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 257,
+            "mld_port": 258,
+            "container_sw_port": {
+                "lag": 4,
+                "physical": 513
+            },
+            "fcrp_port": {
+                "fcrp": 1,
+                "physical": 259
+            }
+        }
+
+        portno = 1
+        ivid = 2011
+        pbb_isid = 10011
+        bvid = 4001
+
+        flow_mod_datas = []
+
+        try:
+            self.fmg = flow_mod_gen_impl(switch_info)\
+                .start_mg_container(portno, ivid, pbb_isid, bvid,
+                                    flow_mod_datas)
+        except flow_mod_gen_exception as e:
+            eq_(e.value, "Unsupported Operation.")
+            eq_(str(e), "'Unsupported Operation.'")
+            return
+
+        raise Exception()
+
+    def test_add_port_container(self):
+
+        switch_info = {
+            "sw_name": "esw",
+            "sw_type": 26000,
+            "datapathid": 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 257,
+            "mld_port": 258,
+            "container_sw_port": {
+                "lag": 4,
+                "physical": 513
+            },
+            "fcrp_port": {
+                "fcrp": 1,
+                "physical": 259
+            }
+        }
+
+        portno = 1
+        ivid = 2011
+        pbb_isid = 10011
+        bvid = 4001
+
+        flow_mod_datas = []
+
+        try:
+            self.fmg = flow_mod_gen_impl(switch_info)\
+                .add_port_container(portno, ivid, pbb_isid, bvid,
+                                    flow_mod_datas)
+        except flow_mod_gen_exception as e:
+            eq_(e.value, "Unsupported Operation.")
+            eq_(str(e), "'Unsupported Operation.'")
+            return
+
+        raise Exception()
+
+    def test_remove_mg_container(self):
+
+        switch_info = {
+            "sw_name": "esw",
+            "sw_type": 26000,
+            "datapathid": 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 257,
+            "mld_port": 258,
+            "container_sw_port": {
+                "lag": 4,
+                "physical": 513
+            },
+            "fcrp_port": {
+                "fcrp": 1,
+                "physical": 259
+            }
+        }
+
+        portno = 1
+        ivid = 2011
+        pbb_isid = 10011
+        bvid = 4001
+
+        flow_mod_datas = []
+
+        try:
+            self.fmg = flow_mod_gen_impl(switch_info)\
+                .remove_mg_container(portno, ivid, pbb_isid, bvid,
+                                     flow_mod_datas)
+        except flow_mod_gen_exception as e:
+            eq_(e.value, "Unsupported Operation.")
+            eq_(str(e), "'Unsupported Operation.'")
+            return
+
+        raise Exception()
+
+    def test_remove_port_container(self):
+
+        switch_info = {
+            "sw_name": "esw",
+            "sw_type": 26000,
+            "datapathid": 1,
+            "sw_bmac": "00:00:00:00:00:01",
+            "edge_router_port": 257,
+            "mld_port": 258,
+            "container_sw_port": {
+                "lag": 4,
+                "physical": 513
+            },
+            "fcrp_port": {
+                "fcrp": 1,
+                "physical": 259
+            }
+        }
+
+        portno = 1
+        ivid = 2011
+        pbb_isid = 10011
+        bvid = 4001
+
+        flow_mod_datas = []
+
+        try:
+            self.fmg = flow_mod_gen_impl(switch_info)\
                 .remove_port_container(portno, ivid, pbb_isid, bvid,
                                        flow_mod_datas)
         except flow_mod_gen_exception as e:

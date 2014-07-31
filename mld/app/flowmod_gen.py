@@ -30,8 +30,11 @@ SW_TAG_NAME = "sw_name"
 SW_NAME_ESW = "esw"
 SW_TAG_BMAC = "sw_bmac"
 # swtich_info edge
+# common
 SW_TAG_EDGE_ROUTER_PORT = "edge_router_port"
+# Apresia12000k
 SW_TAG_CONTEINER_PORTS = "container_sw_ports"
+# Apresia26000k
 SW_TAG_CONTEINER_PORT = "container_sw_port"
 SW_TAG_FCRP_PORT = "fcrp_port"
 SW_TAG_LAG = "lag"
@@ -702,7 +705,6 @@ class apresia_12k(flow_mod_gen_impl):
 # Apresia 26000 シリーズ
 # =============================================================================
 class apresia_26k(flow_mod_gen_impl):
-    # 論理ポート定義
 
     def __init__(self, switch_info):
         super(apresia_26k, self).__init__(switch_info)
@@ -739,7 +741,7 @@ class apresia_26k(flow_mod_gen_impl):
             table_id = 3
             priority = PRIORITY_NORMAL
             phisical_port = fcrp_sw_port[SW_TAG_PHYSICAL]
-            match = parser.OFPMatch(in_port=self.tag2pbb(phisical_port),
+            match = parser.OFPMatch(in_port=self.port_tag2pbb(phisical_port),
                                     vlan_vid=ivid)
             actions = [OFPActionPopVlan(),
                        OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
@@ -758,7 +760,7 @@ class apresia_26k(flow_mod_gen_impl):
                                                 instructions=inst))
 
             phisical_port = container_sw_port[SW_TAG_PHYSICAL]
-            match = parser.OFPMatch(in_port=self.tag2pbb(phisical_port),
+            match = parser.OFPMatch(in_port=self.port_tag2pbb(phisical_port),
                                     vlan_vid=ivid)
             actions = [OFPActionPopVlan(),
                        OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
@@ -836,7 +838,7 @@ class apresia_26k(flow_mod_gen_impl):
         table_id = 3
         priority = PRIORITY_NORMAL
         physical_port = fcrp_sw_port[SW_TAG_PHYSICAL]
-        match = parser.OFPMatch(in_port=self.tag2pbb(physical_port),
+        match = parser.OFPMatch(in_port=self.port_tag2pbb(physical_port),
                                 vlan_vid=ivid)
         actions = [OFPActionPopVlan(),
                    OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
@@ -856,7 +858,7 @@ class apresia_26k(flow_mod_gen_impl):
                                             instructions=inst))
 
         physical_port = container_sw_port[SW_TAG_PHYSICAL]
-        match = parser.OFPMatch(in_port=self.tag2pbb(physical_port),
+        match = parser.OFPMatch(in_port=self.port_tag2pbb(physical_port),
                                 vlan_vid=ivid)
         actions = [OFPActionPopVlan(),
                    OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
@@ -918,7 +920,7 @@ class apresia_26k(flow_mod_gen_impl):
         table_id = 3
         priority = PRIORITY_NORMAL
         physical_port = fcrp_sw_port[SW_TAG_PHYSICAL]
-        match = parser.OFPMatch(in_port=self.tag2pbb(physical_port),
+        match = parser.OFPMatch(in_port=self.port_tag2pbb(physical_port),
                                 vlan_vid=ivid)
         actions = [OFPActionPopVlan(),
                    OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
@@ -938,7 +940,7 @@ class apresia_26k(flow_mod_gen_impl):
                                             command=command_modify))
 
         physical_port = container_sw_port[SW_TAG_PHYSICAL]
-        match = parser.OFPMatch(in_port=self.tag2pbb(physical_port),
+        match = parser.OFPMatch(in_port=self.port_tag2pbb(physical_port),
                                 vlan_vid=ivid)
         actions = [OFPActionPopVlan(),
                    OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
@@ -989,7 +991,7 @@ class apresia_26k(flow_mod_gen_impl):
         table_id = 3
         priority = PRIORITY_NORMAL
         physical_port = fcrp_sw_port[SW_TAG_PHYSICAL]
-        match = parser.OFPMatch(in_port=self.tag2pbb(physical_port),
+        match = parser.OFPMatch(in_port=self.port_tag2pbb(physical_port),
                                 vlan_vid=ivid)
         flow_mod_datas.append(flow_mod_data(datapathid=mydpid,
                                             table_id=table_id,
@@ -999,7 +1001,7 @@ class apresia_26k(flow_mod_gen_impl):
                                             out_group=out_group_any))
 
         physical_port = container_sw_port[SW_TAG_PHYSICAL]
-        match = parser.OFPMatch(in_port=self.tag2pbb(physical_port),
+        match = parser.OFPMatch(in_port=self.port_tag2pbb(physical_port),
                                 vlan_vid=ivid)
         flow_mod_datas.append(flow_mod_data(datapathid=mydpid,
                                             table_id=table_id,
@@ -1047,7 +1049,7 @@ class apresia_26k(flow_mod_gen_impl):
         table_id = 3
         priority = PRIORITY_NORMAL
         physical_port = fcrp_sw_port[SW_TAG_PHYSICAL]
-        match = parser.OFPMatch(in_port=self.tag2pbb(physical_port),
+        match = parser.OFPMatch(in_port=self.port_tag2pbb(physical_port),
                                 vlan_vid=ivid)
         actions = [OFPActionPopVlan(),
                    OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
@@ -1067,7 +1069,7 @@ class apresia_26k(flow_mod_gen_impl):
                                             command=command_modify))
 
         physical_port = container_sw_port[SW_TAG_PHYSICAL]
-        match = parser.OFPMatch(in_port=self.tag2pbb(physical_port),
+        match = parser.OFPMatch(in_port=self.port_tag2pbb(physical_port),
                                 vlan_vid=ivid)
         actions = [OFPActionPopVlan(),
                    OFPActionPushPbb(ethertype=ether.ETH_TYPE_8021AH),
@@ -1103,11 +1105,11 @@ class apresia_26k(flow_mod_gen_impl):
     def fcrp_port_pbb(self, portno):
         return 0x02030000 | portno
 
-    def tag2pbb(self, portno):
+    def port_tag2pbb(self, portno):
         return 0xfffd0000 | portno
 
 #     現状の実装では未使用
-#     def pbb2tag(self, portno):
+#     def port_pbb2tag(self, portno):
 #         return 0xfffe0000 | portno
 
 
