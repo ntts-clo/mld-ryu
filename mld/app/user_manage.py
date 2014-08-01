@@ -106,8 +106,7 @@ class channel_info(base_info):
         if not user:
             # 存在しなければ何もしない
             logger.debug("remove target is nothing.")
-            # FlowModの必要なし
-            return mld_const.CON_REPLY_NOTHING
+            return None
 
         # ポート以下の情報を削除
         ch_sw_info = self.channel_info[(mc_addr, serv_ip)][datapathid]
@@ -264,7 +263,8 @@ class channel_user_info(base_info):
 
     def get_user_info(self):
         # user_infoの内容をStringで返却。（DEBUG用）
-        info =  "        {\n"
+        info = ""
+        info += "        {\n"
 #        info += "          mc_addr : %s\n" % self.mc_addr
 #        info += "          serv_ip : %s\n" % self.serv_ip
 #        info += "          datapathid : %s\n" % self.datapathid
@@ -282,7 +282,7 @@ class channel_user_info(base_info):
 
 
 # 動作確認用
-# if __name__ == "__main__":
+#if __name__ == "__main__":
 #    ch_info = channel_info()
 #
 #    # add

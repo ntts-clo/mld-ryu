@@ -36,8 +36,8 @@ import mld_const as const
 CHECK_URL_IPC = "ipc://"
 CHECK_URL_TCP = "tcp://"
 MLD_ZMQ_URL = "mld_zmq_url"
-MLD_ZMQ_SEND = "ofc_zmq_send"
-MLD_ZMQ_RECV = "ofc_zmq_recv"
+MLD_ZMQ_SEND = "mld_zmq_send"
+MLD_ZMQ_RECV = "mld_zmq_recv"
 
 
 # ======================================================================
@@ -475,24 +475,38 @@ class mld_process():
             self.logger.debug("timeout : %f", timeout)
 
             timeout_user = channel_user_info("", "", 0, 0, 0, timeout)
-            # タイムアウトとなる時間を持ったユーザーを挿入する箇所を取得
+            # タイムアウトとなる時間を持ったユーザを挿入する箇所を取得
             idx = self.ch_info.find_insert_point(timeout_user)
             self.logger.debug("idx : %s", str(idx))
             if not idx == 0:
-                # 挿入箇所がuser_info_listの先頭でない場合、それ以前のユーザーを削除
+                # 挿入箇所がuser_info_listの先頭でない場合、それ以前のユーザを削除
                 for i in range(idx):
                     del_user_info = self.ch_info.user_info_list[idx - i - 1]
-                    self.ch_info.remove_ch_info(
+                    self.logger.debug("timeout user : \n%s",
+                                      del_user_info.get_user_info())
+
+                    # ユーザの削除
+                    reply_type = self.ch_info.remove_ch_info(
                         del_user_info.mc_addr, del_user_info.serv_ip,
                         del_user_info.datapathid, del_user_info.port_no,
                         del_user_info.cid)
 
-                    # TODO 削除後のQuery送信が必要か要確認
+                    # SpecificQueryを生成し、エッジスイッチに送信
+                    mc_info = {"mc_addr": del_user_info.mc_addr,
+                               "serv_ip": del_user_info.serv_ip}
+                    self.send_mldquery([mc_info])
 
-                self.logger.debug("ch_info : \n%s",
-                                  self.ch_info.get_channel_info())
-                self.logger.debug("user_info_list : \n%s",
-                                  self.ch_info.get_user_info_list())
+                    if not reply_type == const.CON_REPLY_NOTHING:
+                        self.reply_to_ryu(
+                            del_user_info.mc_addr, del_user_info.serv_ip,
+                            del_user_info.datapathid, del_user_info.port_no,
+                            reply_type)
+
+                self.logger.debug(
+                    "ch_info : \n%s", self.ch_info.get_channel_info())
+                self.logger.debug(
+                    "user_info_list : \n%s", self.ch_info.get_user_info_list())
+
             else:
                 self.logger.debug("timeout users are nothing.")
 
@@ -590,13 +604,19 @@ class mld_process():
             reply_type = self.ch_info.remove_ch_info(
                 mc_addr=address, serv_ip=src,
                 datapathid=target_switch, port_no=in_port, cid=cid)
-            self.logger.debug("reply_type : %s", reply_type)
-            self.logger.debug("removed self.ch_info : %s",
-                              self.ch_info.get_channel_info())
 
-            # SpecificQueryを生成し、エッジスイッチに送信
-            mc_info = {"mc_addr": address, "serv_ip": src}
-            self.send_mldquery([mc_info])
+            if not reply_type is None:
+                # 削除が行われた場合
+                self.logger.debug("reply_type : %s", reply_type)
+                self.logger.debug("removed self.ch_info : %s",
+                                  self.ch_info.get_channel_info())
+
+                # SpecificQueryを生成し、エッジスイッチに送信
+                mc_info = {"mc_addr": address, "serv_ip": src}
+                self.send_mldquery([mc_info])
+            else:
+                # 削除が行われなかった場合
+                reply_type = const.CON_REPLY_NOTHING
 
         # MODE_IS_INCLUDE：視聴情報に存在するか確認
         elif report_type == icmpv6.MODE_IS_INCLUDE:
@@ -624,6 +644,7 @@ class mld_process():
     # reply_to_ryu
     # ==================================================================
     def reply_to_ryu(self, address, src, target_switch, in_port, reply_type):
+        # ryuに返却するデータ(flowmod,packetoutの要素)を作成し、送信する
         self.logger.debug("")
         flowlist = []
         pbb_isid = ""
@@ -645,7 +666,8 @@ class mld_process():
                 (address, src) in self.ch_info.channel_info:
             listening_switch = self.ch_info.channel_info[
                 (address, src)].keys()
-            bvid_key = ":".join(map(str, listening_switch))
+            # datapathidの昇順に":"でつなぐ
+            bvid_key = ":".join(map(str, sorted(listening_switch)))
             self.logger.debug("bvid_key : %s", bvid_key)
             for bvid_variation in self.bvid_variation:
                 if bvid_key == bvid_variation["key"]:
@@ -660,6 +682,7 @@ class mld_process():
 
         # Flow追加の場合
         if reply_type == const.CON_REPLY_ADD_MC_GROUP:
+            # MCグループの追加
             self.logger.debug("reply_type : CON_REPLY_ADD_MC_GROUP")
             flowlist = self.flowmod_gen.start_mg(
                 multicast_address=address, datapathid=target_switch,
@@ -669,7 +692,6 @@ class mld_process():
                 type_=const.CON_FLOW_MOD,
                 datapathid=self.edge_switch["datapathid"], data=flowlist)
             self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
-
             self.send_packet_to_ryu(flowmod)
 
             # ベストエフォートの場合のみ
@@ -690,6 +712,7 @@ class mld_process():
                 self.send_packet_to_ryu(packetout)
 
         elif reply_type == const.CON_REPLY_ADD_SWITCH:
+            # SWの追加
             self.logger.debug("reply_type : CON_REPLY_ADD_SWITCH")
             flowlist = self.flowmod_gen.add_datapath(
                 multicast_address=address, datapathid=target_switch,
@@ -701,6 +724,7 @@ class mld_process():
             self.send_packet_to_ryu(flowmod)
 
         elif reply_type == const.CON_REPLY_ADD_PORT:
+            # ポートの追加
             self.logger.debug("reply_type : CON_REPLY_ADD_PORT")
             flowlist = self.flowmod_gen.add_port(
                 multicast_address=address, datapathid=target_switch,
@@ -713,6 +737,7 @@ class mld_process():
 
         # Flow削除の場合
         elif reply_type == const.CON_REPLY_DEL_MC_GROUP:
+            # MCアドレスの削除
             self.logger.debug("reply_type : CON_REPLY_DEL_MC_GROUP")
             # ベストエフォートの場合のみ
             if mc_info_type == self.BEST_EFFORT:
@@ -741,6 +766,7 @@ class mld_process():
             self.send_packet_to_ryu(flowmod)
 
         elif reply_type == const.CON_REPLY_DEL_SWITCH:
+            # SWの削除
             self.logger.debug("reply_type : CON_REPLY_DEL_SWITCH")
             flowlist = self.flowmod_gen.remove_datapath(
                 multicast_address=address, datapathid=target_switch,
@@ -752,6 +778,7 @@ class mld_process():
             self.send_packet_to_ryu(flowmod)
 
         elif reply_type == const.CON_REPLY_DEL_PORT:
+            # ポートの削除
             self.logger.debug("reply_type : CON_REPLY_DEL_PORT")
             flowlist = self.flowmod_gen.remove_port(
                 multicast_address=address, datapathid=target_switch,
