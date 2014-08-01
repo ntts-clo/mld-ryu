@@ -367,7 +367,9 @@ class mld_process():
 
         # send of scapy
         sendrecv.sendp(sendpkt, iface=self.config["mld_esw_ifname"])
-        self.logger.info("sent 1 packet to switch.")
+        self.logger.info("send to switch. [query_type]:%s [c_tag_id]:%s ",
+                         self.config["reguraly_query_type"],
+                         self.config["c_tag_id"])
 
     # ==================================================================
     # send_packet_to_ryu
@@ -377,7 +379,7 @@ class mld_process():
 
         # send of zeromq
         self.send_sock.send(cPickle.dumps(packet, protocol=0))
-        self.logger.info("sent 1 packet to ryu.")
+        self.logger.info("send to mld_controller.")
 
     # ==================================================================
     # analyse_receive_packet
@@ -522,7 +524,7 @@ class mld_process():
         # ルータからの定期Queryに対し視聴情報を返却する
         if not self.ch_info.channel_info:
             # 未視聴状態の場合は何もしない
-            self.logger.info("No one shows any channels.")
+            self.logger.debug("No one shows any channels.")
             return -1
 
         else:
