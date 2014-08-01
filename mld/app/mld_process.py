@@ -536,10 +536,11 @@ class mld_process():
         for report in mldv2_report.records:
             address = report.address
             src = report.srcs[0]
+            report_type = report.type_
 
             # Reportの内容により、更新が必要な視聴情報を更新する
             reply_type = self.update_user_info(
-                address, src, target_switch, in_port, cid, report)
+                address, src, target_switch, in_port, cid, report_type)
 
             if reply_type == const.CON_REPLY_NOTHING:
                 # Flow追加削除なしの場合何もしない
@@ -554,17 +555,17 @@ class mld_process():
     # update_user_info
     # ==================================================================
     def update_user_info(
-            self, address, src, target_switch, in_port, cid, report):
+            self, address, src, target_switch, in_port, cid, report_type):
         self.logger.debug("")
 
-        self.logger.debug("report : %s", str(report))
+        self.logger.debug("report_type : %s", str(report_type))
         self.logger.debug("datapath, in_port, cid : %s, %s, %s",
                           target_switch, in_port, cid)
         self.logger.debug("self.ch_info : %s",
                           self.ch_info.get_channel_info())
 
         # ALLOW_NEW_SOURCES：視聴情報に追加
-        if report.type_ == icmpv6.ALLOW_NEW_SOURCES:
+        if report_type == icmpv6.ALLOW_NEW_SOURCES:
             self.logger.debug("ALLOW_NEW_SOURCES")
             reply_type = self.ch_info.update_ch_info(
                 mc_addr=address, serv_ip=src,
@@ -572,9 +573,11 @@ class mld_process():
             self.logger.debug("reply_type : %s", reply_type)
             self.logger.debug("added self.ch_info : %s",
                               self.ch_info.get_channel_info())
+            self.logger.debug("user_info_list : %s",
+                              self.ch_info.get_user_info_list())
 
         # BLOCK_OLD_SOURCES：視聴情報から削除
-        elif report.type_ == icmpv6.BLOCK_OLD_SOURCES:
+        elif report_type == icmpv6.BLOCK_OLD_SOURCES:
             self.logger.debug("BLOCK_OLD_SOURCES")
             reply_type = self.ch_info.remove_ch_info(
                 mc_addr=address, serv_ip=src,
@@ -588,13 +591,15 @@ class mld_process():
             self.send_mldquery([mc_info])
 
         # MODE_IS_INCLUDE：視聴情報に存在するか確認
-        elif report.type_ == icmpv6.MODE_IS_INCLUDE:
+        elif report_type == icmpv6.MODE_IS_INCLUDE:
             self.logger.debug("MODE_IS_INCLUDE")
 
             # 視聴情報のタイマ更新
             reply_type = self.ch_info.update_ch_info(
                 mc_addr=address, serv_ip=src,
                 datapathid=target_switch, port_no=in_port, cid=cid)
+            self.logger.debug("updated self.ch_info : %s",
+                              self.ch_info.get_channel_info())
             self.logger.debug("user_info_list : %s",
                               self.ch_info.get_user_info_list())
 
@@ -602,7 +607,7 @@ class mld_process():
         # CHANGE_TO_INCLUDE_MODE
         # CHANGE_TO_EXCLUDE_MODE の場合は何もしない
         else:
-            self.logger.debug("report.type : %s", report.type_)
+            self.logger.debug("report_type : %s", report_type)
             reply_type = const.CON_REPLY_NOTHING
 
         return reply_type
