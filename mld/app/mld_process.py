@@ -14,8 +14,8 @@ from eventlet import patcher
 from multiprocessing import Process, Value
 import os
 import traceback
+import json
 import logging
-#import logging.config
 import cPickle
 import zmq
 import sys
@@ -35,9 +35,9 @@ import mld_const as const
 
 CHECK_URL_IPC = "ipc://"
 CHECK_URL_TCP = "tcp://"
-MLD_URL = "mld_url"
-MLD_SEND = "mld_send_zmq"
-MLD_RECV = "mld_recv_zmq"
+MLD_ZMQ_URL = "mld_zmq_url"
+MLD_ZMQ_SEND = "ofc_zmq_send"
+MLD_ZMQ_RECV = "ofc_zmq_recv"
 
 
 # ======================================================================
@@ -81,12 +81,14 @@ class mld_process():
 
             # 設定情報読み込み
             config = read_json(COMMON_PATH + const.CONF_FILE)
-            self.logger.debug("config_info:%s", str(config.data))
+            self.logger.info("%s:%s", const.CONF_FILE,
+                json.dumps(config.data, indent=4,
+                           sort_keys=True, ensure_ascii=False))
             self.config = config.data["settings"]
 
-            zmq_url = self.config[MLD_URL]
-            send_path = self.config[MLD_SEND]
-            recv_path = self.config[MLD_RECV]
+            zmq_url = self.config[MLD_ZMQ_URL]
+            send_path = self.config[MLD_ZMQ_SEND]
+            recv_path = self.config[MLD_ZMQ_RECV]
 
             # アドレス情報読み込み
             self.addressinfo = []
@@ -97,11 +99,13 @@ class mld_process():
                     columns = list(line[:-1].split(","))
                     for column in columns:
                         self.addressinfo.append(column)
-            self.logger.debug("addressinfo:%s", str(self.addressinfo))
+            self.logger.info("%s:%s", const.ADDRESS_INFO, self.addressinfo)
 
             # スイッチ情報読み込み
             switches = read_json(COMMON_PATH + const.SWITCH_INFO)
-            self.logger.debug("switch_info:%s", str(switches.data))
+            self.logger.info("%s:%s", const.SWITCH_INFO,
+                json.dumps(switches.data, indent=4,
+                           sort_keys=True, ensure_ascii=False))
             self.switch_mld_info = switches.data["switch_mld_info"]
             self.switch_mc_info = switches.data["switch_mc_info"]
             self.switches = switches.data["switches"]
@@ -109,12 +113,16 @@ class mld_process():
 
             # マルチキャスト情報読み込み
             mc_info = read_json(COMMON_PATH + const.MULTICAST_INFO)
-            self.logger.debug("mc_info:%s", str(mc_info.data))
+            self.logger.info("%s:%s", const.MULTICAST_INFO,
+                json.dumps(mc_info.data, indent=4,
+                           sort_keys=True, ensure_ascii=False))
             self.mc_info_list = mc_info.data["mc_info"]
 
             # bvidパターン読み込み
             bvid_variation = read_json(COMMON_PATH + const.BVID_VARIATION)
-            self.logger.debug("bvid_variation:%s", str(bvid_variation.data))
+            self.logger.info("%s:%s", const.BVID_VARIATION,
+                json.dumps(bvid_variation.data, indent=4,
+                           sort_keys=True, ensure_ascii=False))
             self.bvid_variation = bvid_variation.data["bvid_variation"]
 
             # ZeroMQ送受信用設定
@@ -146,8 +154,8 @@ class mld_process():
             return False
 
         else:
-            self.logger.error("self.config[%s]:%s", MLD_URL, zmq_url)
-            raise Exception.message("self.config[%s]:%s", MLD_URL, zmq_url)
+            self.logger.error("self.config[%s]:%s", MLD_ZMQ_URL, zmq_url)
+            raise Exception.message("self.config[%s]:%s", MLD_ZMQ_URL, zmq_url)
 
     # ==================================================================
     # check_exists_tmp

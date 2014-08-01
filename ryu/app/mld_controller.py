@@ -24,7 +24,7 @@ from zmq_dispatch import dispatch, packet_out_data
 from zmq_dispatch import flow_mod_data
 from read_json import read_json
 import mld_const
-
+import json
 #import pdb #[breakpoint]pdb.set_trace()
 
 
@@ -41,9 +41,9 @@ CHECK_URL_TCP = "tcp://"
 SETTING = "settings"
 SOCKET_TIME_OUT = "socket_time_out"
 CHECK_VLAN_FLG = "check_vlan_flg"
-OFC_URL = "ofc_url"
-OFC_SEND = "ofc_send_zmq"
-OFC_RECV = "ofc_recv_zmq"
+OFC_ZMQ_URL = "ofc_zmq_url"
+OFC_ZMQ_SEND = "ofc_zmq_send"
+OFC_ZMQ_RECV = "ofc_zmq_recv"
 
 
 # =============================================================================
@@ -68,14 +68,16 @@ class mld_controller(app_manager.RyuApp):
 
             # 設定情報の読み込み
             config = read_json(COMMON_PATH + mld_const.CONF_FILE)
-            self.logger.debug("config_info:%s", str(config.data))
+            self.logger.info("%s:%s", mld_const.CONF_FILE,
+                json.dumps(config.data, indent=4,
+                           sort_keys=True, ensure_ascii=False))
             self.config = config.data[SETTING]
             self.SOCKET_TIME_OUT = self.config[SOCKET_TIME_OUT]
 
             # zmq設定情報の読み込み
-            zmq_url = self.config[OFC_URL]
-            send_path = self.config[OFC_SEND]
-            recv_path = self.config[OFC_RECV]
+            zmq_url = self.config[OFC_ZMQ_URL]
+            send_path = self.config[OFC_ZMQ_SEND]
+            recv_path = self.config[OFC_ZMQ_RECV]
 
             # VLANチェックフラグの読み込み
             self.check_vlan_flg = self.config[CHECK_VLAN_FLG]
@@ -425,8 +427,8 @@ class mld_controller(app_manager.RyuApp):
             return False
 
         else:
-            self.logger.error("self.config[%s]:%s", OFC_URL, zmq_url)
-            raise Exception.message("self.config[%s]:%s", OFC_URL, zmq_url)
+            self.logger.error("self.config[%s]:%s", OFC_ZMQ_URL, zmq_url)
+            raise Exception.message("self.config[%s]:%s", OFC_ZMQ_URL, zmq_url)
 
     # =========================================================================
     # check_exists_tmp
