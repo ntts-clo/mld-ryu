@@ -1,3 +1,0 @@
-#src             ,dst              ,srcip                    ,dstip  ,multicastaddresses
-#CreateReport_check
-de:eb:72:63:25:3c,be:cf:37:15:8a:ab,fe80::dceb:72ff:fe63:253c,fe80::bccf:37ff:fe15:8aab
