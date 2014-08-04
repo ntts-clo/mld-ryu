@@ -36,9 +36,6 @@ class channel_info(base_info):
         self.user_info_list = []
 #        self.accessor = DatabaseAccessor()
 
-    def __getitem__(self, key):
-        return self.channel_info[key]
-
     def update_ch_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
         # 対象ユーザーが存在しない場合は追加、存在する場合は更新処理を呼び出す
         logger.debug("")
@@ -194,9 +191,6 @@ class channel_switch_info(base_info):
         #   value: {cid: channel_user_info}
         self.port_info = {}
 
-    def __getitem__(self, key):
-        return self.port_info[key]
-
     def add_sw_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
         # port_infoにユーザ情報を追加
         logger.debug("")
@@ -282,7 +276,7 @@ class channel_user_info(base_info):
 
 
 # 動作確認用
-#if __name__ == "__main__":
+# if __name__ == "__main__":
 #    ch_info = channel_info()
 #
 #    # add
