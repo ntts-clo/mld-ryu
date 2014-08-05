@@ -120,9 +120,9 @@
             "datapathid": 3298518106114, 
             "edge_router_port": 257, 
             "fcrp_port": {
-                "_fcrp": "16進数では0x1001", 
+                "_fcrp": "16進数では0x0001", 
                 "_physical": "16進数では0x0103", 
-                "fcrp": 4097, 
+                "fcrp": 1, 
                 "physical": 259
             }, 
             "mld_port": 258, 
