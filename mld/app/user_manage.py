@@ -1,14 +1,14 @@
 #!/usr/bin/python
 # coding:utf-8
 
-# import cPickle
+import cPickle
 import bisect
 import logging
 import logging.config
 import sys
 import time
 from functools import total_ordering
-# from pymongo import MongoClient
+from pymongo import MongoClient
 
 COMMON_PATH = "../../common/"
 sys.path.append(COMMON_PATH)
@@ -19,13 +19,13 @@ logger = logging.getLogger(__name__)
 
 
 class base_info():
-    pass
-#    def dump_self(self):
-#        return cPickle.dumps(self)
+    #pass
+    def dump_self(self):
+        return cPickle.dumps(self)
 
 
 class channel_info(base_info):
-    def __init__(self):
+    def __init__(self, config=None):
         logger.debug("")
         # ch視聴情報を保存する
         #   key  : (マルチキャストアドレス, サーバのIP)
@@ -34,7 +34,10 @@ class channel_info(base_info):
 
         # channel_user_infoをtimeの昇順に保持するタイムアウト判定用リスト
         self.user_info_list = []
-#        self.accessor = DatabaseAccessor()
+
+        # DBアクセサクラスのインスタンス生成
+        connect_str = config[HOGE]
+        self.accessor = DatabaseAccessor(connect_str)
 
     def __getitem__(self, key):
         return self.channel_info[key]
@@ -329,24 +332,29 @@ class channel_user_info(base_info):
 #    logger.debug(ch_info.get_channel_info())
 #    logger.debug(ch_info.get_user_info_list())
 
-"""
 class DatabaseAccessor:
     def __init__(self, connect_str):
+        self.client = None
+        if not connect_str:
+            return
         self.client = MongoClient(connect_str)
-        # TODO: DB名、コレクション名は別途検討
+        # DB名:viewerdb、コレクション名:serialized_data
         self.db = self.client.viewerdb
         self.col = self.db.serialized_data
 
     def insert(self, key, inserted_obj):
-        # TODO: DB上のデータ形式は別途検討
-        dump = inserted_obj.dump_self(inserted_obj)
-        self.col.update({key: dump})
+        if not self.client:
+            return
+        # 投入対象オブジェクトをdumpしてそのまま投入
+        dump = inserted_obj.dump_self()
+        self.col.update({"$set": {key: dump}}, upsert=True)
 
     def query(self, key):
+        if not self.client:
+            return None
         result = self.col.find_one()
         dump = result[key]
         return cPickle.loads(dump)
-"""
 
 """
 class UserInfo:
