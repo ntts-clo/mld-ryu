@@ -350,7 +350,7 @@ class DatabaseAccessor:
             return
         # 投入対象オブジェクトをdumpしてそのまま投入
         dump = inserted_obj.dump_self()
-        self.col.update({"$set": {key: dump}}, upsert=True)
+        self.col.update({"ch": "all"}, {"$set": {key: dump}}, upsert=True)
 
     def query(self, key):
         if not self.client:
