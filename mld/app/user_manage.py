@@ -21,9 +21,7 @@ DB_CONNECT_STR = "db_connect_str"
 
 
 class base_info():
-    #pass
-    def dump_self(self):
-        return cPickle.dumps(self)
+    pass
 
 
 class channel_info(base_info):
@@ -40,6 +38,9 @@ class channel_info(base_info):
         # DBアクセサクラスのインスタンス生成
         connect_str = config.get(DB_CONNECT_STR)
         self.accessor = DatabaseAccessor(connect_str)
+
+    def dump_self(self):
+        return cPickle.dumps(self.channel_info)
 
     def update_ch_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
         # 対象ユーザーが存在しない場合は追加、存在する場合は更新処理を呼び出す
