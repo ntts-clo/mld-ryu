@@ -554,7 +554,7 @@ class mld_process():
 
         for report in mldv2_report.records:
             address = report.address
-            src = report.srcs[0]
+            src = report.srcs[0] if report.srcs else ""
             report_type = report.type_
 
             # Reportの内容により、更新が必要な視聴情報を更新する
