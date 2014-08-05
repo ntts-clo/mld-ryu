@@ -57,6 +57,10 @@ class mld_process():
     QUERY_MAX_RESPONSE = 10000
     QUERY_QRV = 2
 
+    # ipv6のdstipの設定値
+    QUERY_DST_IP = "ff02::1"
+    REPORT_DST_IP = "ff02::16"
+
     # 送受信のループフラグ
     SEND_LOOP = True
     RECV_LOOP = True
@@ -328,20 +332,28 @@ class mld_process():
         # VLAN
         vln = vlan.vlan(vid=vid, ethertype=ether.ETH_TYPE_IPV6)
 
-        # IPV6 with Hop-By-Hop
+        # Hop-By-Hop
         ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6, data=[
             ipv6.option(type_=5, len_=2, data="\x00\x00"),
             ipv6.option(type_=1, len_=0)])]
-        ip6 = ipv6.ipv6(
-            src=addressinfo[2], dst=addressinfo[3],
-            hop_limit=1, nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
 
-        # MLDV2
+        # IPV6 and MLDV2
         if type(mld) == icmpv6.mldv2_query:
+
+            ip6 = ipv6.ipv6(
+                src=addressinfo[2], dst=self.QUERY_DST_IP,
+                hop_limit=1, nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
+
+            # MLD Query
             icmp6 = icmpv6_extend(
                 type_=icmpv6.MLD_LISTENER_QUERY, data=mld)
 
         elif type(mld) == icmpv6.mldv2_report:
+            ip6 = ipv6.ipv6(
+                src=addressinfo[2], dst=self.REPORT_DST_IP,
+                hop_limit=1, nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
+
+            # MLD Report
             icmp6 = icmpv6_extend(
                 type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
 
