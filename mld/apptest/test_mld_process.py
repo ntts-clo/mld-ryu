@@ -410,7 +410,7 @@ class test_mld_process():
 
         ip6 = actual.get_protocol(ipv6.ipv6)
         eq_(self.addressinfo[2], ip6.src)
-        eq_(self.addressinfo[3], ip6.dst)
+        eq_(self.mld_proc.QUERY_DST_IP, ip6.dst)
         # 拡張ヘッダを持っていることを確認
         eq_(inet.IPPROTO_HOPOPTS, ip6.nxt)
         ok_(ip6.ext_hdrs)
@@ -430,7 +430,20 @@ class test_mld_process():
         actual = self.mld_proc.create_packet(
             self.addressinfo, vid, report)
 
-        # eth - ipv6まではquery時に確認しているため省略
+        eth = actual.get_protocol(ethernet.ethernet)
+        eq_(self.addressinfo[0], eth.src)
+        eq_(self.addressinfo[1], eth.dst)
+
+        vln = actual.get_protocol(vlan.vlan)
+        eq_(vid, vln.vid)
+
+        ip6 = actual.get_protocol(ipv6.ipv6)
+        eq_(self.addressinfo[2], ip6.src)
+        eq_(self.mld_proc.REPORT_DST_IP, ip6.dst)
+        # 拡張ヘッダを持っていることを確認
+        eq_(inet.IPPROTO_HOPOPTS, ip6.nxt)
+        ok_(ip6.ext_hdrs)
+
         icmp6 = actual.get_protocol(icmpv6.icmpv6)
         eq_(icmpv6.MLDV2_LISTENER_REPORT, icmp6.type_)
         eq_(report, icmp6.data)
