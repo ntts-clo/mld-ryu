@@ -73,14 +73,14 @@ class mld_process():
             self.logger = logging.getLogger(__name__)
             self.logger.debug("")
 
-            # 視聴情報初期化
-            self.ch_info = channel_info()
-
             # 設定情報読み込み
             config = read_json(COMMON_PATH + const.CONF_FILE)
             self.logger.info("%s:%s", const.CONF_FILE, json.dumps(
                 config.data, indent=4, sort_keys=True, ensure_ascii=False))
             self.config = config.data["settings"]
+
+            # 視聴情報初期化
+            self.ch_info = channel_info(self.config)
 
             zmq_url = self.config[MLD_ZMQ_URL]
             send_path = self.config[MLD_ZMQ_SEND]

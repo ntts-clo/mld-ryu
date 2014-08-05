@@ -17,6 +17,8 @@ import mld_const
 logging.config.fileConfig(COMMON_PATH + mld_const.LOG_CONF)
 logger = logging.getLogger(__name__)
 
+DB_CONNECT_STR = "db_connect_str"
+
 
 class base_info():
     #pass
@@ -36,7 +38,7 @@ class channel_info(base_info):
         self.user_info_list = []
 
         # DBアクセサクラスのインスタンス生成
-        connect_str = config[HOGE]
+        connect_str = config.get(DB_CONNECT_STR)
         self.accessor = DatabaseAccessor(connect_str)
 
     def update_ch_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
@@ -44,14 +46,18 @@ class channel_info(base_info):
         logger.debug("")
 
         user = self.exists_user(mc_addr, serv_ip, datapathid, port_no, cid)
+        ret = None
         if not user:
             # 追加処理
-            return self.add_ch_info(
+            ret = self.add_ch_info(
                 mc_addr, serv_ip, datapathid, port_no, cid)
         else:
             # 更新処理
             self.update_user_info(user)
-            return mld_const.CON_REPLY_NOTHING
+            ret = mld_const.CON_REPLY_NOTHING
+        # DBへ投入
+        self.accessor.upsert("viewerdata", self)
+        return ret
 
     def add_ch_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
         # 視聴端末情報を追加
@@ -128,6 +134,8 @@ class channel_info(base_info):
 
         # user_info_listから対象ユーザーを削除する
         self.user_info_list.pop(self.user_info_list.index(user))
+        # DBへ投入
+        self.accessor.upsert("viewerdata", self)
         return ret
 
     def exists_user(self, mc_addr, serv_ip, datapathid, port_no, cid):
@@ -336,7 +344,7 @@ class DatabaseAccessor:
         self.db = self.client.viewerdb
         self.col = self.db.serialized_data
 
-    def insert(self, key, inserted_obj):
+    def upsert(self, key, inserted_obj):
         if not self.client:
             return
         # 投入対象オブジェクトをdumpしてそのまま投入
