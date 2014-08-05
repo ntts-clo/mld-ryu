@@ -26,7 +26,7 @@ hub.patch()
 
 APP_PATH = "../app/"
 sys.path.append(APP_PATH)
-from mld_process import mld_process
+import mld_process
 
 COMMON_PATH = "../../common/"
 sys.path.append(COMMON_PATH)
@@ -59,7 +59,7 @@ class test_mld_process():
         mc_info = read_json(COMMON_PATH + const.MULTICAST_INFO)
         cls.mc_info_list = mc_info.data["mc_info"]
 
-        cls.mld_proc = mld_process()
+        cls.mld_proc = mld_process.mld_process()
 
     # このクラスのテストケースをすべて実行した後に１度だけ実行する
     @classmethod
@@ -114,32 +114,38 @@ class test_mld_process():
         # Flowmod生成用インスタンス
         ok_(self.mld_proc.flowmod_gen)
 
-    @attr(do=True)
+    @attr(do=False)
     def test_init_check_url_true(self):
         logger.debug("")
-        zmq_url = self.config["mld_zmq_url"]
-        send_path = self.config["mld_zmq_send"]
-        recv_path = self.config["mld_zmq_recv"]
-#        zmq_url = str(self.config["mld_zmq_url"])
-#        send_path = str(self.config["mld_zmq_send"])
-#        recv_path = str(self.config["mld_zmq_recv"])
 
-        # mld_processをMock化
-        mock_proc = self.mocker.CreateMock(mld_process)
-#        self.mocker.StubOutWithMock(mock_proc, "check_url")
-#        self.mocker.StubOutWithMock(mock_proc, "check_exists_tmp")
+        # 読み込む設定ファイルを変更(check_urlがTrueを返却)
+        temp_common = mld_process.COMMON_PATH
+        mld_process.COMMON_PATH = "./test_common/"
+        temp_conf = const.CONF_FILE
+        const.CONF_FILE = "config_ipc.json"
 
-        # check_urlにFalseを返却させる
-        mock_proc.check_url("ipc://").AndReturn(True)
-#        # check_exists_tmp(send_path)呼び出し確認
-#        mock_proc.check_exists_tmp(send_path)
-#        # check_exists_tmp(recv_path)呼び出し確認
-#        mock_proc.check_exists_tmp(recv_path)
+        mld_process.mld_process()
 
-        self.mocker.ReplayAll()
-        mld_process()
-#        mock_proc
-        self.mocker.VerifyAll()
+        # 変更した設定を元に戻す
+        mld_process.COMMON_PATH = temp_common
+        const.CONF_FILE = temp_conf
+
+    @attr(do=False)
+    def test_init_check_url_exception(self):
+        # errorログが出力されることを机上で確認
+
+        # 読み込む設定ファイルを変更(check_urlがTrueを返却)
+        temp_common = mld_process.COMMON_PATH
+        mld_process.COMMON_PATH = "./test_common/"
+        temp_conf = const.CONF_FILE
+        const.CONF_FILE = "config_other.json"
+
+        mld_process.mld_process()
+
+        # 変更した設定を元に戻す
+        mld_process.COMMON_PATH = temp_common
+        const.CONF_FILE = temp_conf
+
 
     @attr(do=False)
     def test_check_url_ipc(self):
@@ -1180,7 +1186,7 @@ class test_user_manage():
     @classmethod
     def setup_class(cls):
         logger.debug("setup")
-        cls.mld_proc = mld_process()
+        cls.mld_proc = mld_process.mld_process()
 
     # このクラスのテストケースをすべて実行した後に１度だけ実行する
     @classmethod

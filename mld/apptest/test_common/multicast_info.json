@@ -1,0 +1,20 @@
+{
+    "mc_info": [
+        {
+            "_mc_addr(comment)": "配信マルチキャストアドレスと配信サーバのIPアドレス", 
+            "_type(comment)": "ベストエフォートサービスか品質保証サービスか。BE(BestEffort) or QA(QualityAssurance)", 
+            "ivid": 2011, 
+            "mc_addr": "ff38::1:1", 
+            "pbb_isid": 10011, 
+            "serv_ip": "2001::1:20", 
+            "type": "BE"
+        }, 
+        {
+            "ivid": 2021, 
+            "mc_addr": "ff38::1:2", 
+            "pbb_isid": 10021, 
+            "serv_ip": "2001::1:20", 
+            "type": "BE"
+        }
+    ]
+}
