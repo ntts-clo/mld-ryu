@@ -20,11 +20,7 @@ logger = logging.getLogger(__name__)
 DB_CONNECT_STR = "db_connect_str"
 
 
-class base_info():
-    pass
-
-
-class channel_info(base_info):
+class channel_info():
     def __init__(self, config=None):
         logger.debug("")
         # ch視聴情報を保存する
@@ -195,7 +191,7 @@ class channel_info(base_info):
         return info
 
 
-class channel_switch_info(base_info):
+class channel_switch_info():
     def __init__(self):
         logger.debug("")
         # SW配下のポートの視聴情報を保存する
@@ -257,7 +253,7 @@ class channel_switch_info(base_info):
 
 
 @total_ordering
-class channel_user_info(base_info):
+class channel_user_info():
     def __init__(self, mc_addr, serv_ip, datapathid, port_no, cid, time):
         logger.debug("")
         self.mc_addr = mc_addr
@@ -288,54 +284,57 @@ class channel_user_info(base_info):
 
 
 # 動作確認用
-# if __name__ == "__main__":
-#    ch_info = channel_info()
-#
-#    # add
-#    logger.debug("**** <1>")
-#    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
-#    logger.debug("")
-#    logger.debug("**** <1> add cid 100")
-#    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 1, 100)
-#    logger.debug("")
-#    logger.debug("**** <1> add port 2")
-#    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 2, 120)
-#    logger.debug("")
-#    logger.debug("**** <1> add datapath 2")
-#    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 2, 1, 210)
-#    logger.debug("")
-#    logger.debug("**** <2>")
-#    ch_info.update_ch_info("ff38::1:2", "2001::1:20", 1, 1, 111)
-#    logger.debug(ch_info.get_channel_info())
-#    logger.debug(ch_info.get_user_info_list())
-#
-#    # update
-#    logger.debug("")
-#    logger.debug("**** <1> update cid 111")
-#    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
-#    logger.debug("")
-#    logger.debug(ch_info.get_channel_info())
-#    logger.debug(ch_info.get_user_info_list())
-#
-#    # remove
-#    logger.debug("")
-#    logger.debug("**** remove <1> cid 111")
-#    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
-#    logger.debug("")
-#    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 1, 100)
-#    logger.debug("")
-#    logger.debug("**** remove <1> datapath 2")
-#    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 2, 1, 210)
-#    logger.debug("")
-#    logger.debug("**** remove <1> port 2")
-#    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 2, 120)
-#    logger.debug("")
-#    logger.debug("**** remove <2>")
-#    ch_info.remove_ch_info("ff38::1:2", "2001::1:20", 1, 1, 111)
-#    logger.debug(ch_info.get_channel_info())
-#    logger.debug(ch_info.get_user_info_list())
+'''
+if __name__ == "__main__":
+    ch_info = channel_info()
 
-class DatabaseAccessor:
+    # add
+    logger.debug("**** <1>")
+    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
+    logger.debug("")
+    logger.debug("**** <1> add cid 100")
+    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 1, 100)
+    logger.debug("")
+    logger.debug("**** <1> add port 2")
+    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 2, 120)
+    logger.debug("")
+    logger.debug("**** <1> add datapath 2")
+    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 2, 1, 210)
+    logger.debug("")
+    logger.debug("**** <2>")
+    ch_info.update_ch_info("ff38::1:2", "2001::1:20", 1, 1, 111)
+    logger.debug(ch_info.get_channel_info())
+    logger.debug(ch_info.get_user_info_list())
+
+    # update
+    logger.debug("")
+    logger.debug("**** <1> update cid 111")
+    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
+    logger.debug("")
+    logger.debug(ch_info.get_channel_info())
+    logger.debug(ch_info.get_user_info_list())
+
+    # remove
+    logger.debug("")
+    logger.debug("**** remove <1> cid 111")
+    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
+    logger.debug("")
+    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 1, 100)
+    logger.debug("")
+    logger.debug("**** remove <1> datapath 2")
+    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 2, 1, 210)
+    logger.debug("")
+    logger.debug("**** remove <1> port 2")
+    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 2, 120)
+    logger.debug("")
+    logger.debug("**** remove <2>")
+    ch_info.remove_ch_info("ff38::1:2", "2001::1:20", 1, 1, 111)
+    logger.debug(ch_info.get_channel_info())
+    logger.debug(ch_info.get_user_info_list())
+'''
+
+
+class DatabaseAccessor():
     def __init__(self, connect_str):
         self.client = None
         if not connect_str:
@@ -352,21 +351,7 @@ class DatabaseAccessor:
         dump = inserted_obj.dump_self()
         self.col.update({"ch": "all"}, {"$set": {key: dump}}, upsert=True)
 
-    def query(self, key):
-        if not self.client:
-            return None
-        result = self.col.find_one()
-        dump = result[key]
-        return cPickle.loads(dump)
-
 """
-class UserInfo:
-    def __init__(self, port_no=-1):
-        self.port_no = port_no
-        self.float = float
-        self.array = [1, 2, "123"]
-        self.dict = {"key1": page(), "key2": page(str="test")}
-
 if '__main__' == __name__:
     a = hoge(int=5)
     b = hoge()
