@@ -146,7 +146,6 @@ class test_mld_process():
         mld_process.COMMON_PATH = temp_common
         const.CONF_FILE = temp_conf
 
-
     @attr(do=False)
     def test_check_url_ipc(self):
         logger.debug("test_check_url_Success001")
@@ -2191,20 +2190,26 @@ class test_user_manage():
 
         self.mld_proc.config["user_time_out"] = temp_timeout
 
-    @attr(do=True)
+    @attr(do=False)
     def test_no_db_regist(self):
         # 視聴開始（初回ユーザ参加）を行うが、DB登録は行わない
         #   DatabaseAccessor.clientがNoneのままであること
 
-        # 事前状態確認
-        eq_({}, self.mld_proc.ch_info.channel_info)
-        eq_([], self.mld_proc.ch_info.user_info_list)
-        eq_(None, self.mld_proc.ch_info.accessor.client)
+        # 読み込む設定ファイルを変更(check_urlがTrueを返却)
+        temp_common = mld_process.COMMON_PATH
+        mld_process.COMMON_PATH = "./test_common/"
+        temp_conf = const.CONF_FILE
+        const.CONF_FILE = "config_nodb.json"
 
-        self.mld_proc.config["db_connect_str"] = ""
+        mld_proc = mld_process.mld_process()
+
+        # 事前状態確認
+        eq_({}, mld_proc.ch_info.channel_info)
+        eq_([], mld_proc.ch_info.user_info_list)
+        eq_(None, mld_proc.ch_info.accessor.client)
 
         cid = 1111
-        actual = self.mld_proc.update_user_info(
+        actual = mld_proc.update_user_info(
             self.mc_addr1, self.serv_ip, self.datapathid1, self.in_port1,
             cid, icmpv6.ALLOW_NEW_SOURCES)
 
@@ -2212,14 +2217,14 @@ class test_user_manage():
         eq_(const.CON_REPLY_ADD_MC_GROUP, actual)
 
         # clientはNoneのままであること
-        eq_(None, self.mld_proc.ch_info.accessor.client)
+        eq_(None, mld_proc.ch_info.accessor.client)
 
         # 視聴情報の更新はされていること
         # channel_info(mc_addr, serv_ip, datapathid)
-        eq_(1, len(self.mld_proc.ch_info.channel_info.keys()))
+        eq_(1, len(mld_proc.ch_info.channel_info.keys()))
         eq_((self.mc_addr1, self.serv_ip),
-            self.mld_proc.ch_info.channel_info.keys()[0])
-        sw_info = self.mld_proc.ch_info.channel_info[
+            mld_proc.ch_info.channel_info.keys()[0])
+        sw_info = mld_proc.ch_info.channel_info[
             self.mc_addr1, self.serv_ip]
         eq_(1, len(sw_info.keys()))
         eq_(self.datapathid1, sw_info.keys()[0])
@@ -2239,10 +2244,14 @@ class test_user_manage():
 
         # user_info_list
         #   リストに追加されていること
-        eq_(1, len(self.mld_proc.ch_info.user_info_list))
-        ch_user_info = self.mld_proc.ch_info.user_info_list[-1]
+        eq_(1, len(mld_proc.ch_info.user_info_list))
+        ch_user_info = mld_proc.ch_info.user_info_list[-1]
         eq_(cid, ch_user_info.cid)
         eq_(regist_time, ch_user_info.time)
+
+        # 変更した設定を元に戻す
+        mld_process.COMMON_PATH = temp_common
+        const.CONF_FILE = temp_conf
 
 
 class dummy_socket():

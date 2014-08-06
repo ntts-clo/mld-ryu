@@ -2,7 +2,6 @@
     "_settings(comment)": {
         "_c_tag_id(comment)": "MLD処理部で定期Query、代理応答のReport生成時に使用するカスタマータグのID", 
         "_check_vlan_flg(comment)": "ryu mld_controllerでのVLANチェックフラグ(True) or (False)", 
-        "_db_connect_str(comment)": "MongoDBの接続先IP",
         "_mc_query_interval(comment)": "マルチキャストアドレス毎の送信待ち間隔（reguraly_query_interval以下であること）", 
         "_mld_esw_ifname(comment)": "MLD処理部のエッジSWとの接続インターフェース名", 
         "_mld_zmq_recv(comment)": "MLD受信用のzmqソケットTempFilePath", 
@@ -19,7 +18,6 @@
     "_settings(development)": {
         "c_tag_id": 200, 
         "check_vlan_flg": "True", 
-        "db_connect_str": "mongodb://localhost:27017",
         "mc_query_interval": 10, 
         "mld_esw_ifname": "h5-eth0", 
         "mld_zmq_recv": "/tmp/feeds/ryu-mld", 
@@ -35,8 +33,8 @@
     }, 
     "settings": {
         "c_tag_id": 200, 
-        "check_vlan_flg": "True",
-        "db_connect_str": "mongodb://localhost:27017",
+        "check_vlan_flg": "True", 
+        "db_connect_str": "",
         "mc_query_interval": 10, 
         "mld_esw_ifname": "eth3", 
         "mld_zmq_recv": "192.168.5.10:7002", 
