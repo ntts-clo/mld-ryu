@@ -327,7 +327,8 @@ class test_mld_process():
                 self.addressinfo, self.config["c_tag_id"], "mld").AndReturn(
                 "sendpkt")
             for i in range(qqrv):
-                self.mld_proc.send_packet_to_sw("sendpkt").AndReturn(0)
+                self.mld_proc.send_packet_to_sw(
+                    "sendpkt", mc_info["mc_addr"])
         self.mocker.ReplayAll()
 
         self.mld_proc.send_mldquery(mc_info_list, wait_time)
@@ -458,7 +459,7 @@ class test_mld_process():
         packet.serialize()
 
         self.mld_proc.config["mld_esw_ifname"] = "eth0"
-        self.mld_proc.send_packet_to_sw(packet)
+        self.mld_proc.send_packet_to_sw(packet, "ff38::1:1")
 
     @attr(do=False)
     def test_send_packet_to_ryu(self):

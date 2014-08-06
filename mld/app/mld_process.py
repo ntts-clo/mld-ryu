@@ -283,7 +283,7 @@ class mld_process():
 
             # 信頼性変数QRV回送信する
             for i in range(self.QUERY_QRV):
-                self.send_packet_to_sw(sendpkt)
+                self.send_packet_to_sw(sendpkt, mc_info["mc_addr"])
                 time.sleep(1)
 
             # 最後のmcアドレス情報以外は送信待ちする
@@ -378,16 +378,16 @@ class mld_process():
     # ==================================================================
     # send_packet_to_sw
     # ==================================================================
-    def send_packet_to_sw(self, ryu_packet):
+    def send_packet_to_sw(self, ryu_packet, mc_addr):
         self.logger.debug("")
         sendpkt = scapy_packet.Packet(ryu_packet.data)
 
         # send of scapy
         sendrecv.sendp(
             sendpkt, iface=self.config["mld_esw_ifname"], verbose=0)
-        self.logger.info("send to switch. [query_type]:%s [c_tag_id]:%s ",
-                         self.config["reguraly_query_type"],
-                         self.config["c_tag_id"])
+        self.logger.info(
+            "send to switch. [multicast_address]:'%s' [c_tag_id]:%s ",
+            mc_addr, self.config["c_tag_id"])
 
     # ==================================================================
     # send_packet_to_ryu
