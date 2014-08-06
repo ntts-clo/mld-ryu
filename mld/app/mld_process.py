@@ -57,6 +57,10 @@ class mld_process():
     QUERY_MAX_RESPONSE = 10000
     QUERY_QRV = 2
 
+    # etherのdst(macアドレス)の設定値
+    QUERY_DST = "33:33:00:00:00:01"
+    REPORT_DST = "33:33:00:00:00:16"
+
     # ipv6のdstipの設定値
     QUERY_DST_IP = "ff02::1"
     REPORT_DST_IP = "ff02::16"
@@ -324,11 +328,6 @@ class mld_process():
     def create_packet(self, addressinfo, vid, mld):
         self.logger.debug("")
 
-        # ETHER
-        eth = ethernet.ethernet(
-            ethertype=ether.ETH_TYPE_8021Q,
-            src=addressinfo[0], dst=addressinfo[1])
-
         # VLAN
         vln = vlan.vlan(vid=vid, ethertype=ether.ETH_TYPE_IPV6)
 
@@ -337,20 +336,32 @@ class mld_process():
             ipv6.option(type_=5, len_=2, data="\x00\x00"),
             ipv6.option(type_=1, len_=0)])]
 
-        # IPV6 and MLDV2
+        # MLDV2_Query
         if type(mld) == icmpv6.mldv2_query:
+            # ETHER
+            eth = ethernet.ethernet(
+                ethertype=ether.ETH_TYPE_8021Q,
+                src=addressinfo[0], dst=self.QUERY_DST)
 
+            # IPV6 with ExtensionHeader
             ip6 = ipv6.ipv6(
-                src=addressinfo[2], dst=self.QUERY_DST_IP,
+                src=addressinfo[1], dst=self.QUERY_DST_IP,
                 hop_limit=1, nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
 
             # MLD Query
             icmp6 = icmpv6_extend(
                 type_=icmpv6.MLD_LISTENER_QUERY, data=mld)
 
+        # MLDV2_Report
         elif type(mld) == icmpv6.mldv2_report:
+            # ETHER
+            eth = ethernet.ethernet(
+                ethertype=ether.ETH_TYPE_8021Q,
+                src=addressinfo[0], dst=self.REPORT_DST)
+
+            # IPV6 with ExtensionHeader
             ip6 = ipv6.ipv6(
-                src=addressinfo[2], dst=self.REPORT_DST_IP,
+                src=addressinfo[1], dst=self.REPORT_DST_IP,
                 hop_limit=1, nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
 
             # MLD Report

@@ -27,6 +27,7 @@ hub.patch()
 APP_PATH = "../app/"
 sys.path.append(APP_PATH)
 import mld_process
+from user_manage import channel_info
 
 COMMON_PATH = "../../common/"
 sys.path.append(COMMON_PATH)
@@ -69,8 +70,7 @@ class test_mld_process():
     def setup(self):
         self.mocker = Mox()
         # 設定値の初期化
-        self.mld_proc.ch_info.channel_info = {}
-        self.mld_proc.ch_info.user_info_list = []
+        self.mld_proc.ch_info = channel_info(self.config)
         self.mld_proc.config = self.config
 
     def teardown(self):
@@ -403,13 +403,13 @@ class test_mld_process():
 
         eth = actual.get_protocol(ethernet.ethernet)
         eq_(self.addressinfo[0], eth.src)
-        eq_(self.addressinfo[1], eth.dst)
+        eq_(self.mld_proc.QUERY_DST, eth.dst)
 
         vln = actual.get_protocol(vlan.vlan)
         eq_(vid, vln.vid)
 
         ip6 = actual.get_protocol(ipv6.ipv6)
-        eq_(self.addressinfo[2], ip6.src)
+        eq_(self.addressinfo[1], ip6.src)
         eq_(self.mld_proc.QUERY_DST_IP, ip6.dst)
         # 拡張ヘッダを持っていることを確認
         eq_(inet.IPPROTO_HOPOPTS, ip6.nxt)
@@ -432,13 +432,13 @@ class test_mld_process():
 
         eth = actual.get_protocol(ethernet.ethernet)
         eq_(self.addressinfo[0], eth.src)
-        eq_(self.addressinfo[1], eth.dst)
+        eq_(self.mld_proc.REPORT_DST, eth.dst)
 
         vln = actual.get_protocol(vlan.vlan)
         eq_(vid, vln.vid)
 
         ip6 = actual.get_protocol(ipv6.ipv6)
-        eq_(self.addressinfo[2], ip6.src)
+        eq_(self.addressinfo[1], ip6.src)
         eq_(self.mld_proc.REPORT_DST_IP, ip6.dst)
         # 拡張ヘッダを持っていることを確認
         eq_(inet.IPPROTO_HOPOPTS, ip6.nxt)
@@ -1199,6 +1199,8 @@ class test_user_manage():
     @classmethod
     def setup_class(cls):
         logger.debug("setup")
+        config = read_json(COMMON_PATH + const.CONF_FILE)
+        cls.config = config.data["settings"]
         cls.mld_proc = mld_process.mld_process()
 
     # このクラスのテストケースをすべて実行した後に１度だけ実行する
@@ -1209,8 +1211,8 @@ class test_user_manage():
     def setup(self):
         self.mocker = Mox()
         # 設定値の初期化
-        self.mld_proc.ch_info.channel_info = {}
-        self.mld_proc.ch_info.user_info_list = []
+        self.mld_proc.ch_info = channel_info(self.config)
+        self.mld_proc.config = self.config
 
     def teardown(self):
         self.mocker.UnsetStubs()
@@ -2188,6 +2190,59 @@ class test_user_manage():
         eq_(regist_time, ch_user_info.time)
 
         self.mld_proc.config["user_time_out"] = temp_timeout
+
+    @attr(do=True)
+    def test_no_db_regist(self):
+        # 視聴開始（初回ユーザ参加）を行うが、DB登録は行わない
+        #   DatabaseAccessor.clientがNoneのままであること
+
+        # 事前状態確認
+        eq_({}, self.mld_proc.ch_info.channel_info)
+        eq_([], self.mld_proc.ch_info.user_info_list)
+        eq_(None, self.mld_proc.ch_info.accessor.client)
+
+        self.mld_proc.config["db_connect_str"] = ""
+
+        cid = 1111
+        actual = self.mld_proc.update_user_info(
+            self.mc_addr1, self.serv_ip, self.datapathid1, self.in_port1,
+            cid, icmpv6.ALLOW_NEW_SOURCES)
+
+        # 返却値の確認
+        eq_(const.CON_REPLY_ADD_MC_GROUP, actual)
+
+        # clientはNoneのままであること
+        eq_(None, self.mld_proc.ch_info.accessor.client)
+
+        # 視聴情報の更新はされていること
+        # channel_info(mc_addr, serv_ip, datapathid)
+        eq_(1, len(self.mld_proc.ch_info.channel_info.keys()))
+        eq_((self.mc_addr1, self.serv_ip),
+            self.mld_proc.ch_info.channel_info.keys()[0])
+        sw_info = self.mld_proc.ch_info.channel_info[
+            self.mc_addr1, self.serv_ip]
+        eq_(1, len(sw_info.keys()))
+        eq_(self.datapathid1, sw_info.keys()[0])
+        ch_sw_info = sw_info[self.datapathid1]
+
+        # channel_switch_info(port_no, cid)
+        eq_(1, len(ch_sw_info.port_info.keys()))
+        eq_(self.in_port1, ch_sw_info.port_info.keys()[0])
+        user_info = ch_sw_info.port_info[self.in_port1]
+        eq_(1, len(user_info.keys()))
+        eq_(cid, user_info.keys()[0])
+        ch_user_info = user_info[cid]
+
+        # channel_user_info(cid)
+        eq_(cid, ch_user_info.cid)
+        regist_time = ch_user_info.time
+
+        # user_info_list
+        #   リストに追加されていること
+        eq_(1, len(self.mld_proc.ch_info.user_info_list))
+        ch_user_info = self.mld_proc.ch_info.user_info_list[-1]
+        eq_(cid, ch_user_info.cid)
+        eq_(regist_time, ch_user_info.time)
 
 
 class dummy_socket():
