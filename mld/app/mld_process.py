@@ -383,7 +383,8 @@ class mld_process():
         sendpkt = scapy_packet.Packet(ryu_packet.data)
 
         # send of scapy
-        sendrecv.sendp(sendpkt, iface=self.config["mld_esw_ifname"])
+        sendrecv.sendp(
+            sendpkt, iface=self.config["mld_esw_ifname"], verbose=0)
         self.logger.info("send to switch. [query_type]:%s [c_tag_id]:%s ",
                          self.config["reguraly_query_type"],
                          self.config["c_tag_id"])
