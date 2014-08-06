@@ -2,6 +2,8 @@
 # coding:utf-8
 
 import user_manage
+import cPickle
+import time
 from pymongo import MongoClient
 
 """
@@ -272,54 +274,6 @@ class channel_user_info(base_info):
         return (self.time < other.time)
 
 
-# 動作確認用
-# if __name__ == "__main__":
-#    ch_info = channel_info()
-#
-#    # add
-#    logger.debug("**** <1>")
-#    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
-#    logger.debug("")
-#    logger.debug("**** <1> add cid 100")
-#    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 1, 100)
-#    logger.debug("")
-#    logger.debug("**** <1> add port 2")
-#    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 2, 120)
-#    logger.debug("")
-#    logger.debug("**** <1> add datapath 2")
-#    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 2, 1, 210)
-#    logger.debug("")
-#    logger.debug("**** <2>")
-#    ch_info.update_ch_info("ff38::1:2", "2001::1:20", 1, 1, 111)
-#    logger.debug(ch_info.get_channel_info())
-#    logger.debug(ch_info.get_user_info_list())
-#
-#    # update
-#    logger.debug("")
-#    logger.debug("**** <1> update cid 111")
-#    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
-#    logger.debug("")
-#    logger.debug(ch_info.get_channel_info())
-#    logger.debug(ch_info.get_user_info_list())
-#
-#    # remove
-#    logger.debug("")
-#    logger.debug("**** remove <1> cid 111")
-#    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
-#    logger.debug("")
-#    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 1, 100)
-#    logger.debug("")
-#    logger.debug("**** remove <1> datapath 2")
-#    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 2, 1, 210)
-#    logger.debug("")
-#    logger.debug("**** remove <1> port 2")
-#    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 2, 120)
-#    logger.debug("")
-#    logger.debug("**** remove <2>")
-#    ch_info.remove_ch_info("ff38::1:2", "2001::1:20", 1, 1, 111)
-#    logger.debug(ch_info.get_channel_info())
-#    logger.debug(ch_info.get_user_info_list())
-
 class DatabaseAccessor:
     def __init__(self, connect_str):
         self.client = None
@@ -355,7 +309,14 @@ if '__main__' == __name__:
     # query
     result = col.find_one({"ch": "all"})
     dump_result = result["viewerdata"]
-    load_result = cpickle.loads(dump_result)
+    load_result = cPickle.loads(str(dump_result))
 
-    # check
-    logger.debug(load_result)
+    # display
+    for (key, switch_dict) in load_result.items():
+        print key
+        for (datapath_id, sw_obj) in switch_dict.items():
+            print "\tSwitch:", datapath_id
+            for (port_no, usr_dict) in sw_obj.port_info.items():
+                print "\t\tPort_No:", port_no
+                for (cid, usr_obj) in usr_dict.items():
+                    print "\t\t\tcid: ", cid, " Update time: ", time.strftime("%Y/%m/%d %H:%M:%S", time.localtime(usr_obj.time))
