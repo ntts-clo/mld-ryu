@@ -324,7 +324,6 @@ class flow_mod_gen_impl(object):
                                 in_port, ivid, pbb_isid, flow_mod_datas):
         table_id = 3
         priority = PRIORITY_NORMAL
-        print in_port
         match = parser.OFPMatch(in_port=in_port,
                                 eth_type=ether.ETH_TYPE_8021AH,
                                 pbb_isid=pbb_isid,
