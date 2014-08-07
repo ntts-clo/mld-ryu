@@ -1,2 +1,2 @@
-#src             ,dst(multicast)   ,srcip     ,dstip(multicastaddresses)
-e8:39:35:a7:47:c6,33:33:00:00:00:01,fe80::ea39:35ff:fea7:47c6,ff02::1
+#src(mac)        ,src(ip)
+e8:39:35:a7:47:c6,fe80::ea39:35ff:fea7:47c6

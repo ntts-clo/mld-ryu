@@ -26,7 +26,8 @@ hub.patch()
 
 APP_PATH = "../app/"
 sys.path.append(APP_PATH)
-from mld_process import mld_process
+import mld_process
+from user_manage import channel_info
 
 COMMON_PATH = "../../common/"
 sys.path.append(COMMON_PATH)
@@ -59,7 +60,7 @@ class test_mld_process():
         mc_info = read_json(COMMON_PATH + const.MULTICAST_INFO)
         cls.mc_info_list = mc_info.data["mc_info"]
 
-        cls.mld_proc = mld_process()
+        cls.mld_proc = mld_process.mld_process()
 
     # このクラスのテストケースをすべて実行した後に１度だけ実行する
     @classmethod
@@ -69,8 +70,7 @@ class test_mld_process():
     def setup(self):
         self.mocker = Mox()
         # 設定値の初期化
-        self.mld_proc.ch_info.channel_info = {}
-        self.mld_proc.ch_info.user_info_list = []
+        self.mld_proc.ch_info = channel_info(self.config)
         self.mld_proc.config = self.config
 
     def teardown(self):
@@ -113,6 +113,90 @@ class test_mld_process():
 
         # Flowmod生成用インスタンス
         ok_(self.mld_proc.flowmod_gen)
+
+    @attr(do=False)
+    def test_init_check_url_true(self):
+        logger.debug("")
+
+        # 読み込む設定ファイルを変更(check_urlがTrueを返却)
+        temp_common = mld_process.COMMON_PATH
+        mld_process.COMMON_PATH = "./test_common/"
+        temp_conf = const.CONF_FILE
+        const.CONF_FILE = "config_ipc.json"
+
+        mld_process.mld_process()
+
+        # 変更した設定を元に戻す
+        mld_process.COMMON_PATH = temp_common
+        const.CONF_FILE = temp_conf
+
+    @attr(do=False)
+    def test_init_check_url_exception(self):
+        # errorログが出力されることを机上で確認
+
+        # 読み込む設定ファイルを変更(check_urlがTrueを返却)
+        temp_common = mld_process.COMMON_PATH
+        mld_process.COMMON_PATH = "./test_common/"
+        temp_conf = const.CONF_FILE
+        const.CONF_FILE = "config_other.json"
+
+        mld_process.mld_process()
+
+        # 変更した設定を元に戻す
+        mld_process.COMMON_PATH = temp_common
+        const.CONF_FILE = temp_conf
+
+    @attr(do=False)
+    def test_check_url_ipc(self):
+        logger.debug("test_check_url_Success001")
+        """
+        概要：zmqで使用するurlの妥当性チェック
+        条件：zmq_url=ipc://
+        結果：resultがTrueであること
+        """
+        # 【前処理】
+        zmq_url = "ipc://"
+
+        # 【実行】
+        result = self.mld_proc.check_url(zmq_url)
+
+        # 【結果】
+        logger.debug("test_check_url_Success001 [result] %s", str(result))
+        ok_(result)
+
+    @attr(do=False)
+    def test_check_url_tcp(self):
+        logger.debug("test_check_url_Success002")
+        """
+        概要：zmqで使用するurlの妥当性チェック
+        条件：zmq_url=tcp://
+        結果：resultがTrueであること
+        """
+        # 【前処理】
+        zmq_url = "tcp://"
+
+        # 【実行】
+        result = self.mld_proc.check_url(zmq_url)
+
+        # 【結果】
+        logger.debug("test_check_url_Success002 [result] %s", str(result))
+        ok_(not result)
+
+    @attr(do=False)
+    @raises(Exception)
+    def test_check_url_other(self):
+        logger.debug("test_check_url_Failer001")
+        """
+        概要：zmqで使用するurlの妥当性チェック
+        条件：zmq_url=ipf:///
+        結果：Exceptionが発生すること
+        """
+        # 【前処理】
+        zmq_url = "ipf:///"
+        # 【実行】
+        result = self.mld_proc.check_url(zmq_url)
+        # 【結果】
+        logger.debug("test_check_url_Failer001 [Exception] %s", e)
 
     @attr(do=False)
     def test_check_exists_tmp_exsist(self):
@@ -243,7 +327,8 @@ class test_mld_process():
                 self.addressinfo, self.config["c_tag_id"], "mld").AndReturn(
                 "sendpkt")
             for i in range(qqrv):
-                self.mld_proc.send_packet_to_sw("sendpkt").AndReturn(0)
+                self.mld_proc.send_packet_to_sw(
+                    "sendpkt", mc_info["mc_addr"])
         self.mocker.ReplayAll()
 
         self.mld_proc.send_mldquery(mc_info_list, wait_time)
@@ -318,14 +403,14 @@ class test_mld_process():
 
         eth = actual.get_protocol(ethernet.ethernet)
         eq_(self.addressinfo[0], eth.src)
-        eq_(self.addressinfo[1], eth.dst)
+        eq_(self.mld_proc.QUERY_DST, eth.dst)
 
         vln = actual.get_protocol(vlan.vlan)
         eq_(vid, vln.vid)
 
         ip6 = actual.get_protocol(ipv6.ipv6)
-        eq_(self.addressinfo[2], ip6.src)
-        eq_(self.addressinfo[3], ip6.dst)
+        eq_(self.addressinfo[1], ip6.src)
+        eq_(self.mld_proc.QUERY_DST_IP, ip6.dst)
         # 拡張ヘッダを持っていることを確認
         eq_(inet.IPPROTO_HOPOPTS, ip6.nxt)
         ok_(ip6.ext_hdrs)
@@ -345,7 +430,20 @@ class test_mld_process():
         actual = self.mld_proc.create_packet(
             self.addressinfo, vid, report)
 
-        # eth - ipv6まではquery時に確認しているため省略
+        eth = actual.get_protocol(ethernet.ethernet)
+        eq_(self.addressinfo[0], eth.src)
+        eq_(self.mld_proc.REPORT_DST, eth.dst)
+
+        vln = actual.get_protocol(vlan.vlan)
+        eq_(vid, vln.vid)
+
+        ip6 = actual.get_protocol(ipv6.ipv6)
+        eq_(self.addressinfo[1], ip6.src)
+        eq_(self.mld_proc.REPORT_DST_IP, ip6.dst)
+        # 拡張ヘッダを持っていることを確認
+        eq_(inet.IPPROTO_HOPOPTS, ip6.nxt)
+        ok_(ip6.ext_hdrs)
+
         icmp6 = actual.get_protocol(icmpv6.icmpv6)
         eq_(icmpv6.MLDV2_LISTENER_REPORT, icmp6.type_)
         eq_(report, icmp6.data)
@@ -361,7 +459,7 @@ class test_mld_process():
         packet.serialize()
 
         self.mld_proc.config["mld_esw_ifname"] = "eth0"
-        self.mld_proc.send_packet_to_sw(packet)
+        self.mld_proc.send_packet_to_sw(packet, "ff38::1:1")
 
     @attr(do=False)
     def test_send_packet_to_ryu(self):
@@ -430,9 +528,36 @@ class test_mld_process():
 
     @attr(do=False)
     def test_analyse_receive_packet_other(self):
-        # それ以外の場合：なにもしない
-        dispatch_ = dispatch("", 1)
+        # それ以外のパケットを受信した場合：エラーログを出力
+        dispatch_ = dispatch("test", 1)
+
+        # logger.errorの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
+        self.mld_proc.logger.error(
+            "dispatch[type_]:Not Exist(%s) \n", "test")
+        self.mocker.ReplayAll()
+
         self.mld_proc.analyse_receive_packet(dispatch_)
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
+    def test_analyse_receive_packet_exception(self):
+        # 解析中に例外が発生した場合：エラーログを出力
+        dispatch_ = dispatch(const.CON_SWITCH_FEATURE, 1)
+
+        # set_switch_configがExceptionを返却
+        self.mocker.StubOutWithMock(self.mld_proc, "set_switch_config")
+        self.mld_proc.set_switch_config(
+            {'data': None, 'type_': 11, 'datapathid': 1,
+             'in_port': -1, 'cid': 0}).AndRaise(Exception())
+
+        # logger.errorの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
+        self.mld_proc.logger.error(IsA(str), None)
+        self.mocker.ReplayAll()
+
+        self.mld_proc.analyse_receive_packet(dispatch_)
+        self.mocker.VerifyAll()
 
     @attr(do=False)
     def test_set_switch_config(self):
@@ -692,7 +817,8 @@ class test_mld_process():
         self.mocker.ReplayAll()
 
         actual = self.mld_proc.update_user_info(
-            mc_addr, serv_ip, datapathid, in_port, cid, icmpv6.ALLOW_NEW_SOURCES)
+            mc_addr, serv_ip, datapathid, in_port, cid,
+            icmpv6.ALLOW_NEW_SOURCES)
         eq_(const.CON_REPLY_NOTHING, actual)
         self.mocker.VerifyAll()
 
@@ -717,7 +843,8 @@ class test_mld_process():
         self.mocker.ReplayAll()
 
         actual = self.mld_proc.update_user_info(
-            mc_addr, serv_ip, datapathid, in_port, cid, icmpv6.BLOCK_OLD_SOURCES)
+            mc_addr, serv_ip, datapathid, in_port, cid,
+            icmpv6.BLOCK_OLD_SOURCES)
         eq_(const.CON_REPLY_NOTHING, actual)
         self.mocker.VerifyAll()
 
@@ -1072,7 +1199,9 @@ class test_user_manage():
     @classmethod
     def setup_class(cls):
         logger.debug("setup")
-        cls.mld_proc = mld_process()
+        config = read_json(COMMON_PATH + const.CONF_FILE)
+        cls.config = config.data["settings"]
+        cls.mld_proc = mld_process.mld_process()
 
     # このクラスのテストケースをすべて実行した後に１度だけ実行する
     @classmethod
@@ -1082,8 +1211,8 @@ class test_user_manage():
     def setup(self):
         self.mocker = Mox()
         # 設定値の初期化
-        self.mld_proc.ch_info.channel_info = {}
-        self.mld_proc.ch_info.user_info_list = []
+        self.mld_proc.ch_info = channel_info(self.config)
+        self.mld_proc.config = self.config
 
     def teardown(self):
         self.mocker.UnsetStubs()
@@ -1110,7 +1239,8 @@ class test_user_manage():
         eq_(1, len(self.mld_proc.ch_info.channel_info.keys()))
         eq_((self.mc_addr1, self.serv_ip),
             self.mld_proc.ch_info.channel_info.keys()[0])
-        sw_info = self.mld_proc.ch_info.channel_info[self.mc_addr1, self.serv_ip]
+        sw_info = self.mld_proc.ch_info.channel_info[
+            self.mc_addr1, self.serv_ip]
         eq_(1, len(sw_info.keys()))
         eq_(self.datapathid1, sw_info.keys()[0])
         ch_sw_info = sw_info[self.datapathid1]
@@ -1159,7 +1289,8 @@ class test_user_manage():
         eq_(1, len(self.mld_proc.ch_info.channel_info.keys()))
         eq_((self.mc_addr1, self.serv_ip),
             self.mld_proc.ch_info.channel_info.keys()[0])
-        sw_info = self.mld_proc.ch_info.channel_info[self.mc_addr1, self.serv_ip]
+        sw_info = self.mld_proc.ch_info.channel_info[
+            self.mc_addr1, self.serv_ip]
         eq_(1, len(sw_info.keys()))
         eq_(self.datapathid1, sw_info.keys()[0])
         ch_sw_info = sw_info[self.datapathid1]
@@ -1211,7 +1342,8 @@ class test_user_manage():
         eq_(1, len(self.mld_proc.ch_info.channel_info.keys()))
         eq_((self.mc_addr1, self.serv_ip),
             self.mld_proc.ch_info.channel_info.keys()[0])
-        sw_info = self.mld_proc.ch_info.channel_info[self.mc_addr1, self.serv_ip]
+        sw_info = self.mld_proc.ch_info.channel_info[
+            self.mc_addr1, self.serv_ip]
         eq_(1, len(sw_info.keys()))
         eq_(self.datapathid1, sw_info.keys()[0])
         ch_sw_info = sw_info[self.datapathid1]
@@ -1266,7 +1398,8 @@ class test_user_manage():
         eq_(1, len(self.mld_proc.ch_info.channel_info.keys()))
         eq_((self.mc_addr1, self.serv_ip),
             self.mld_proc.ch_info.channel_info.keys()[0])
-        sw_info = self.mld_proc.ch_info.channel_info[self.mc_addr1, self.serv_ip]
+        sw_info = self.mld_proc.ch_info.channel_info[
+            self.mc_addr1, self.serv_ip]
         eq_(2, len(sw_info.keys()))
         ok_(self.datapathid2 in sw_info)
         ch_sw_info = sw_info[self.datapathid2]
@@ -1322,8 +1455,10 @@ class test_user_manage():
 
         # channel_info(mc_addr, serv_ip, datapathid)
         eq_(2, len(self.mld_proc.ch_info.channel_info.keys()))
-        ok_((self.mc_addr2, self.serv_ip) in self.mld_proc.ch_info.channel_info)
-        sw_info = self.mld_proc.ch_info.channel_info[self.mc_addr2, self.serv_ip]
+        ok_((self.mc_addr2, self.serv_ip)
+            in self.mld_proc.ch_info.channel_info)
+        sw_info = self.mld_proc.ch_info.channel_info[
+            self.mc_addr2, self.serv_ip]
         eq_(1, len(sw_info.keys()))
         eq_(self.datapathid1, sw_info.keys()[0])
         ch_sw_info = sw_info[self.datapathid1]
@@ -1383,8 +1518,10 @@ class test_user_manage():
 
         # channel_info(mc_addr, serv_ip, datapathid)
         eq_(2, len(self.mld_proc.ch_info.channel_info.keys()))
-        ok_((self.mc_addr2, self.serv_ip) in self.mld_proc.ch_info.channel_info)
-        sw_info = self.mld_proc.ch_info.channel_info[self.mc_addr2, self.serv_ip]
+        ok_((self.mc_addr2, self.serv_ip)
+            in self.mld_proc.ch_info.channel_info)
+        sw_info = self.mld_proc.ch_info.channel_info[
+            self.mc_addr2, self.serv_ip]
         eq_(1, len(sw_info.keys()))
         eq_(self.datapathid1, sw_info.keys()[0])
         ch_sw_info = sw_info[self.datapathid1]
@@ -1448,7 +1585,8 @@ class test_user_manage():
 
         # channel_info(mc_addr, serv_ip, datapathid)
         eq_(2, len(self.mld_proc.ch_info.channel_info.keys()))
-        sw_info = self.mld_proc.ch_info.channel_info[self.mc_addr2, self.serv_ip]
+        sw_info = self.mld_proc.ch_info.channel_info[
+            self.mc_addr2, self.serv_ip]
         eq_(1, len(sw_info.keys()))
         ch_sw_info = sw_info[self.datapathid1]
 
@@ -1518,7 +1656,8 @@ class test_user_manage():
 
         # channel_info(mc_addr, serv_ip, datapathid)
         eq_(2, len(self.mld_proc.ch_info.channel_info.keys()))
-        sw_info = self.mld_proc.ch_info.channel_info[self.mc_addr1, self.serv_ip]
+        sw_info = self.mld_proc.ch_info.channel_info[
+            self.mc_addr1, self.serv_ip]
         eq_(2, len(sw_info.keys()))
         ch_sw_info = sw_info[self.datapathid1]
 
@@ -1592,7 +1731,8 @@ class test_user_manage():
 
         # channel_info(mc_addr, serv_ip, datapathid)
         eq_(2, len(self.mld_proc.ch_info.channel_info.keys()))
-        sw_info = self.mld_proc.ch_info.channel_info[self.mc_addr1, self.serv_ip]
+        sw_info = self.mld_proc.ch_info.channel_info[
+            self.mc_addr1, self.serv_ip]
         eq_(2, len(sw_info.keys()))
         ch_sw_info = sw_info[self.datapathid1]
 
@@ -1655,7 +1795,8 @@ class test_user_manage():
 
         # channel_info(mc_addr, serv_ip, datapathid)
         eq_(2, len(self.mld_proc.ch_info.channel_info.keys()))
-        sw_info = self.mld_proc.ch_info.channel_info[self.mc_addr1, self.serv_ip]
+        sw_info = self.mld_proc.ch_info.channel_info[
+            self.mc_addr1, self.serv_ip]
         eq_(2, len(sw_info.keys()))
         ch_sw_info = sw_info[self.datapathid1]
 
@@ -1713,7 +1854,8 @@ class test_user_manage():
         # channel_info(mc_addr, serv_ip, datapathid)
         #   datapathid2に対応するSWが存在しないこと
         eq_(2, len(self.mld_proc.ch_info.channel_info.keys()))
-        sw_info = self.mld_proc.ch_info.channel_info[self.mc_addr1, self.serv_ip]
+        sw_info = self.mld_proc.ch_info.channel_info[
+            self.mc_addr1, self.serv_ip]
         eq_(1, len(sw_info.keys()))
         ok_(self.datapathid2 not in sw_info)
 
@@ -1762,7 +1904,8 @@ class test_user_manage():
         # channel_info(mc_addr, serv_ip, datapathid)
         #   対応するMCアドレスが存在しないこと
         eq_(1, len(self.mld_proc.ch_info.channel_info.keys()))
-        ok_((self.mc_addr1, self.serv_ip) not in self.mld_proc.ch_info.channel_info)
+        ok_((self.mc_addr1, self.serv_ip)
+            not in self.mld_proc.ch_info.channel_info)
 
         # user_info_list
         #   ユーザが削除されていること
@@ -1843,7 +1986,8 @@ class test_user_manage():
         eq_(1, len(self.mld_proc.ch_info.channel_info.keys()))
         eq_((self.mc_addr2, self.serv_ip),
             self.mld_proc.ch_info.channel_info.keys()[0])
-        sw_info = self.mld_proc.ch_info.channel_info[(self.mc_addr2, self.serv_ip)]
+        sw_info = self.mld_proc.ch_info.channel_info[
+            (self.mc_addr2, self.serv_ip)]
         eq_(1, len(sw_info.keys()))
         eq_(self.datapathid1, sw_info.keys()[0])
         ch_sw_info = sw_info[self.datapathid1]
@@ -1886,7 +2030,6 @@ class test_user_manage():
         #   タイムアウトとなったユーザ情報が削除されていること
 
         # 事前準備
-        temp_timeout = self.mld_proc.config["user_time_out"]
         self.mld_proc.config["user_time_out"] = 3
 
         self.mld_proc.ch_info.update_ch_info(
@@ -2019,7 +2162,8 @@ class test_user_manage():
             not in self.mld_proc.ch_info.channel_info)
         eq_((self.mc_addr2, self.serv_ip),
             self.mld_proc.ch_info.channel_info.keys()[0])
-        sw_info = self.mld_proc.ch_info.channel_info[(self.mc_addr2, self.serv_ip)]
+        sw_info = self.mld_proc.ch_info.channel_info[
+            (self.mc_addr2, self.serv_ip)]
         eq_(1, len(sw_info.keys()))
         ch_sw_info = sw_info[self.datapathid1]
 
@@ -2046,6 +2190,69 @@ class test_user_manage():
         eq_(regist_time, ch_user_info.time)
 
         self.mld_proc.config["user_time_out"] = temp_timeout
+
+    @attr(do=False)
+    def test_no_db_regist(self):
+        # 視聴開始（初回ユーザ参加）を行うが、DB登録は行わない
+        #   DatabaseAccessor.clientがNoneのままであること
+
+        # 読み込む設定ファイルを変更(check_urlがTrueを返却)
+        temp_common = mld_process.COMMON_PATH
+        mld_process.COMMON_PATH = "./test_common/"
+        temp_conf = const.CONF_FILE
+        const.CONF_FILE = "config_nodb.json"
+
+        mld_proc = mld_process.mld_process()
+
+        # 事前状態確認
+        eq_({}, mld_proc.ch_info.channel_info)
+        eq_([], mld_proc.ch_info.user_info_list)
+        eq_(None, mld_proc.ch_info.accessor.client)
+
+        cid = 1111
+        actual = mld_proc.update_user_info(
+            self.mc_addr1, self.serv_ip, self.datapathid1, self.in_port1,
+            cid, icmpv6.ALLOW_NEW_SOURCES)
+
+        # 返却値の確認
+        eq_(const.CON_REPLY_ADD_MC_GROUP, actual)
+
+        # clientはNoneのままであること
+        eq_(None, mld_proc.ch_info.accessor.client)
+
+        # 視聴情報の更新はされていること
+        # channel_info(mc_addr, serv_ip, datapathid)
+        eq_(1, len(mld_proc.ch_info.channel_info.keys()))
+        eq_((self.mc_addr1, self.serv_ip),
+            mld_proc.ch_info.channel_info.keys()[0])
+        sw_info = mld_proc.ch_info.channel_info[
+            self.mc_addr1, self.serv_ip]
+        eq_(1, len(sw_info.keys()))
+        eq_(self.datapathid1, sw_info.keys()[0])
+        ch_sw_info = sw_info[self.datapathid1]
+
+        # channel_switch_info(port_no, cid)
+        eq_(1, len(ch_sw_info.port_info.keys()))
+        eq_(self.in_port1, ch_sw_info.port_info.keys()[0])
+        user_info = ch_sw_info.port_info[self.in_port1]
+        eq_(1, len(user_info.keys()))
+        eq_(cid, user_info.keys()[0])
+        ch_user_info = user_info[cid]
+
+        # channel_user_info(cid)
+        eq_(cid, ch_user_info.cid)
+        regist_time = ch_user_info.time
+
+        # user_info_list
+        #   リストに追加されていること
+        eq_(1, len(mld_proc.ch_info.user_info_list))
+        ch_user_info = mld_proc.ch_info.user_info_list[-1]
+        eq_(cid, ch_user_info.cid)
+        eq_(regist_time, ch_user_info.time)
+
+        # 変更した設定を元に戻す
+        mld_process.COMMON_PATH = temp_common
+        const.CONF_FILE = temp_conf
 
 
 class dummy_socket():

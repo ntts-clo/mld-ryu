@@ -57,6 +57,14 @@ class mld_process():
     QUERY_MAX_RESPONSE = 10000
     QUERY_QRV = 2
 
+    # etherのdst(macアドレス)の設定値
+    QUERY_DST = "33:33:00:00:00:01"
+    REPORT_DST = "33:33:00:00:00:16"
+
+    # ipv6のdstipの設定値
+    QUERY_DST_IP = "ff02::1"
+    REPORT_DST_IP = "ff02::16"
+
     # 送受信のループフラグ
     SEND_LOOP = True
     RECV_LOOP = True
@@ -73,18 +81,14 @@ class mld_process():
             self.logger = logging.getLogger(__name__)
             self.logger.debug("")
 
-            # ループフラグの設定
-            self.loop_flg = True
-
-            # 視聴情報初期化
-            self.ch_info = channel_info()
-
             # 設定情報読み込み
             config = read_json(COMMON_PATH + const.CONF_FILE)
-            self.logger.info("%s:%s", const.CONF_FILE,
-                json.dumps(config.data, indent=4,
-                           sort_keys=True, ensure_ascii=False))
+            self.logger.info("%s:%s", const.CONF_FILE, json.dumps(
+                config.data, indent=4, sort_keys=True, ensure_ascii=False))
             self.config = config.data["settings"]
+
+            # 視聴情報初期化
+            self.ch_info = channel_info(self.config)
 
             zmq_url = self.config[MLD_ZMQ_URL]
             send_path = self.config[MLD_ZMQ_SEND]
@@ -103,9 +107,8 @@ class mld_process():
 
             # スイッチ情報読み込み
             switches = read_json(COMMON_PATH + const.SWITCH_INFO)
-            self.logger.info("%s:%s", const.SWITCH_INFO,
-                json.dumps(switches.data, indent=4,
-                           sort_keys=True, ensure_ascii=False))
+            self.logger.info("%s:%s", const.SWITCH_INFO, json.dumps(
+                switches.data, indent=4, sort_keys=True, ensure_ascii=False))
             self.switch_mld_info = switches.data["switch_mld_info"]
             self.switch_mc_info = switches.data["switch_mc_info"]
             self.switches = switches.data["switches"]
@@ -113,16 +116,15 @@ class mld_process():
 
             # マルチキャスト情報読み込み
             mc_info = read_json(COMMON_PATH + const.MULTICAST_INFO)
-            self.logger.info("%s:%s", const.MULTICAST_INFO,
-                json.dumps(mc_info.data, indent=4,
-                           sort_keys=True, ensure_ascii=False))
+            self.logger.info("%s:%s", const.MULTICAST_INFO, json.dumps(
+                mc_info.data, indent=4, sort_keys=True, ensure_ascii=False))
             self.mc_info_list = mc_info.data["mc_info"]
 
             # bvidパターン読み込み
             bvid_variation = read_json(COMMON_PATH + const.BVID_VARIATION)
-            self.logger.info("%s:%s", const.BVID_VARIATION,
-                json.dumps(bvid_variation.data, indent=4,
-                           sort_keys=True, ensure_ascii=False))
+            self.logger.info("%s:%s", const.BVID_VARIATION, json.dumps(
+                bvid_variation.data, indent=4, sort_keys=True,
+                ensure_ascii=False))
             self.bvid_variation = bvid_variation.data["bvid_variation"]
 
             # ZeroMQ送受信用設定
@@ -281,7 +283,7 @@ class mld_process():
 
             # 信頼性変数QRV回送信する
             for i in range(self.QUERY_QRV):
-                self.send_packet_to_sw(sendpkt)
+                self.send_packet_to_sw(sendpkt, mc_info["mc_addr"])
                 time.sleep(1)
 
             # 最後のmcアドレス情報以外は送信待ちする
@@ -326,28 +328,43 @@ class mld_process():
     def create_packet(self, addressinfo, vid, mld):
         self.logger.debug("")
 
-        # ETHER
-        eth = ethernet.ethernet(
-            ethertype=ether.ETH_TYPE_8021Q,
-            src=addressinfo[0], dst=addressinfo[1])
-
         # VLAN
         vln = vlan.vlan(vid=vid, ethertype=ether.ETH_TYPE_IPV6)
 
-        # IPV6 with Hop-By-Hop
+        # Hop-By-Hop
         ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6, data=[
             ipv6.option(type_=5, len_=2, data="\x00\x00"),
             ipv6.option(type_=1, len_=0)])]
-        ip6 = ipv6.ipv6(
-            src=addressinfo[2], dst=addressinfo[3],
-            hop_limit=1, nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
 
-        # MLDV2
+        # MLDV2_Query
         if type(mld) == icmpv6.mldv2_query:
+            # ETHER
+            eth = ethernet.ethernet(
+                ethertype=ether.ETH_TYPE_8021Q,
+                src=addressinfo[0], dst=self.QUERY_DST)
+
+            # IPV6 with ExtensionHeader
+            ip6 = ipv6.ipv6(
+                src=addressinfo[1], dst=self.QUERY_DST_IP,
+                hop_limit=1, nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
+
+            # MLD Query
             icmp6 = icmpv6_extend(
                 type_=icmpv6.MLD_LISTENER_QUERY, data=mld)
 
+        # MLDV2_Report
         elif type(mld) == icmpv6.mldv2_report:
+            # ETHER
+            eth = ethernet.ethernet(
+                ethertype=ether.ETH_TYPE_8021Q,
+                src=addressinfo[0], dst=self.REPORT_DST)
+
+            # IPV6 with ExtensionHeader
+            ip6 = ipv6.ipv6(
+                src=addressinfo[1], dst=self.REPORT_DST_IP,
+                hop_limit=1, nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
+
+            # MLD Report
             icmp6 = icmpv6_extend(
                 type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
 
@@ -361,15 +378,16 @@ class mld_process():
     # ==================================================================
     # send_packet_to_sw
     # ==================================================================
-    def send_packet_to_sw(self, ryu_packet):
+    def send_packet_to_sw(self, ryu_packet, mc_addr):
         self.logger.debug("")
         sendpkt = scapy_packet.Packet(ryu_packet.data)
 
         # send of scapy
-        sendrecv.sendp(sendpkt, iface=self.config["mld_esw_ifname"])
-        self.logger.info("send to switch. [query_type]:%s [c_tag_id]:%s ",
-                         self.config["reguraly_query_type"],
-                         self.config["c_tag_id"])
+        sendrecv.sendp(
+            sendpkt, iface=self.config["mld_esw_ifname"], verbose=0)
+        self.logger.info(
+            "send to switch. [multicast_address]:'%s' [c_tag_id]:%s ",
+            mc_addr, self.config["c_tag_id"])
 
     # ==================================================================
     # send_packet_to_ryu
@@ -407,26 +425,27 @@ class mld_process():
 
                 # MLDv2 Report
                 if pkt_icmpv6.type_ == icmpv6.MLDV2_LISTENER_REPORT:
-                    self.logger.debug("MLDv2 Report : %s",
-                                      str(pkt_icmpv6.data))
+                    self.logger.debug(
+                        "MLDv2 Report : %s", str(pkt_icmpv6.data))
                     self.manage_user(dispatch_)
 
                 # タイムアウトチェック
                 self.check_user_timeout()
 
             else:
-                self.logger.error("dispatch[type_]:Not Exist(%s) \n",
-                                 dispatch_["type_"])
+                self.logger.error(
+                    "dispatch[type_]:Not Exist(%s) \n", dispatch_["type_"])
 
         except:
-            self.logger.error("analyse_receive_packet. %s ",
-                              traceback.print_exc())
+            self.logger.error(
+                "analyse_receive_packet. %s ", traceback.print_exc())
 
     # ==================================================================
     # set_switch_config
     # ==================================================================
     def set_switch_config(self, dispatch_):
         self.logger.debug("")
+        self.logger.debug("dispatch_[data] : " + str(dispatch_["data"]))
 
         # ファイルから読み込んだSWの情報から接続元SWがエッジか収容か判定し、
         # 初期設定をFlowModする
@@ -559,7 +578,7 @@ class mld_process():
 
         for report in mldv2_report.records:
             address = report.address
-            src = report.srcs[0]
+            src = report.srcs[0] if report.srcs else ""
             report_type = report.type_
 
             # Reportの内容により、更新が必要な視聴情報を更新する
@@ -607,7 +626,7 @@ class mld_process():
                 mc_addr=address, serv_ip=src,
                 datapathid=target_switch, port_no=in_port, cid=cid)
 
-            if not reply_type is None:
+            if reply_type is not None:
                 # 削除が行われた場合
                 self.logger.debug("reply_type : %s", reply_type)
                 self.logger.debug("removed self.ch_info : %s",
