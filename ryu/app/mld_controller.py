@@ -99,7 +99,7 @@ class mld_controller(app_manager.RyuApp):
             hub.spawn(self.receive_from_mld)
 
         except:
-            self.logger.error("__init__. %s ", traceback.print_exc())
+            self.logger.error("%s ", traceback.print_exc())
 
     # =========================================================================
     # _switch_features_handler
@@ -111,7 +111,7 @@ class mld_controller(app_manager.RyuApp):
         try:
             msg = ev.msg
             datapath = ev.msg.datapath
-            self.logger.info("OFPSwitchFeatures.[ver]:%s [dpid]:%s [xid]:%s",
+            self.logger.info("OFPSwitchFeatures.[ver]:%s [dpid]:%s [xid]:%s ",
                               msg.version, msg.datapath.id, msg.datapath.xid)
 
             # CHECK Already send
@@ -135,8 +135,7 @@ class mld_controller(app_manager.RyuApp):
                 return True
 
         except:
-            self.logger.error("switch_features_handler. %s ",
-                              traceback.print_exc())
+            self.logger.error("%s ", traceback.print_exc())
 
     # =========================================================================
     # packet_in_handler
@@ -209,7 +208,7 @@ class mld_controller(app_manager.RyuApp):
             self.send_to_mld(dispatch_)
 
         except:
-            self.logger.error("packet_in_handler. %s ", traceback.print_exc())
+            self.logger.error("%s ", traceback.print_exc())
 
     # =========================================================================
     # barrier_reply_handler
@@ -222,8 +221,7 @@ class mld_controller(app_manager.RyuApp):
                           msg.version, msg.datapath.id, msg.datapath.xid)
 
         except:
-            self.logger.error("barrier_reply_handler. %s ",
-                              traceback.print_exc())
+            self.logger.error("%s ", traceback.print_exc())
 
     # =========================================================================
     # send_msg_to_flowmod
@@ -233,7 +231,8 @@ class mld_controller(app_manager.RyuApp):
 
         msgbase.datapath.send_msg(flowmod)
 
-        self.logger.info("sent 1 packet to FlowMod. \n")
+        self.logger.info("FlowMod.[dpid]:%s [xid]:%s \n",
+                         msgbase.datapath.id, msgbase.datapath.xid)
 
     # =========================================================================
     # send_msg_to_barrier_request
@@ -256,7 +255,8 @@ class mld_controller(app_manager.RyuApp):
 
         msgbase.datapath.send_msg(packetout)
 
-        self.logger.info("sent 1 packet to PacketOut. \n")
+        self.logger.info("PacketOut.[dpid]:%s [xid]:%s \n",
+                         msgbase.datapath.id, msgbase.datapath.xid)
 
     # ==================================================================
     # analyse_receive_packet
@@ -326,8 +326,7 @@ class mld_controller(app_manager.RyuApp):
                 return False
 
         except:
-            self.logger.error("analyse_receive_packet. %s ",
-                              traceback.print_exc())
+            self.logger.error("%s ", traceback.print_exc())
 
     # =========================================================================
     # create_flow_mod
@@ -386,7 +385,7 @@ class mld_controller(app_manager.RyuApp):
 
         # send of zeromq
         self.send_sock.send(cPickle.dumps(dispatch_, protocol=0))
-        self.logger.info("sent 1 to mld_process. \n")
+        self.logger.info("send to mld_process. \n")
 
     # =========================================================================
     # receive_from_mld
@@ -405,14 +404,15 @@ class mld_controller(app_manager.RyuApp):
                         pass
 
                     else:
-                        self.logger.error("receive_from_mld. %s ", e)
+                        self.logger.error("%s ", e)
 
                 if recvpkt is not None:
+                    self.logger.info("receive from mld_process. \n")
                     packet = cPickle.loads(recvpkt)
                     self.analyse_receive_packet(packet)
 
         except:
-            self.logger.error("receive_from_mld. %s ", traceback.print_exc())
+            self.logger.error("%s ", traceback.print_exc())
 
     # =========================================================================
     # check_url
