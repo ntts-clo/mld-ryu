@@ -131,7 +131,7 @@ class mld_controller(app_manager.RyuApp):
                 self.send_to_mld(dispatch_)
 
             else:
-                self.logger.info("dict_msg[datapathid]:Already Exist(%s) \n",
+                self.logger.info("dict_msg[datapathid]:Already Exist(%s)",
                                  datapath.id)
                 return True
 
@@ -150,14 +150,14 @@ class mld_controller(app_manager.RyuApp):
 
             self.logger.info("OFPPacketIn.[ver]:%s [dpid]:%s [xid]:%s",
                               msg.version, msg.datapath.id, msg.datapath.xid)
-            self.logger.debug("OFPPacketIn.[data]:%s \n", str(pkt))
+            self.logger.debug("OFPPacketIn.[data]:%s", str(pkt))
 
             # CHECK VLAN
             pkt_vlan = None
             if self.check_vlan_flg in "True":
                 pkt_vlan = pkt.get_protocol(vlan.vlan)
                 if not pkt_vlan:
-                    self.logger.debug("check vlan:None \n")
+                    self.logger.debug("check vlan:None ")
 
             # CHECK ICMPV6
             pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
@@ -232,7 +232,7 @@ class mld_controller(app_manager.RyuApp):
 
         msgbase.datapath.send_msg(flowmod)
 
-        self.logger.info("FlowMod.[dpid]:%s [xid]:%s \n",
+        self.logger.info("FlowMod.[dpid]:%s [xid]:%s",
                          msgbase.datapath.id, msgbase.datapath.xid)
 
     # =========================================================================
@@ -245,7 +245,7 @@ class mld_controller(app_manager.RyuApp):
         barrier = ofp_parser.OFPBarrierRequest(msgbase.datapath)
         msgbase.datapath.send_msg(barrier)
 
-        self.logger.info("BarrierRequest.[dpid]:%s [xid]:%s \n",
+        self.logger.info("BarrierRequest.[dpid]:%s [xid]:%s",
                          msgbase.datapath.id, msgbase.datapath.xid)
 
     # =========================================================================
@@ -256,7 +256,7 @@ class mld_controller(app_manager.RyuApp):
 
         msgbase.datapath.send_msg(packetout)
 
-        self.logger.info("PacketOut.[dpid]:%s [xid]:%s \n",
+        self.logger.info("PacketOut.[dpid]:%s [xid]:%s",
                          msgbase.datapath.id, msgbase.datapath.xid)
 
     # ==================================================================
@@ -282,7 +282,7 @@ class mld_controller(app_manager.RyuApp):
 
                     # CHECK dict_msg.datapathid=flowmoddata.datapathid
                     if not flowmoddata.datapathid in self.dict_msg:
-                        self.logger.info("FlowMod dict_msg[dpid:%s] = None \n",
+                        self.logger.error("FlowMod dict_msg[dpid:%s] = None",
                                          flowmoddata.datapathid)
 
                     else:
@@ -303,7 +303,7 @@ class mld_controller(app_manager.RyuApp):
 
                 # CHECK dict_msg.datapathid=dispatch[datapathid]
                 if not dispatch["datapathid"] in self.dict_msg:
-                    self.logger.error("PacketOut dict_msg[dpid:%s] = None \n",
+                    self.logger.error("PacketOut dict_msg[dpid:%s] = None",
                                      dispatch["datapathid"])
                     return False
 
@@ -322,7 +322,7 @@ class mld_controller(app_manager.RyuApp):
                     self.send_msg_to_packetout(msgbase, packetout)
 
             else:
-                self.logger.error("dispatch[type_]:Not Exist(%s) \n",
+                self.logger.error("dispatch[type_]:Not Exist(%s)",
                                  dispatch["type_"])
                 return False
 
@@ -386,7 +386,7 @@ class mld_controller(app_manager.RyuApp):
 
         # send of zeromq
         self.send_sock.send(cPickle.dumps(dispatch_, protocol=0))
-        self.logger.info("send to mld_process. \n")
+        self.logger.info("send to mld_process.")
 
     # =========================================================================
     # receive_from_mld
@@ -408,7 +408,7 @@ class mld_controller(app_manager.RyuApp):
                         self.logger.error("%s ", e)
 
                 if recvpkt is not None:
-                    self.logger.info("receive from mld_process. \n")
+                    self.logger.info("receive from mld_process.")
                     packet = cPickle.loads(recvpkt)
                     self.analyse_receive_packet(packet)
 

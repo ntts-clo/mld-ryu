@@ -435,7 +435,7 @@ class mld_process():
 
             else:
                 self.logger.error(
-                    "dispatch[type_]:Not Exist(%s) \n", dispatch_["type_"])
+                    "dispatch[type_]:Not Exist(%s)", dispatch_["type_"])
 
         except:
             self.logger.error(
