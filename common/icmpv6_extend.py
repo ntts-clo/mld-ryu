@@ -1,9 +1,11 @@
+# coding: utf-8
 from ryu.ofproto import inet
-from ryu.lib.packet import icmpv6, ipv6
+from ryu.lib.packet import icmpv6
 from ryu.lib import addrconv
 import struct
 import array
 import socket
+
 
 class icmpv6_extend(icmpv6.icmpv6):
     # override
@@ -24,6 +26,7 @@ class icmpv6_extend(icmpv6.icmpv6):
             struct.pack_into('!H', hdr, 2, self.csum)
         return hdr
 
+
 def checksum_ip(ipvx, length, payload, nxt):
     if ipvx.version == 6:
         header = struct.pack('!16s16sI3xB',
@@ -35,6 +38,7 @@ def checksum_ip(ipvx, length, payload, nxt):
 
     buf = header + payload
     return checksum(buf)
+
 
 def checksum(data):
     if len(data) % 2:
