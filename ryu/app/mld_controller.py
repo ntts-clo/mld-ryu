@@ -281,7 +281,7 @@ class mld_controller(app_manager.RyuApp):
 
                     # CHECK dict_msg.datapathid=flowmoddata.datapathid
                     if not flowmoddata.datapathid in self.dict_msg:
-                        self.logger.info("FlowMod dict_msg[dpid:%s] = None \n",
+                        self.logger.error("FlowMod dict_msg[dpid:%s]=None \n",
                                          flowmoddata.datapathid)
 
                     else:
@@ -302,7 +302,7 @@ class mld_controller(app_manager.RyuApp):
 
                 # CHECK dict_msg.datapathid=dispatch[datapathid]
                 if not dispatch["datapathid"] in self.dict_msg:
-                    self.logger.error("PacketOut dict_msg[dpid:%s] = None \n",
+                    self.logger.error("PacketOut dict_msg[dpid:%s]=None \n",
                                      dispatch["datapathid"])
                     return False
 
