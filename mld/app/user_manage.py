@@ -6,11 +6,13 @@ import bisect
 import logging
 import logging.config
 import sys
+import os
 import time
 from functools import total_ordering
 from pymongo import MongoClient
 
-COMMON_PATH = "../../common/"
+DIR_PATH = os.path.dirname(os.path.abspath(__file__))
+COMMON_PATH = DIR_PATH + "/../../common/"
 sys.path.append(COMMON_PATH)
 import mld_const
 

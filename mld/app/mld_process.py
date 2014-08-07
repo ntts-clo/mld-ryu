@@ -26,7 +26,8 @@ hub.patch()
 from user_manage import channel_info, channel_user_info
 from flowmod_gen import flow_mod_generator
 
-COMMON_PATH = "../../common/"
+DIR_PATH = os.path.dirname(os.path.abspath(__file__))
+COMMON_PATH = DIR_PATH + "/../../common/"
 sys.path.append(COMMON_PATH)
 from icmpv6_extend import icmpv6_extend
 from zmq_dispatch import dispatch, packet_out_data

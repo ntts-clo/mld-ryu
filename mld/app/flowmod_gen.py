@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import sys
+import os
 
 from ryu.lib.packet import icmpv6
 from ryu.ofproto import ether, inet
@@ -9,7 +10,8 @@ from ryu.ofproto import ofproto_v1_3_parser as parser
 from ryu.ofproto.ofproto_v1_3_parser import OFPActionPopVlan, OFPActionPushPbb, \
     OFPActionSetField, OFPActionPushVlan, OFPActionPopPbb
 
-COMMON_PATH = "../../common/"
+DIR_PATH = os.path.dirname(os.path.abspath(__file__))
+COMMON_PATH = DIR_PATH + "/../../common/"
 sys.path.append(COMMON_PATH)
 from zmq_dispatch import flow_mod_data
 

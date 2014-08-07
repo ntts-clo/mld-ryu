@@ -17,7 +17,8 @@ from eventlet import patcher
 from ryu.lib import hub
 hub.patch()
 
-COMMON_PATH = "../../common/"
+DIR_PATH = os.path.dirname(os.path.abspath(__file__))
+COMMON_PATH = DIR_PATH + "/../../common/"
 sys.path.append(COMMON_PATH)
 from icmpv6_extend import icmpv6_extend
 from zmq_dispatch import dispatch, packet_out_data
@@ -471,7 +472,7 @@ class mld_controller(app_manager.RyuApp):
         self.logger.info("[SendSocket]:%s", sendpath)
 
         # RECV SOCKET CREATE
-        self.recv_sock = ctx.socket(zmq.SUB) 
+        self.recv_sock = ctx.socket(zmq.SUB)
         self.recv_sock.connect(recvpath)
         self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
         self.logger.info("[RecvSocket]:%s", recvpath)

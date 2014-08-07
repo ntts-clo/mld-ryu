@@ -24,12 +24,13 @@ from ryu.ofproto import ofproto_v1_3, inet
 from multiprocessing import Value
 hub.patch()
 
-APP_PATH = "../app/"
+DIR_PATH = os.path.dirname(os.path.abspath(__file__))
+APP_PATH = DIR_PATH + "/../app/"
 sys.path.append(APP_PATH)
 import mld_process
 from user_manage import channel_info
 
-COMMON_PATH = "../../common/"
+COMMON_PATH = DIR_PATH + "/../../common/"
 sys.path.append(COMMON_PATH)
 from zmq_dispatch import dispatch, packet_out_data
 from read_json import read_json

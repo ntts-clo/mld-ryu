@@ -35,7 +35,11 @@ from nose.tools import assert_raises
 from nose.tools import eq_
 from nose.tools import ok_
 
-from ryu.app.mld_controller import mld_controller
+DIR_PATH = os.path.dirname(os.path.abspath(__file__))
+APP_PATH = DIR_PATH + "/../app/"
+sys.path.append(APP_PATH)
+#from mld_process import mld_process
+from mld_controller import mld_controller
 #from ryu.app import mld_controller
 
 from ryu.ofproto import ofproto_v1_3
@@ -50,7 +54,7 @@ from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from nose.plugins.attrib import attr
 from ryu.ofproto.ofproto_v1_3_parser import OFPPacketIn, OFPMatch
 
-COMMON_PATH = "../../common/"
+COMMON_PATH = DIR_PATH + "/../../common/"
 sys.path.append(COMMON_PATH)
 from icmpv6_extend import icmpv6_extend
 from zmq_dispatch import dispatch
@@ -761,7 +765,7 @@ class test_mld_controller():
         self.send_sock_mld_ryu.bind(send_mld_ryu_path)
         print("send_mld_ryu_path %s", send_mld_ryu_path)
         # RECV SOCKET CREATE
-        self.recv_sock_mld_ryu = ctx.socket(zmq.SUB) 
+        self.recv_sock_mld_ryu = ctx.socket(zmq.SUB)
         self.recv_sock_mld_ryu.connect(recv_mld_ryu_path)
         self.recv_sock_mld_ryu.setsockopt(zmq.SUBSCRIBE, "")
         print("recv_mld_ryu_path %s", recv_mld_ryu_path)
@@ -840,7 +844,7 @@ class test_mld_controller():
         self.send_sock_mld_ryu.bind(send_mld_ryu_path)
         print("send_mld_ryu_path %s", send_mld_ryu_path)
         # RECV SOCKET CREATE
-        self.recv_sock_mld_ryu = ctx.socket(zmq.SUB) 
+        self.recv_sock_mld_ryu = ctx.socket(zmq.SUB)
         self.recv_sock_mld_ryu.connect(recv_mld_ryu_path)
         self.recv_sock_mld_ryu.setsockopt(zmq.SUBSCRIBE, "")
         print("recv_mld_ryu_path %s", recv_mld_ryu_path)
@@ -1540,7 +1544,7 @@ class test_mld_controller():
         packet.serialize()
 
         # PacketInEventの作成
-        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER, 
+        packetIn = OFPPacketIn(datapath, buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
                                match=OFPMatch(in_port=1),
                                data=buffer(packet.data))
         ev = ofp_event.EventOFPPacketIn(packetIn)
