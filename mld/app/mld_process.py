@@ -487,26 +487,28 @@ class mld_process():
     # check_user_timeout
     # ==================================================================
     def check_user_timeout(self):
-        self.logger.debug("")
-        self.logger.debug("ch_info : \n%s", self.ch_info.get_channel_info())
-        self.logger.debug("user_info_list : \n%s",
-                          self.ch_info.get_user_info_list())
+        try:
+            self.logger.debug("")
+            self.logger.debug("ch_info : \n%s",
+                              self.ch_info.get_channel_info())
+            self.logger.debug("user_info_list : \n%s",
+                              self.ch_info.get_user_info_list())
 
-        if self.ch_info.channel_info:
-            # 視聴情報のタイムアウト判定を行い、オーバーしているものは削除する
-            timeout = time.time() - self.config["user_time_out"]
-            self.logger.debug("timeout : %f", timeout)
+            if self.ch_info.channel_info:
+                # 視聴情報のタイムアウト判定を行い、オーバーしているものは削除する
+                timeout = time.time() - self.config["user_time_out"]
+                self.logger.debug("timeout : %f", timeout)
 
-            timeout_user = channel_user_info("", "", 0, 0, 0, timeout)
-            # タイムアウトとなる時間を持ったユーザを挿入する箇所を取得
-            idx = self.ch_info.find_insert_point(timeout_user)
-            self.logger.debug("idx : %s", str(idx))
-            if not idx == 0:
-                # 挿入箇所がuser_info_listの先頭でない場合、それ以前のユーザを削除
-                for i in range(idx):
-                    del_user_info = self.ch_info.user_info_list[idx - i - 1]
-                    self.logger.debug("timeout user : \n%s",
-                                      del_user_info.get_user_info())
+                timeout_user = channel_user_info("", "", 0, 0, 0, timeout)
+                # タイムアウトとなる時間を持ったユーザを挿入する箇所を取得
+                idx = self.ch_info.find_insert_point(timeout_user)
+                self.logger.debug("idx : %s", str(idx))
+                if not idx == 0:
+                    # 挿入箇所がuser_info_listの先頭でない場合、それ以前のユーザを削除
+                    for i in range(idx):
+                        del_user_info = self.ch_info.user_info_list[idx - i - 1]
+                        self.logger.debug("timeout user : \n%s",
+                                          del_user_info.get_user_info())
 
                     # ユーザの削除
                     reply_type = self.ch_info.remove_ch_info(
@@ -525,10 +527,10 @@ class mld_process():
                             del_user_info.datapathid, del_user_info.port_no,
                             reply_type)
 
-                self.logger.debug(
-                    "ch_info : \n%s", self.ch_info.get_channel_info())
-                self.logger.debug(
-                    "user_info_list : \n%s", self.ch_info.get_user_info_list())
+                    self.logger.debug("ch_info : \n%s",
+                                      self.ch_info.get_channel_info())
+                    self.logger.debug("user_info_list : \n%s",
+                                      self.ch_info.get_user_info_list())
 
             else:
                 self.logger.debug("timeout users are nothing.")
@@ -624,67 +626,70 @@ class mld_process():
     # ==================================================================
     def update_user_info(
             self, address, src, target_switch, in_port, cid, report_type):
-        self.logger.debug("")
+        try:
+            self.logger.debug("")
 
-        self.logger.debug("report_type : %s", str(report_type))
-        self.logger.debug("datapath, in_port, cid : %s, %s, %s",
-                          target_switch, in_port, cid)
-        self.logger.debug("self.ch_info : %s",
-                          self.ch_info.get_channel_info())
-
-        # ALLOW_NEW_SOURCES：視聴情報に追加
-        if report_type == icmpv6.ALLOW_NEW_SOURCES:
-            self.logger.debug("ALLOW_NEW_SOURCES")
-            reply_type = self.ch_info.update_ch_info(
-                mc_addr=address, serv_ip=src,
-                datapathid=target_switch, port_no=in_port, cid=cid)
-            self.logger.debug("reply_type : %s", reply_type)
-            self.logger.debug("added self.ch_info : %s",
+            self.logger.debug("report_type : %s", str(report_type))
+            self.logger.debug("datapath, in_port, cid : %s, %s, %s",
+                              target_switch, in_port, cid)
+            self.logger.debug("self.ch_info : %s",
                               self.ch_info.get_channel_info())
-            self.logger.debug("user_info_list : %s",
-                              self.ch_info.get_user_info_list())
 
-        # BLOCK_OLD_SOURCES：視聴情報から削除
-        elif report_type == icmpv6.BLOCK_OLD_SOURCES:
-            self.logger.debug("BLOCK_OLD_SOURCES")
-            reply_type = self.ch_info.remove_ch_info(
-                mc_addr=address, serv_ip=src,
-                datapathid=target_switch, port_no=in_port, cid=cid)
-
-            if reply_type is not None:
-                # 削除が行われた場合
+            # ALLOW_NEW_SOURCES：視聴情報に追加
+            if report_type == icmpv6.ALLOW_NEW_SOURCES:
+                self.logger.debug("ALLOW_NEW_SOURCES")
+                reply_type = self.ch_info.update_ch_info(
+                    mc_addr=address, serv_ip=src,
+                    datapathid=target_switch, port_no=in_port, cid=cid)
                 self.logger.debug("reply_type : %s", reply_type)
-                self.logger.debug("removed self.ch_info : %s",
+                self.logger.debug("added self.ch_info : %s",
                                   self.ch_info.get_channel_info())
+                self.logger.debug("user_info_list : %s",
+                                  self.ch_info.get_user_info_list())
 
-                # SpecificQueryを生成し、エッジスイッチに送信
-                mc_info = {"mc_addr": address, "serv_ip": src}
-                self.send_mldquery([mc_info])
+            # BLOCK_OLD_SOURCES：視聴情報から削除
+            elif report_type == icmpv6.BLOCK_OLD_SOURCES:
+                self.logger.debug("BLOCK_OLD_SOURCES")
+                reply_type = self.ch_info.remove_ch_info(
+                    mc_addr=address, serv_ip=src,
+                    datapathid=target_switch, port_no=in_port, cid=cid)
+
+                if reply_type is not None:
+                    # 削除が行われた場合
+                    self.logger.debug("reply_type : %s", reply_type)
+                    self.logger.debug("removed self.ch_info : %s",
+                                      self.ch_info.get_channel_info())
+
+                    # SpecificQueryを生成し、エッジスイッチに送信
+                    mc_info = {"mc_addr": address, "serv_ip": src}
+                    self.send_mldquery([mc_info])
+                else:
+                    # 削除が行われなかった場合
+                    reply_type = const.CON_REPLY_NOTHING
+
+            # MODE_IS_INCLUDE：視聴情報に存在するか確認
+            elif report_type == icmpv6.MODE_IS_INCLUDE:
+                self.logger.debug("MODE_IS_INCLUDE")
+
+                # 視聴情報のタイマ更新
+                reply_type = self.ch_info.update_ch_info(
+                    mc_addr=address, serv_ip=src,
+                    datapathid=target_switch, port_no=in_port, cid=cid)
+                self.logger.debug("updated self.ch_info : %s",
+                                  self.ch_info.get_channel_info())
+                self.logger.debug("user_info_list : %s",
+                                  self.ch_info.get_user_info_list())
+
+            # MODE_IS_EXCLUDE
+            # CHANGE_TO_INCLUDE_MODE
+            # CHANGE_TO_EXCLUDE_MODE の場合は何もしない
             else:
-                # 削除が行われなかった場合
+                self.logger.debug("report_type : %s", report_type)
                 reply_type = const.CON_REPLY_NOTHING
 
-        # MODE_IS_INCLUDE：視聴情報に存在するか確認
-        elif report_type == icmpv6.MODE_IS_INCLUDE:
-            self.logger.debug("MODE_IS_INCLUDE")
-
-            # 視聴情報のタイマ更新
-            reply_type = self.ch_info.update_ch_info(
-                mc_addr=address, serv_ip=src,
-                datapathid=target_switch, port_no=in_port, cid=cid)
-            self.logger.debug("updated self.ch_info : %s",
-                              self.ch_info.get_channel_info())
-            self.logger.debug("user_info_list : %s",
-                              self.ch_info.get_user_info_list())
-
-        # MODE_IS_EXCLUDE
-        # CHANGE_TO_INCLUDE_MODE
-        # CHANGE_TO_EXCLUDE_MODE の場合は何もしない
-        else:
-            self.logger.debug("report_type : %s", report_type)
-            reply_type = const.CON_REPLY_NOTHING
-
-        return reply_type
+            return reply_type
+        except:
+            self.logger.error("%s ", traceback.print_exc())
 
     # ==================================================================
     # reply_to_ryu
