@@ -40,7 +40,7 @@ class mldv2_report_sender(object):
     def send_add(self, num_of=3000):
 
         record_list = []
-        for report_type in (icmpv6.ALLOW_NEW_SOURCES, icmpv6.MODE_IS_INCLUDE):
+        for report_type in (icmpv6.ALLOW_NEW_SOURCES, icmpv6.CHANGE_TO_INCLUDE_MODE):
             record_list.append(icmpv6.mldv2_report_group(type_=report_type,
                                                          address=MC_ADDRESS,
                                                          srcs=[SERV_IP]))
