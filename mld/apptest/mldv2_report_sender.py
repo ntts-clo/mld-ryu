@@ -40,8 +40,8 @@ class mldv2_report_sender(object):
     def send_add(self, num_of=3000):
 
         record_list = []
-        for report_type in (icmpv6.ALLOW_NEW_SOURCES,
-                            icmpv6.CHANGE_TO_INCLUDE_MODE):
+        for report_type in [icmpv6.ALLOW_NEW_SOURCES,
+                            icmpv6.CHANGE_TO_INCLUDE_MODE]:
             record_list.append(icmpv6.mldv2_report_group(type_=report_type,
                                                          address=MC_ADDRESS,
                                                          srcs=[SERV_IP]))
@@ -60,7 +60,7 @@ class mldv2_report_sender(object):
     def send_del(self, num_of=3000):
 
         record_list = []
-        for report_type in (icmpv6.BLOCK_OLD_SOURCES):
+        for report_type in [icmpv6.BLOCK_OLD_SOURCES]:
             record_list.append(icmpv6.mldv2_report_group(type_=report_type,
                                                          address=MC_ADDRESS,
                                                          srcs=[SERV_IP]))
@@ -77,7 +77,6 @@ class mldv2_report_sender(object):
     # create_packet
     # ==================================================================
     def create_packet(self, addressinfo, vid, mld):
-        self.logger.debug("")
 
         # VLAN
         vln = vlan.vlan(vid=vid, ethertype=ether.ETH_TYPE_IPV6)
@@ -108,12 +107,15 @@ class mldv2_report_sender(object):
         return sendpkt
 
 
-if __name__ == '__main__':
-    if len(sys.argv) != 2 or sys.argv[1] in ("add", "del"):
+def main():
+    if len(sys.argv) != 2 or sys.argv[1] not in ("add", "del"):
         print "python mldv2_report_sender.py [add|del]"
-        return
+        return 1
     elif sys.argv[1] == "add":
         mldv2_report_sender().send_add()
     elif sys.argv[1] == "del":
         mldv2_report_sender().send_del()
-    return
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
