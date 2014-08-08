@@ -422,7 +422,8 @@ class mld_process():
                 # MLDv2 Query
                 if pkt_icmpv6.type_ == icmpv6.MLD_LISTENER_QUERY:
                     self.logger.debug("MLDv2 Query : %s", str(pkt_icmpv6.data))
-                    self.reply_proxy()
+                    query = pkt_icmpv6.data
+                    self.reply_proxy(query.address, query.srcs)
 
                 # MLDv2 Report
                 if pkt_icmpv6.type_ == icmpv6.MLDV2_LISTENER_REPORT:
@@ -538,7 +539,7 @@ class mld_process():
     # ==================================================================
     # reply_proxy
     # ==================================================================
-    def reply_proxy(self):
+    def reply_proxy(self, mc_addr, srcs):
         self.logger.debug("")
 
         # ルータからの定期Queryに対し視聴情報を返却する
@@ -547,8 +548,11 @@ class mld_process():
             self.logger.debug("No one shows any channels.")
             return -1
 
-        else:
-            vid = self.config["c_tag_id"]
+        vid = self.config["c_tag_id"]
+        datapathid = self.edge_switch["datapathid"]
+
+        # General Queryの場合
+        if mc_addr == "::" and srcs == []:
             # 視聴中のMCグループ毎にレポートを作成
             for mc_info in self.ch_info.channel_info.keys():
                 report_type = [icmpv6.MODE_IS_INCLUDE]
@@ -558,13 +562,33 @@ class mld_process():
                 sendpkt = self.create_packet(self.addressinfo, vid, mld)
                 # エッジスイッチにp-out
                 pout = self.create_packetout(
-                    datapathid=self.edge_switch["datapathid"],
-                    packet=sendpkt)
+                    datapathid=datapathid, packet=sendpkt)
                 packetout = dispatch(
                     type_=const.CON_PACKET_OUT,
-                    datapathid=self.edge_switch["datapathid"], data=pout)
+                    datapathid=datapathid, data=pout)
                 self.logger.debug("packetout: %s", str(packetout))
                 self.send_packet_to_ryu(packetout)
+
+        # Specific Queryの場合
+        else:
+            # 視聴中のユーザがいればレポートを作成
+            if (mc_addr, srcs[0]) in self.ch_info.channel_info:
+                report_type = [icmpv6.MODE_IS_INCLUDE]
+                mld = self.create_mldreport(
+                    mc_addr, srcs[0], report_type)
+                # packetのsrcはMLD処理部のものを使用する
+                sendpkt = self.create_packet(self.addressinfo, vid, mld)
+                # エッジスイッチにp-out
+                pout = self.create_packetout(
+                    datapathid=datapathid, packet=sendpkt)
+                packetout = dispatch(
+                    type_=const.CON_PACKET_OUT,
+                    datapathid=datapathid, data=pout)
+                self.logger.debug("packetout: %s", str(packetout))
+                self.send_packet_to_ryu(packetout)
+            else:
+                self.logger.debug(
+                    "No one shows this channel[%s].", mc_addr)
 
     # ==================================================================
     # manage_user

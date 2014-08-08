@@ -498,7 +498,7 @@ class test_mld_process():
 
         # reply_proxy、check_user_timeoutの呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc, "reply_proxy")
-        self.mld_proc.reply_proxy()
+        self.mld_proc.reply_proxy(mc_addr, [serv_ip])
         self.mocker.StubOutWithMock(self.mld_proc, "check_user_timeout")
         self.mld_proc.check_user_timeout()
         self.mocker.ReplayAll()
@@ -535,7 +535,7 @@ class test_mld_process():
         # logger.errorの呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
         self.mld_proc.logger.error(
-            "dispatch[type_]:Not Exist(%s) \n", "test")
+            "dispatch[type_]:Not Exist(%s)", "test")
         self.mocker.ReplayAll()
 
         self.mld_proc.analyse_receive_packet(dispatch_)
@@ -711,12 +711,12 @@ class test_mld_process():
     @attr(do=False)
     def test_reply_proxy_no_user(self):
         # 視聴情報がない場合は何もしない
-        actual = self.mld_proc.reply_proxy()
+        actual = self.mld_proc.reply_proxy("::", [])
         eq_(-1, actual)
 
     @attr(do=False)
-    def test_reply_proxy_exists_user(self):
-        # 視聴情報がある場合、視聴中のmcアドレス分p-out
+    def test_reply_proxy_exists_user_gq(self):
+        # 視聴情報がありGeneralQueryの場合、視聴中のmcアドレス分p-out
         mc_addr1 = "ff38::1:1"
         serv_ip = "2001::1:20"
         datapathid2 = 2
@@ -740,7 +740,69 @@ class test_mld_process():
         self.mld_proc.send_packet_to_ryu(IsA(dispatch))
         self.mocker.ReplayAll()
 
-        self.mld_proc.reply_proxy()
+        self.mld_proc.reply_proxy("::", [])
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
+    def test_reply_proxy_exists_user_sq_exists_user(self):
+        # 視聴情報がありSpecificQuery場合、受信したmcアドレスが視聴中であればp-out
+        mc_addr1 = "ff38::1:1"
+        serv_ip = "2001::1:20"
+        datapathid2 = 2
+        port_no1 = 1
+        cid1 = 12101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid1)
+        cid2 = 12102
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid2)
+
+        mc_addr2 = "ff38::1:2"
+        serv_ip = "2001::1:20"
+        cid3 = 22101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr2, serv_ip, datapathid2, port_no1, cid3)
+
+        # 受信したmc_addrを引数にcreate_mldreportが呼び出されることを確認
+        report_type = [icmpv6.MODE_IS_INCLUDE]
+        self.mocker.StubOutWithMock(self.mld_proc, "create_mldreport")
+        self.mld_proc.create_mldreport(mc_addr1, serv_ip, report_type)
+
+        self.mocker.StubOutWithMock(self.mld_proc, "create_packet")
+        self.mld_proc.create_packet(IsA(list), IsA(int), None)
+
+        self.mocker.StubOutWithMock(self.mld_proc, "create_packetout")
+        self.mld_proc.create_packetout(
+            datapathid=self.mld_proc.edge_switch["datapathid"], packet=None)
+
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+        self.mocker.ReplayAll()
+
+        self.mld_proc.reply_proxy(mc_addr1, [serv_ip])
+        self.mocker.VerifyAll()
+
+    @attr(do=True)
+    @raises(ExpectedMethodCallsError)
+    def test_reply_proxy_exists_user_sq_no_user(self):
+        # 視聴情報がありSpecificQuery場合、受信したmcアドレスが視聴中ででなければなにもしない
+        mc_addr1 = "ff38::1:1"
+        serv_ip = "2001::1:20"
+        datapathid2 = 2
+        port_no1 = 1
+        cid1 = 12101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid1)
+        cid2 = 12102
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid2)
+
+        # create_mldreportが呼び出されないことを確認
+        self.mocker.StubOutWithMock(self.mld_proc, "create_mldreport")
+        self.mld_proc.create_mldreport(IsA(str), IsA(str), IsA(list))
+        self.mocker.ReplayAll()
+
+        self.mld_proc.reply_proxy("ff38::1:2", [serv_ip])
         self.mocker.VerifyAll()
 
     @attr(do=False)
@@ -2041,7 +2103,7 @@ class test_user_manage():
 
         # reply_proxyの呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc, "reply_proxy")
-        self.mld_proc.reply_proxy()
+        self.mld_proc.reply_proxy(self.mc_addr1, [self.serv_ip])
 
         # send_mldqueryの呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc, "send_mldquery")
