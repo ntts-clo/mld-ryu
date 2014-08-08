@@ -6,7 +6,7 @@
 # mox install
 #  >sudo pip install mox
 #
-
+import pdb
 import os
 import sys
 import logging
@@ -35,7 +35,7 @@ sys.path.append(COMMON_PATH)
 from zmq_dispatch import dispatch, packet_out_data
 from read_json import read_json
 import mld_const as const
-
+from common.icmpv6_extend import icmpv6_extend, checksum_ip, checksum
 logger = logging.getLogger(__name__)
 
 
@@ -197,7 +197,7 @@ class test_mld_process():
         # 【実行】
         result = self.mld_proc.check_url(zmq_url)
         # 【結果】
-        logger.debug("test_check_url_Failer001 [Exception] %s", e)
+        logger.debug("test_check_url_other [Exception] %s", e)
 
     @attr(do=False)
     def test_check_exists_tmp_exsist(self):
@@ -393,7 +393,7 @@ class test_mld_process():
             idx += 1
 
     @attr(do=False)
-    def test_create_packet_query(self):
+    def test_create_packet_query01(self):
         # MLD Queryを持つpacketを生成
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
@@ -419,6 +419,27 @@ class test_mld_process():
         icmp6 = actual.get_protocol(icmpv6.icmpv6)
         eq_(icmpv6.MLD_LISTENER_QUERY, icmp6.type_)
         eq_(query, icmp6.data)
+
+    @attr(do=False)
+    @raises(Exception)
+    def test_create_packet_query02(self):
+        # MLD Queryを持つpacketを生成
+        mc_addr = "ff38::1:1"
+        serv_ip = "2001::1:20"
+        vid = self.config["c_tag_id"]
+        query = self.mld_proc.create_mldquery(mc_addr, serv_ip)
+
+        query.version = 4
+
+        # IPV6 with Hop-By-Hop
+        ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6, data=[
+            ipv6.option(type_=5, len_=2, data="\x00\x00"),
+            ipv6.option(type_=1, len_=0)])]
+
+        checksum_ip(query, len(ext_headers),
+                              icmpv6.MLD_LISTENER_QUERY, inet.IPPROTO_ICMPV6)
+
+        logger.debug("test_create_packet_query02 [Exception] %s", e)
 
     @attr(do=False)
     def test_create_packet_report(self):
@@ -528,6 +549,7 @@ class test_mld_process():
         self.mocker.VerifyAll()
 
     @attr(do=False)
+    @raises(Exception)
     def test_analyse_receive_packet_other(self):
         # それ以外のパケットを受信した場合：エラーログを出力
         dispatch_ = dispatch("test", 1)
