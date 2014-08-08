@@ -549,7 +549,6 @@ class test_mld_process():
         self.mocker.VerifyAll()
 
     @attr(do=False)
-    @raises(Exception)
     def test_analyse_receive_packet_other(self):
         # それ以外のパケットを受信した場合：エラーログを出力
         dispatch_ = dispatch("test", 1)
@@ -699,6 +698,14 @@ class test_mld_process():
         self.mocker.StubOutWithMock(self.mld_proc, "send_mldquery")
         self.mld_proc.send_mldquery([mc_info])
         self.mld_proc.send_mldquery([mc_info])
+
+        # reply_to_ryuの呼び出し確認
+        #   cid1が削除された段階でreply_typeがポート駆除で呼び出されること
+        mc_info = {"mc_addr": mc_addr1, "serv_ip": serv_ip}
+        self.mocker.StubOutWithMock(self.mld_proc, "reply_to_ryu")
+        self.mld_proc.reply_to_ryu(
+            mc_addr1, serv_ip, datapathid2, port_no1,
+            const.CON_REPLY_DEL_PORT)
         self.mocker.ReplayAll()
 
         # check_user_timeout実行前の件数確認
@@ -709,6 +716,7 @@ class test_mld_process():
         # sleep前の2件がタイムアウト
         eq_(3, len(self.mld_proc.ch_info.user_info_list))
 
+        # 残った３件の内容確認
         user_info = self.mld_proc.ch_info.user_info_list[0]
         eq_(mc_addr1, user_info.mc_addr)
         eq_(serv_ip, user_info.serv_ip)
@@ -804,7 +812,7 @@ class test_mld_process():
         self.mld_proc.reply_proxy(mc_addr1, [serv_ip])
         self.mocker.VerifyAll()
 
-    @attr(do=True)
+    @attr(do=False)
     @raises(ExpectedMethodCallsError)
     def test_reply_proxy_exists_user_sq_no_user(self):
         # 視聴情報がありSpecificQuery場合、受信したmcアドレスが視聴中ででなければなにもしない
