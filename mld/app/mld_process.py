@@ -142,7 +142,7 @@ class mld_process():
             self.flowmod_gen = flow_mod_generator(self.switches)
 
         except:
-            self.logger.error("__init__. %s ", traceback.print_exc())
+            self.logger.error("%s ", traceback.print_exc())
 
     # =========================================================================
     # check_url
@@ -440,7 +440,7 @@ class mld_process():
 
         except:
             self.logger.error(
-                "analyse_receive_packet. %s ", traceback.print_exc())
+                "%s ", traceback.print_exc())
 
     # ==================================================================
     # set_switch_config
@@ -532,11 +532,15 @@ class mld_process():
                     self.logger.debug("user_info_list : \n%s",
                                       self.ch_info.get_user_info_list())
 
-            else:
-                self.logger.debug("timeout users are nothing.")
+                else:
+                    self.logger.debug("timeout users are nothing.")
 
-        else:
-            self.logger.debug("ch_info is nothing.")
+            else:
+                self.logger.debug("ch_info is nothing.")
+
+        except:
+            self.logger.error(
+                "%s ", traceback.print_exc())
 
     # ==================================================================
     # reply_proxy
