@@ -19,7 +19,7 @@
         {
             "__comment": "エッジスイッチ", 
             "_container_sw_ports(comment)": "収容スイッチとの接続ポート", 
-            "_datapathid(comment)": "SWのデータパスID", 
+            "_datapathid(comment)": "SWのデータパスIDを10進数で指定", 
             "_edge_router_port(comment)": "エッジルータとの接続ポート", 
             "_mld_port(comment)": "MLD処理部との接続ポート", 
             "_sw_bmac(comment)": "SWのBMAC", 
@@ -38,7 +38,7 @@
         }, 
         {
             "__comment": "収容スイッチ1", 
-            "_datapathid(comment)": "SWのデータパスID", 
+            "_datapathid(comment)": "SWのデータパスIDを10進数で指定", 
             "_edge_switch_port(comment)": "エッジスイッチとの接続ポート", 
             "_olt_ports(comment)": "OLTとの接続ポート", 
             "_sw_bmac(comment)": "SWのBMAC", 
@@ -55,7 +55,7 @@
         }, 
         {
             "__comment": "収容スイッチ2", 
-            "_datapathid(comment)": "SWのデータパスID", 
+            "_datapathid(comment)": "SWのデータパスIDを10進数で指定", 
             "_edge_switch_port(comment)": "エッジスイッチとの接続ポート", 
             "_olt_ports(comment)": "OLTとの接続ポート", 
             "_sw_bmac(comment)": "SWのBMAC", 
@@ -74,10 +74,10 @@
     "switches_qa": [
         {
             "__comment": "エッジスイッチ Primary", 
-            "_container_sw_port(comment)": "収容スイッチとの接続ポート", 
-            "_datapathid(comment)": "SWのデータパスID", 
+            "_container_sw_port(comment)": "収容スイッチとの接続ポート(LAG論理・物理ポート)", 
+            "_datapathid(comment)": "SWのデータパスIDを10進数で指定", 
             "_edge_router_port(comment)": "エッジルータとの接続ポート (16進数では0x0101)", 
-            "_fcrp_port(comment)": "FCRPポート", 
+            "_fcrp_port(comment)": "FCRPポート(FCRP論理・物理ポート)", 
             "_mld_port(comment)": "MLD処理部との接続ポート (16進数では0x0102)", 
             "_sw_bmac(comment)": "SWのBMAC", 
             "_sw_name(comment)": "SW種別名 エッジSW: esw, 収容SW: esw以外", 
@@ -103,10 +103,10 @@
         }, 
         {
             "__comment": "エッジスイッチ Secondary", 
-            "_container_sw_port(comment)": "収容スイッチとの接続ポート", 
-            "_datapathid(comment)": "SWのデータパスID", 
+            "_container_sw_port(comment)": "収容スイッチとの接続ポート(LAG論理・物理ポート)", 
+            "_datapathid(comment)": "SWのデータパスIDを10進数で指定", 
             "_edge_router_port(comment)": "エッジルータとの接続ポート (16進数では0x0101)", 
-            "_fcrp_port(comment)": "FCRPポート", 
+            "_fcrp_port(comment)": "FCRPポート(FCRP論理・物理ポート)", 
             "_mld_port(comment)": "MLD処理部との接続ポート (16進数では0x0102)", 
             "_sw_bmac(comment)": "SWのBMAC", 
             "_sw_name(comment)": "SW種別名 エッジSW: esw, 収容SW: esw以外", 
@@ -132,7 +132,7 @@
         }, 
         {
             "__comment": "収容スイッチ1", 
-            "_datapathid(comment)": "SWのデータパスID", 
+            "_datapathid(comment)": "SWのデータパスIDを10進数で指定", 
             "_edge_switch_port(comment)": "エッジスイッチとの接続ポート", 
             "_olt_ports(comment)": "OLTとの接続ポート", 
             "_sw_bmac(comment)": "SWのBMAC", 
@@ -149,7 +149,7 @@
         }, 
         {
             "__comment": "収容スイッチ2", 
-            "_datapathid(comment)": "SWのデータパスID", 
+            "_datapathid(comment)": "SWのデータパスIDを10進数で指定", 
             "_edge_switch_port(comment)": "エッジスイッチとの接続ポート", 
             "_olt_ports(comment)": "OLTとの接続ポート", 
             "_sw_bmac(comment)": "SWのBMAC", 

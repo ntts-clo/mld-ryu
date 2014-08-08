@@ -1,8 +1,12 @@
 {
+    "_mc_info(comment)": "配信マルチキャストアドレス毎の設定ファイル", 
     "mc_info": [
         {
-            "_mc_addr(comment)": "配信マルチキャストアドレスと配信サーバのIPアドレス", 
-            "_type(comment)": "ベストエフォートサービスか品質保証サービスか。BE(BestEffort) or QA(QualityAssurance)", 
+            "_ivid(comment)": "配信マルチキャストアドレス毎に一意な内部VIDを指定", 
+            "_mc_addr(comment)": "配信マルチキャストアドレス", 
+            "_pbb_isid(comment)": "配信マルチキャストアドレス毎に一意なPBB_ISIDを指定", 
+            "_serv_ip(comment)": "配信サーバのIPアドレス", 
+            "_type(comment)": "ベストエフォートサービスか品質保証サービスかを指定。BE(BestEffort) or QA(QualityAssurance)", 
             "ivid": 2011, 
             "mc_addr": "ff38::1:1", 
             "pbb_isid": 10011, 
