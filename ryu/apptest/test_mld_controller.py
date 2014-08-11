@@ -750,8 +750,8 @@ class test_mld_controller():
         self.config = config.data["settings"]
 
         zmq_url = "ipc://"
-        send_mld_ryu_file_path = self.config["mld_send_zmq"]
-        recv_mld_ryu_file_path = self.config["mld_recv_zmq"]
+        send_mld_ryu_file_path = self.config["mld_zmq_send"]
+        recv_mld_ryu_file_path = self.config["mld_zmq_recv"]
         # CHECK TMP FILE(SEND)
         self.mld_ctrl.check_exists_tmp(send_mld_ryu_file_path)
         self.mld_ctrl.check_exists_tmp(recv_mld_ryu_file_path)
@@ -829,8 +829,8 @@ class test_mld_controller():
         self.config = config.data["settings"]
 
         zmq_url = "ipc://"
-        send_mld_ryu_file_path = self.config["mld_send_zmq"]
-        recv_mld_ryu_file_path = self.config["mld_recv_zmq"]
+        send_mld_ryu_file_path = self.config["mld_zmq_send"]
+        recv_mld_ryu_file_path = self.config["mld_zmq_recv"]
         # CHECK TMP FILE(SEND)
         self.mld_ctrl.check_exists_tmp(send_mld_ryu_file_path)
         self.mld_ctrl.check_exists_tmp(recv_mld_ryu_file_path)
@@ -970,7 +970,7 @@ class test_mld_controller():
         datapath = _Datapath()
         # DummyDatapathidを設定
         datapath.id = 1
-
+        datapath.xid = 999
         packetoutdata = ""
 
         # FeaturesRequestEventの作成
