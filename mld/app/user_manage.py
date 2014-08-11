@@ -16,7 +16,7 @@ COMMON_PATH = DIR_PATH + "/../../common/"
 sys.path.append(COMMON_PATH)
 import mld_const
 
-logging.config.fileConfig(COMMON_PATH + mld_const.LOG_CONF)
+logging.config.fileConfig(COMMON_PATH + mld_const.MLD_LOG_CONF)
 logger = logging.getLogger(__name__)
 
 DB_CONNECT_STR = "db_connect_str"

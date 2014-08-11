@@ -58,7 +58,7 @@ class mld_controller(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
         try:
             # ログ設定ファイル読み込み
-            logging.config.fileConfig(COMMON_PATH + mld_const.LOG_CONF)
+            logging.config.fileConfig(COMMON_PATH + mld_const.RYU_LOG_CONF)
             self.logger = logging.getLogger(__name__)
             self.logger.debug("")
 

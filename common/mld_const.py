@@ -18,7 +18,8 @@ CON_REPLY_DEL_SWITCH = 35
 CON_REPLY_DEL_PORT = 36
 
 # ログファイル
-LOG_CONF = "logconf.ini"
+MLD_LOG_CONF = "logconf_mld.ini"
+RYU_LOG_CONF = "logconf_ryu.ini"
 # 設定ファイル
 CONF_FILE = "config.json"
 # マルチキャスト情報ファイル

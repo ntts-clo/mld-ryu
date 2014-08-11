@@ -77,7 +77,7 @@ class mld_process():
     def __init__(self):
         try:
             # ロガーの設定
-            logging.config.fileConfig(COMMON_PATH + const.LOG_CONF,
+            logging.config.fileConfig(COMMON_PATH + const.MLD_LOG_CONF,
                                       disable_existing_loggers=False)
             self.logger = logging.getLogger(__name__)
             self.logger.debug("")
