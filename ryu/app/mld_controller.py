@@ -157,7 +157,8 @@ class mld_controller(app_manager.RyuApp):
             if self.check_vlan_flg in "True":
                 pkt_vlan = pkt.get_protocol(vlan.vlan)
                 if not pkt_vlan:
-                    self.logger.debug("check vlan:None ")
+                    self.logger.debug("check vlan:None \n")
+                    return False
 
             # CHECK ICMPV6
             pkt_icmpv6 = pkt.get_protocol(icmpv6.icmpv6)
