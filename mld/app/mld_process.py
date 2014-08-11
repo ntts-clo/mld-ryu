@@ -854,7 +854,6 @@ class mld_process():
             # receive of zeromq
             recvpkt = self.recv_sock.recv()
             self.analyse_receive_packet(cPickle.loads(recvpkt))
-            hub.sleep(1)
 
 
 if __name__ == "__main__":

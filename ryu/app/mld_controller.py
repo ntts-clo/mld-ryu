@@ -396,7 +396,6 @@ class mld_controller(app_manager.RyuApp):
 
         try:
             while self.loop_flg:
-                hub.sleep(1)
                 recvpkt = None
                 try:
                     recvpkt = self.recv_sock.recv(flags=zmq.NOBLOCK)
@@ -411,6 +410,8 @@ class mld_controller(app_manager.RyuApp):
                     self.logger.info("receive from mld_process.")
                     packet = cPickle.loads(recvpkt)
                     self.analyse_receive_packet(packet)
+                else:
+                    hub.sleep(1)
 
         except:
             self.logger.error("%s ", traceback.print_exc())
