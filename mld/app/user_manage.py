@@ -8,6 +8,7 @@ import logging.config
 import sys
 import os
 import time
+import traceback
 from functools import total_ordering
 from pymongo import MongoClient
 
@@ -24,39 +25,45 @@ DB_CONNECT_STR = "db_connect_str"
 
 class channel_info():
     def __init__(self, config=None):
-        logger.debug("")
-        # ch視聴情報を保存する
-        #   key  : (マルチキャストアドレス, サーバのIP)
-        #   value: {データパスID: channel_switch_info}
-        self.channel_info = {}
+        try:
+            logger.debug("")
+            # ch視聴情報を保存する
+            #   key  : (マルチキャストアドレス, サーバのIP)
+            #   value: {データパスID: channel_switch_info}
+            self.channel_info = {}
 
-        # channel_user_infoをtimeの昇順に保持するタイムアウト判定用リスト
-        self.user_info_list = []
+            # channel_user_infoをtimeの昇順に保持するタイムアウト判定用リスト
+            self.user_info_list = []
 
-        # DBアクセサクラスのインスタンス生成
-        connect_str = config.get(DB_CONNECT_STR)
-        self.accessor = DatabaseAccessor(connect_str)
+            # DBアクセサクラスのインスタンス生成
+            connect_str = config.get(DB_CONNECT_STR)
+            self.accessor = DatabaseAccessor(connect_str)
+        except:
+            self.logger.error("%s ", traceback.print_exc())
 
     def dump_self(self):
         return cPickle.dumps(self.channel_info)
 
     def update_ch_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
-        # 対象ユーザーが存在しない場合は追加、存在する場合は更新処理を呼び出す
-        logger.debug("")
+        try:
+            # 対象ユーザーが存在しない場合は追加、存在する場合は更新処理を呼び出す
+            logger.debug("")
 
-        user = self.exists_user(mc_addr, serv_ip, datapathid, port_no, cid)
-        ret = None
-        if not user:
-            # 追加処理
-            ret = self.add_ch_info(
-                mc_addr, serv_ip, datapathid, port_no, cid)
-        else:
-            # 更新処理
-            self.update_user_info(user)
-            ret = mld_const.CON_REPLY_NOTHING
-        # DBへ投入
-        self.accessor.upsert("viewerdata", self)
-        return ret
+            user = self.exists_user(mc_addr, serv_ip, datapathid, port_no, cid)
+            ret = None
+            if not user:
+                # 追加処理
+                ret = self.add_ch_info(
+                    mc_addr, serv_ip, datapathid, port_no, cid)
+            else:
+                # 更新処理
+                self.update_user_info(user)
+                ret = mld_const.CON_REPLY_NOTHING
+            # DBへ投入
+            self.accessor.upsert("viewerdata", self)
+            return ret
+        except:
+            self.logger.error("%s ", traceback.print_exc())
 
     def add_ch_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
         # 視聴端末情報を追加
@@ -103,39 +110,43 @@ class channel_info():
         logger.debug("updated user_info")
 
     def remove_ch_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
-        # 視聴端末を削除
-        logger.debug("")
+        try:
+            # 視聴端末を削除
+            logger.debug("")
 
-        # 削除対象の存在チェック
-        user = self.exists_user(mc_addr, serv_ip, datapathid, port_no, cid)
-        if not user:
-            # 存在しなければ何もしない
-            logger.debug("remove target is nothing.")
-            return None
+            # 削除対象の存在チェック
+            user = self.exists_user(mc_addr, serv_ip, datapathid, port_no, cid)
+            if not user:
+                # 存在しなければ何もしない
+                logger.debug("remove target is nothing.")
+                return None
 
-        # ポート以下の情報を削除
-        ch_sw_info = self.channel_info[(mc_addr, serv_ip)][datapathid]
-        ret = ch_sw_info.remove_sw_info(port_no, cid)
+            # ポート以下の情報を削除
+            ch_sw_info = self.channel_info[(mc_addr, serv_ip)][datapathid]
+            ret = ch_sw_info.remove_sw_info(port_no, cid)
 
-        # ポートの削除を行い、ポート配下の視聴ユーザが0になった場合
-        if ret == mld_const.CON_REPLY_DEL_PORT \
-                and len(ch_sw_info.port_info) == 0:
+            # ポートの削除を行い、ポート配下の視聴ユーザが0になった場合
+            if ret == mld_const.CON_REPLY_DEL_PORT \
+                    and len(ch_sw_info.port_info) == 0:
 
-            # 収容SW(datapathid)に対応する情報を削除する
-            self.channel_info[(mc_addr, serv_ip)].pop(datapathid)
-            logger.debug("removed datapath : %s",  datapathid)
-            ret = mld_const.CON_REPLY_DEL_SWITCH
+                # 収容SW(datapathid)に対応する情報を削除する
+                self.channel_info[(mc_addr, serv_ip)].pop(datapathid)
+                logger.debug("removed datapath : %s",  datapathid)
+                ret = mld_const.CON_REPLY_DEL_SWITCH
 
-            # 当該mcグループの視聴ユーザが0になった場合、mcグループに対応する情報を削除する
-            if len(self.channel_info[(mc_addr, serv_ip)]) == 0:
-                self.channel_info.pop((mc_addr, serv_ip))
-                ret = mld_const.CON_REPLY_DEL_MC_GROUP
+                # 当該mcグループの視聴ユーザが0になった場合、mcグループに対応する情報を削除する
+                if len(self.channel_info[(mc_addr, serv_ip)]) == 0:
+                    self.channel_info.pop((mc_addr, serv_ip))
+                    ret = mld_const.CON_REPLY_DEL_MC_GROUP
 
-        # user_info_listから対象ユーザーを削除する
-        self.user_info_list.pop(self.user_info_list.index(user))
-        # DBへ投入
-        self.accessor.upsert("viewerdata", self)
-        return ret
+            # user_info_listから対象ユーザーを削除する
+            self.user_info_list.pop(self.user_info_list.index(user))
+            # DBへ投入
+            self.accessor.upsert("viewerdata", self)
+            return ret
+
+        except:
+            self.logger.error("%s ", traceback.print_exc())
 
     def exists_user(self, mc_addr, serv_ip, datapathid, port_no, cid):
         # channel_infoから指定されたcidまでを持つchannel_user_infoを返却
