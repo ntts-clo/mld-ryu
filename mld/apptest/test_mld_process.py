@@ -35,7 +35,9 @@ sys.path.append(COMMON_PATH)
 from zmq_dispatch import dispatch, packet_out_data
 from read_json import read_json
 import mld_const as const
-from common.icmpv6_extend import icmpv6_extend, checksum_ip, checksum
+from icmpv6_extend import icmpv6_extend, checksum_ip, checksum
+
+logging.config.fileConfig(COMMON_PATH + const.MLD_LOG_CONF)
 logger = logging.getLogger(__name__)
 
 
@@ -44,7 +46,7 @@ class test_mld_process():
     # このクラスのテストケースを実行する前に１度だけ実行する
     @classmethod
     def setup_class(cls):
-        logger.debug("setup")
+        logger.debug("setup_class")
 
         config = read_json(COMMON_PATH + const.CONF_FILE)
         cls.config = config.data["settings"]
@@ -121,7 +123,7 @@ class test_mld_process():
 
         # 読み込む設定ファイルを変更(check_urlがTrueを返却)
         temp_common = mld_process.COMMON_PATH
-        mld_process.COMMON_PATH = "./test_common/"
+        mld_process.COMMON_PATH = DIR_PATH + "/test_common/"
         temp_conf = const.CONF_FILE
         const.CONF_FILE = "config_ipc.json"
 
@@ -137,7 +139,7 @@ class test_mld_process():
 
         # 読み込む設定ファイルを変更(check_urlがTrueを返却)
         temp_common = mld_process.COMMON_PATH
-        mld_process.COMMON_PATH = "./test_common/"
+        mld_process.COMMON_PATH = DIR_PATH + "/test_common/"
         temp_conf = const.CONF_FILE
         const.CONF_FILE = "config_other.json"
 
@@ -426,7 +428,6 @@ class test_mld_process():
         # MLD Queryを持つpacketを生成
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
-        vid = self.config["c_tag_id"]
         query = self.mld_proc.create_mldquery(mc_addr, serv_ip)
 
         query.version = 4
@@ -436,10 +437,9 @@ class test_mld_process():
             ipv6.option(type_=5, len_=2, data="\x00\x00"),
             ipv6.option(type_=1, len_=0)])]
 
+        # Exceptionが発生すること
         checksum_ip(query, len(ext_headers),
-                              icmpv6.MLD_LISTENER_QUERY, inet.IPPROTO_ICMPV6)
-
-        logger.debug("test_create_packet_query02 [Exception] %s", e)
+                    icmpv6.MLD_LISTENER_QUERY, inet.IPPROTO_ICMPV6)
 
     @attr(do=False)
     def test_create_packet_report(self):
@@ -1272,7 +1272,6 @@ class test_mld_process():
 
         # 無限ループを脱出して終了すること
         hub.spawn(self.mld_proc.receive_from_ryu)
-        hub.sleep(1)
         self.mld_proc.RECV_LOOP = False
         hub.sleep(1)
         self.mld_proc.RECV_LOOP = True
@@ -2291,7 +2290,7 @@ class test_user_manage():
 
         # 読み込む設定ファイルを変更(check_urlがTrueを返却)
         temp_common = mld_process.COMMON_PATH
-        mld_process.COMMON_PATH = "./test_common/"
+        mld_process.COMMON_PATH = DIR_PATH + "/test_common/"
         temp_conf = const.CONF_FILE
         const.CONF_FILE = "config_nodb.json"
 

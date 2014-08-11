@@ -216,6 +216,8 @@ class mld_process():
             mc_info = {"mc_addr": "::", "serv_ip": None}
             while self.SEND_LOOP:
                 self.send_mldquery([mc_info])
+                # タイムアウトチェック
+                self.check_user_timeout()
                 time.sleep(
                     self.config["reguraly_query_interval"] - self.QUERY_QRV)
 
@@ -234,6 +236,8 @@ class mld_process():
                 self.send_mldquery(
                     self.mc_info_list, self.config["mc_query_interval"],
                     next_interval)
+                # タイムアウトチェック
+                self.check_user_timeout()
 
                 # 定期送信クエリの送信間隔が過ぎていない場合は待ち
                 if not next_interval.value:
@@ -491,7 +495,7 @@ class mld_process():
             self.logger.debug("")
             self.logger.debug("ch_info : \n%s",
                               self.ch_info.get_channel_info())
-            self.logger.debug("user_info_list : \n%s",
+            self.logger.debug("user_info_list : %s",
                               self.ch_info.get_user_info_list())
 
             if self.ch_info.channel_info:
@@ -503,29 +507,31 @@ class mld_process():
                 # タイムアウトとなる時間を持ったユーザを挿入する箇所を取得
                 idx = self.ch_info.find_insert_point(timeout_user)
                 self.logger.debug("idx : %s", str(idx))
-                if not idx == 0:
+                if idx > 0:
                     # 挿入箇所がuser_info_listの先頭でない場合、それ以前のユーザを削除
                     for i in range(idx):
-                        del_user_info = self.ch_info.user_info_list[idx - i - 1]
+                        del_user_info = \
+                            self.ch_info.user_info_list[idx - i - 1]
                         self.logger.debug("timeout user : \n%s",
                                           del_user_info.get_user_info())
 
-                    # ユーザの削除
-                    reply_type = self.ch_info.remove_ch_info(
-                        del_user_info.mc_addr, del_user_info.serv_ip,
-                        del_user_info.datapathid, del_user_info.port_no,
-                        del_user_info.cid)
-
-                    # SpecificQueryを生成し、エッジスイッチに送信
-                    mc_info = {"mc_addr": del_user_info.mc_addr,
-                               "serv_ip": del_user_info.serv_ip}
-                    self.send_mldquery([mc_info])
-
-                    if not reply_type == const.CON_REPLY_NOTHING:
-                        self.reply_to_ryu(
+                        # ユーザの削除
+                        reply_type = self.ch_info.remove_ch_info(
                             del_user_info.mc_addr, del_user_info.serv_ip,
                             del_user_info.datapathid, del_user_info.port_no,
-                            reply_type)
+                            del_user_info.cid)
+
+                        # SpecificQueryを生成し、エッジスイッチに送信
+                        mc_info = {"mc_addr": del_user_info.mc_addr,
+                                   "serv_ip": del_user_info.serv_ip}
+                        self.send_mldquery([mc_info])
+
+                        # 削除が行われた場合
+                        if not reply_type == const.CON_REPLY_NOTHING:
+                            self.reply_to_ryu(
+                                del_user_info.mc_addr, del_user_info.serv_ip,
+                                del_user_info.datapathid,
+                                del_user_info.port_no, reply_type)
 
                     self.logger.debug("ch_info : \n%s",
                                       self.ch_info.get_channel_info())
