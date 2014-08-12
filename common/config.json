@@ -13,7 +13,6 @@
         "_ofc_zmq_url(comment)": "OFC用のzmqソケットURL [IPC]:(ipc://) or [TCP]:(tcp://)", 
         "_reguraly_query_interval(comment)": "定期送信クエリの送信間隔", 
         "_reguraly_query_type(comment)": "定期送信クエリのタイプ [GeneralQuery]:(GQ) or [SpecificQuery]:(SQ)", 
-        "_socket_time_out(comment)": "ソケットのタイムアウト時間", 
         "_user_time_out(comment)": "視聴ユーザーのタイムアウト時間"
     }, 
     "_settings(development)": {
@@ -30,7 +29,6 @@
         "ofc_zmq_url": "ipc://", 
         "reguraly_query_interval": 125, 
         "reguraly_query_type": "SQ", 
-        "socket_time_out": 1000, 
         "user_time_out": 250
     }, 
     "settings": {
@@ -47,7 +45,6 @@
         "ofc_zmq_url": "tcp://", 
         "reguraly_query_interval": 125, 
         "reguraly_query_type": "SQ", 
-        "socket_time_out": 1000, 
         "user_time_out": 250
     }
 }
