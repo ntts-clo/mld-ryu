@@ -583,8 +583,12 @@ class mld_process():
 
         # Specific Queryの場合
         else:
-            # 視聴中のユーザがいればレポートを作成
-            if (mc_addr, srcs[0]) in self.ch_info.channel_info:
+            # Specific Queryでsrcが入っていない場合
+            if srcs == []:
+                self.logger.info("this query has no Source Address.")
+
+            # 対象マルチキャストアドレスを視聴中のユーザがいればレポートを作成
+            elif (mc_addr, srcs[0]) in self.ch_info.channel_info:
                 report_type = [icmpv6.MODE_IS_INCLUDE]
                 mld = self.create_mldreport(
                     mc_addr, srcs[0], report_type)
@@ -598,9 +602,10 @@ class mld_process():
                     datapathid=datapathid, data=pout)
                 self.logger.debug("packetout: %s", str(packetout))
                 self.send_packet_to_ryu(packetout)
+
+            # 対象マルチキャストアドレスを視聴中のユーザがいない場合
             else:
-                self.logger.debug(
-                    "No one shows this channel[%s].", mc_addr)
+                self.logger.debug("No one shows this channel[%s].", mc_addr)
 
     # ==================================================================
     # manage_user
@@ -698,8 +703,10 @@ class mld_process():
                 reply_type = const.CON_REPLY_NOTHING
 
             return reply_type
+
         except:
             self.logger.error("%s ", traceback.print_exc())
+            return const.CON_REPLY_NOTHING
 
     # ==================================================================
     # reply_to_ryu

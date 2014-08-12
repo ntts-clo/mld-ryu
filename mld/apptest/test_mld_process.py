@@ -836,6 +836,28 @@ class test_mld_process():
         self.mocker.VerifyAll()
 
     @attr(do=False)
+    def test_reply_proxy_exists_user_sq_no_srcs(self):
+        # 視聴情報がありSpecificQuery場合、受信したmcアドレスが視聴中ででなければなにもしない
+        mc_addr1 = "ff38::1:1"
+        serv_ip = "2001::1:20"
+        datapathid2 = 2
+        port_no1 = 1
+        cid1 = 12101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid1)
+        cid2 = 12102
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid2)
+
+        # logger.infoが呼び出さることを確認
+        self.mocker.StubOutWithMock(self.mld_proc.logger, "info")
+        self.mld_proc.logger.info("this query has no Source Address.")
+        self.mocker.ReplayAll()
+
+        self.mld_proc.reply_proxy(mc_addr1, [])
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
     def test_manage_user_reply_nothing(self):
         # update_user_infoがCON_REPLY_NOTHINGを返却する場合なにもしない
         mc_addr = "ff38::1:1"
