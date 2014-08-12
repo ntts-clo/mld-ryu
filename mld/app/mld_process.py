@@ -7,7 +7,6 @@ from ryu.ofproto import ether, inet
 from ryu.ofproto import ofproto_v1_3
 from ryu.ofproto import ofproto_v1_3_parser as parser
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
-from ryu.lib import hub
 from scapy import sendrecv
 from scapy import packet as scapy_packet
 from eventlet import patcher
@@ -21,8 +20,6 @@ import zmq
 import sys
 import time
 import ctypes
-import signal
-hub.patch()
 
 from user_manage import channel_info, channel_user_info
 from flowmod_gen import flow_mod_generator
@@ -40,7 +37,6 @@ CHECK_URL_TCP = "tcp://"
 MLD_ZMQ_URL = "mld_zmq_url"
 MLD_ZMQ_SEND = "mld_zmq_send"
 MLD_ZMQ_RECV = "mld_zmq_recv"
-
 
 # ======================================================================
 # mld_process
@@ -869,14 +865,6 @@ class mld_process():
             recvpkt = self.recv_sock.recv()
             self.analyse_receive_packet(cPickle.loads(recvpkt))
 
-    # ==================================================================
-    # sigint_handler
-    # ==================================================================
-    def sigint_handler(self):
-        # 端末からctrl+cが入力された場合、処理を全て終了する
-        self.logger.debug("")
-        exit
-
 
 if __name__ == "__main__":
     mld_proc = mld_process()
@@ -886,7 +874,5 @@ if __name__ == "__main__":
     send_thre.start()
     # 定期送信開始待ち
     mld_proc.org_thread_time.sleep(1)
-    # パケット受信スレッド
-    hub.spawn(mld_proc.receive_from_ryu)
-    # 終了（ctrl+c）待ち
-    signal.signal(signal.SIGINT, mld_proc.sigint_handler)
+    # パケット受信処理
+    mld_proc.receive_from_ryu()
