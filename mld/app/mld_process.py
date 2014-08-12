@@ -21,6 +21,7 @@ import zmq
 import sys
 import time
 import ctypes
+import signal
 hub.patch()
 
 from user_manage import channel_info, channel_user_info
@@ -423,12 +424,6 @@ class mld_process():
                 pkt_icmpv6 = dispatch_["data"]
                 self.logger.debug("pkt_icmpv6 : " + str(pkt_icmpv6))
 
-                # MLDv2 Query
-                if pkt_icmpv6.type_ == icmpv6.MLD_LISTENER_QUERY:
-                    self.logger.debug("MLDv2 Query : %s", str(pkt_icmpv6.data))
-                    query = pkt_icmpv6.data
-                    self.reply_proxy(query.address, query.srcs)
-
                 # MLDv2 Report
                 if pkt_icmpv6.type_ == icmpv6.MLDV2_LISTENER_REPORT:
                     self.logger.debug(
@@ -437,6 +432,12 @@ class mld_process():
 
                 # タイムアウトチェック
                 self.check_user_timeout()
+
+                # MLDv2 Query
+                if pkt_icmpv6.type_ == icmpv6.MLD_LISTENER_QUERY:
+                    self.logger.debug("MLDv2 Query : %s", str(pkt_icmpv6.data))
+                    query = pkt_icmpv6.data
+                    self.reply_proxy(query.address, query.srcs)
 
             else:
                 self.logger.error(
@@ -868,6 +869,14 @@ class mld_process():
             recvpkt = self.recv_sock.recv()
             self.analyse_receive_packet(cPickle.loads(recvpkt))
 
+    # ==================================================================
+    # sigint_handler
+    # ==================================================================
+    def sigint_handler(self):
+        # 端末からctrl+cが入力された場合、処理を全て終了する
+        self.logger.debug("")
+        exit
+
 
 if __name__ == "__main__":
     mld_proc = mld_process()
@@ -879,5 +888,5 @@ if __name__ == "__main__":
     mld_proc.org_thread_time.sleep(1)
     # パケット受信スレッド
     hub.spawn(mld_proc.receive_from_ryu)
-    while True:
-        time.sleep(1)
+    # 終了（ctrl+c）待ち
+    signal.signal(signal.SIGINT, mld_proc.sigint_handler)
