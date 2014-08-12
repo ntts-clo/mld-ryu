@@ -38,7 +38,7 @@ class channel_info():
             connect_str = config.get(DB_CONNECT_STR)
             self.accessor = DatabaseAccessor(connect_str)
         except:
-            self.logger.error("%s ", traceback.print_exc())
+            logger.error("%s ", traceback.print_exc())
 
     def dump_self(self):
         return cPickle.dumps(self.channel_info)
@@ -62,7 +62,7 @@ class channel_info():
             self.accessor.upsert("viewerdata", self)
             return ret
         except:
-            self.logger.error("%s ", traceback.print_exc())
+            logger.error("%s ", traceback.print_exc())
 
     def add_ch_info(self, mc_addr, serv_ip, datapathid, port_no, cid):
         # 視聴端末情報を追加
@@ -145,7 +145,7 @@ class channel_info():
             return ret
 
         except:
-            self.logger.error("%s ", traceback.print_exc())
+            logger.error("%s ", traceback.print_exc())
 
     def exists_user(self, mc_addr, serv_ip, datapathid, port_no, cid):
         # channel_infoから指定されたcidまでを持つchannel_user_infoを返却
