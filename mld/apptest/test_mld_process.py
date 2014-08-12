@@ -229,7 +229,7 @@ class test_mld_process():
         os.rmdir(filedir)
 
     @attr(do=False)
-    def test_cretate_scoket001(self):
+    def test_create_socket001(self):
         zmq_url = "ipc://"
         send_file_path = "/tmp/feeds/ut/mld-mld"
         recv_file_path = "/tmp/feeds/ut/ryu-mld"
@@ -241,7 +241,7 @@ class test_mld_process():
         # CHECK TMP FILE(RECV)
         self.mld_proc.check_exists_tmp(recv_file_path)
 
-        self.mld_proc.cretate_scoket(send_path, recv_path)
+        self.mld_proc.create_socket(send_path, recv_path)
 
         ok_(self.mld_proc.send_sock)
         ok_(self.mld_proc.recv_sock)
@@ -251,12 +251,12 @@ class test_mld_process():
         os.rmdir("/tmp/feeds/ut/")
 
     @attr(do=False)
-    def test_cretate_scoket002(self):
+    def test_create_socket002(self):
         zmq_url = "tcp://"
         send_path = zmq_url + "127.0.0.1:7002"
         recv_path = zmq_url + "0.0.0.0:7002"
 
-        self.mld_proc.cretate_scoket(send_path, recv_path)
+        self.mld_proc.create_socket(send_path, recv_path)
 
         ok_(self.mld_proc.send_sock)
         ok_(self.mld_proc.recv_sock)

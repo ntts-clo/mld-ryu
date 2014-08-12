@@ -147,8 +147,8 @@ class test_mld_controller():
         # StubOutWithMoc()を呼んだ後に必要。常に呼んでおけば安心
         self.mocker.UnsetStubs()
 
-    def test_cretate_scoket_Success001(self):
-        logger.debug("test_cretate_scoket_Success001")
+    def test_create_socket_Success001(self):
+        logger.debug("test_create_socket_Success001")
         """
         概要：zmqの送受信で使用するsocketを生成
         条件：SEND用・RECV用のipcのtmpファイルパスを指定する
@@ -168,7 +168,7 @@ class test_mld_controller():
         self.mld_ctrl.check_exists_tmp(recv_file_path)
 
         #【実行】
-        self.mld_ctrl.cretate_scoket(send_path, recv_path)
+        self.mld_ctrl.create_socket(send_path, recv_path)
 
         #【結果】
         ok_(self.mld_ctrl.send_sock)
@@ -178,8 +178,8 @@ class test_mld_controller():
         os.remove(send_file_path)
         os.remove(recv_file_path)
 
-    def test_cretate_scoket_Success002(self):
-        logger.debug("test_cretate_scoket_Success002")
+    def test_create_socket_Success002(self):
+        logger.debug("test_create_socket_Success002")
         """
         概要：zmqの送受信で使用するsocketを生成
         条件：SEND用・RECV用のtcpのipを指定する
@@ -194,7 +194,7 @@ class test_mld_controller():
         recv_path = zmq_url + recv_ip_path
 
         #【実行】
-        self.mld_ctrl.cretate_scoket(send_path, recv_path)
+        self.mld_ctrl.create_socket(send_path, recv_path)
 
         #【結果】
         ok_(self.mld_ctrl.send_sock)
@@ -1907,7 +1907,7 @@ class test_mld_controller():
                 self.check_exists_tmp(recv_path)
 
             # ZeroMQ送受信用ソケット生成
-            self.cretate_scoket(zmq_url + send_path, zmq_url + recv_path)
+            self.create_socket(zmq_url + send_path, zmq_url + recv_path)
 
         except Exception as e:
             # 【結果】
