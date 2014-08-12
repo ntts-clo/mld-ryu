@@ -137,7 +137,7 @@ class mld_process():
                 self.check_exists_tmp(recv_path)
 
             # ZeroMQ送受信用ソケット生成
-            self.cretate_scoket(zmq_url + send_path, zmq_url + recv_path)
+            self.create_socket(zmq_url + send_path, zmq_url + recv_path)
 
             # Flowmod生成用インスタンス
             self.flowmod_gen = flow_mod_generator(self.switches)
@@ -187,9 +187,9 @@ class mld_process():
                                  dirpath, filename)
 
     # =========================================================================
-    # cretate_scoket
+    # create_socket
     # =========================================================================
-    def cretate_scoket(self, sendpath, recvpath):
+    def create_socket(self, sendpath, recvpath):
         self.logger.debug("")
 
         ctx = zmq.Context()

@@ -94,7 +94,7 @@ class mld_controller(app_manager.RyuApp):
                 self.check_exists_tmp(recv_path)
 
             # ZeroMQ送受信用ソケット生成
-            self.cretate_scoket(zmq_url + send_path, zmq_url + recv_path)
+            self.create_socket(zmq_url + send_path, zmq_url + recv_path)
 
             # mldからの受信スレッドを開始
             hub.spawn(self.receive_from_mld)
@@ -461,9 +461,9 @@ class mld_controller(app_manager.RyuApp):
                                  dirpath, filename)
 
     # =========================================================================
-    # cretate_scoket
+    # create_socket
     # =========================================================================
-    def cretate_scoket(self, sendpath, recvpath):
+    def create_socket(self, sendpath, recvpath):
         self.logger.debug("")
 
         ctx = zmq.Context()
