@@ -2308,7 +2308,7 @@ class test_user_manage():
     @attr(do=False)
     def test_no_db_regist(self):
         # 視聴開始（初回ユーザ参加）を行うが、DB登録は行わない
-        #   DatabaseAccessor.clientがNoneのままであること
+        #   database_accessor.clientがNoneのままであること
 
         # 読み込む設定ファイルを変更(check_urlがTrueを返却)
         temp_common = mld_process.COMMON_PATH

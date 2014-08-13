@@ -40,7 +40,6 @@ CHECK_URL_TCP = "tcp://"
 
 # 設定ファイルの定義名
 SETTING = "settings"
-SOCKET_TIME_OUT = "socket_time_out"
 CHECK_VLAN_FLG = "check_vlan_flg"
 OFC_ZMQ_URL = "ofc_zmq_url"
 OFC_ZMQ_SEND = "ofc_zmq_send"
@@ -73,7 +72,6 @@ class mld_controller(app_manager.RyuApp):
                 json.dumps(config.data, indent=4,
                            sort_keys=True, ensure_ascii=False))
             self.config = config.data[SETTING]
-            self.SOCKET_TIME_OUT = self.config[SOCKET_TIME_OUT]
 
             # zmq設定情報の読み込み
             zmq_url = self.config[OFC_ZMQ_URL]
