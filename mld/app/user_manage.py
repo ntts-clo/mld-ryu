@@ -4,7 +4,6 @@
 import cPickle
 import bisect
 import logging
-import logging.config
 import sys
 import os
 import time
@@ -20,6 +19,7 @@ import mld_const
 logger = logging.getLogger(__name__)
 
 DB_CONNECT_STR = "db_connect_str"
+VIEWR_DATA = "viewerdata"
 
 
 class channel_info():
@@ -36,7 +36,7 @@ class channel_info():
 
             # DBアクセサクラスのインスタンス生成
             connect_str = config.get(DB_CONNECT_STR)
-            self.accessor = DatabaseAccessor(connect_str)
+            self.accessor = database_accessor(connect_str)
         except:
             logger.error("%s ", traceback.print_exc())
 
@@ -59,7 +59,7 @@ class channel_info():
                 self.update_user_info(user)
                 ret = mld_const.CON_REPLY_NOTHING
             # DBへ投入
-            self.accessor.upsert("viewerdata", self)
+            self.accessor.upsert(VIEWR_DATA, self)
             return ret
         except:
             logger.error("%s ", traceback.print_exc())
@@ -141,7 +141,7 @@ class channel_info():
             # user_info_listから対象ユーザーを削除する
             self.user_info_list.pop(self.user_info_list.index(user))
             # DBへ投入
-            self.accessor.upsert("viewerdata", self)
+            self.accessor.upsert(VIEWR_DATA, self)
             return ret
 
         except:
@@ -346,7 +346,7 @@ if __name__ == "__main__":
 '''
 
 
-class DatabaseAccessor():
+class database_accessor():
     def __init__(self, connect_str):
         self.client = None
         if not connect_str:
