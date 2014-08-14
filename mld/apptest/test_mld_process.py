@@ -969,33 +969,6 @@ class test_mld_process():
         self.mocker.VerifyAll()
 
     @attr(do=False)
-    def test_manage_user_reply_nothing(self):
-        # update_user_infoがCON_REPLY_NOTHINGを返却する場合なにもしない
-        mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
-        types = [icmpv6.MODE_IS_INCLUDE]
-        mld = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
-        data = icmpv6.icmpv6(
-            type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
-
-        datapathid = self.mld_proc.switches[1]["datapathid"]
-        in_port = 1
-        cid = 100
-        dispatch_ = dispatch(
-            const.CON_PACKET_IN, datapathid, in_port, cid, data)
-
-        self.mocker.StubOutWithMock(self.mld_proc, "update_user_info")
-        self.mld_proc.update_user_info(
-            mc_addr, serv_ip, datapathid, in_port, cid,
-            icmpv6.MODE_IS_INCLUDE).AndReturn(const.CON_REPLY_NOTHING)
-        self.mocker.ReplayAll()
-
-        actual = self.mld_proc.manage_user(dispatch_)
-        eq_(-1, actual)
-
-        self.mocker.VerifyAll()
-
-    @attr(do=False)
     def test_manage_user_reply(self):
         # update_user_infoがCON_REPLY_NOTHING以外を返却する場合はreply_to_ryuを呼び出す
         mc_addr = "ff38::1:1"
@@ -1071,6 +1044,10 @@ class test_mld_process():
         actual = self.mld_proc.update_user_info(
             mc_addr, serv_ip, datapathid, in_port, cid,
             icmpv6.BLOCK_OLD_SOURCES)
+
+        # sendの実行待ち
+        time.sleep(1)
+
         eq_(const.CON_REPLY_NOTHING, actual)
         self.mocker.VerifyAll()
 
@@ -1829,7 +1806,7 @@ class test_user_manage():
         cid = 2111
         # 更新前timeの取り出し
         bf_time = self.mld_proc.ch_info.user_info_list[1].time
-        # 既存ユーザに対するALLOW_NEW_SOURCES
+        # 既存ユーザに対するMODE_IS_INCLUDE
         actual = self.mld_proc.update_user_info(
             self.mc_addr2, self.serv_ip, self.datapathid1, self.in_port1,
             cid, icmpv6.MODE_IS_INCLUDE)
@@ -1940,6 +1917,90 @@ class test_user_manage():
         ch_user_info = self.mld_proc.ch_info.user_info_list[-1]
         eq_(cid, ch_user_info.cid)
         eq_(regist_time, ch_user_info.time)
+
+    @attr(do=False)
+    def test_update_user_03(self):
+        # 視聴継続（既存ユーザに対するINCLUDE複数件）
+        #   既存のユーザ情報が2件更新されていること
+
+        # 事前準備
+        self.mld_proc.ch_info.update_ch_info(
+            self.mc_addr1, self.serv_ip, self.datapathid1, self.in_port1, 1111)
+        self.mld_proc.ch_info.update_ch_info(
+            self.mc_addr2, self.serv_ip, self.datapathid1, self.in_port1, 1111)
+        eq_(2, len(self.mld_proc.ch_info.user_info_list))
+        eq_(1111, self.mld_proc.ch_info.user_info_list[0].cid)
+        eq_(1111, self.mld_proc.ch_info.user_info_list[1].cid)
+
+        cid = 1111
+        # 更新前timeの取り出し
+        bf_time1 = self.mld_proc.ch_info.user_info_list[0].time
+        bf_time2 = self.mld_proc.ch_info.user_info_list[1].time
+
+        types = [icmpv6.MODE_IS_INCLUDE, icmpv6.MODE_IS_INCLUDE]
+        mld = self.mld_proc.create_mldreport(
+            self.mc_addr2, self.serv_ip, types)
+
+        record_list = []
+        record_list.append(
+            icmpv6.mldv2_report_group(
+                type_=icmpv6.MODE_IS_INCLUDE, address=self.mc_addr1,
+                srcs=[self.serv_ip]))
+        record_list.append(
+            icmpv6.mldv2_report_group(
+                type_=icmpv6.MODE_IS_INCLUDE, address=self.mc_addr2,
+                srcs=[self.serv_ip]))
+        mld = icmpv6.mldv2_report(records=record_list)
+
+        data = icmpv6.icmpv6(
+            type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
+        dispatch_ = dispatch(
+            const.CON_PACKET_IN, self.datapathid1, self.in_port1, cid, data)
+
+        # 既存ユーザに対するMODE_IS_INCLUDE
+        actual = self.mld_proc.manage_user(dispatch_)
+
+        # channel_info(mc_addr, serv_ip, datapathid)
+        eq_(2, len(self.mld_proc.ch_info.channel_info.keys()))
+        sw_info = self.mld_proc.ch_info.channel_info[
+            self.mc_addr1, self.serv_ip]
+        ch_sw_info = sw_info[self.datapathid1]
+
+        # channel_switch_info(port_no)
+        user_info = ch_sw_info.port_info[self.in_port1]
+        ch_user_info1 = user_info[cid]
+
+        # channel_user_info(cid)
+        regist_time1 = ch_user_info1.time
+        ok_(bf_time1 < regist_time1)
+
+        # channel_info(mc_addr, serv_ip, datapathid)
+        sw_info = self.mld_proc.ch_info.channel_info[
+            self.mc_addr2, self.serv_ip]
+        ch_sw_info = sw_info[self.datapathid1]
+
+        # channel_switch_info(port_no)
+        user_info = ch_sw_info.port_info[self.in_port1]
+        ch_user_info2 = user_info[cid]
+
+        # channel_user_info(cid)
+        regist_time2 = ch_user_info2.time
+        # timeが更新されていること
+        ok_(bf_time2 < regist_time2)
+
+        # user_info_list
+        #   更新されたユーザがリストの末尾に移動していること
+        eq_(2, len(self.mld_proc.ch_info.user_info_list))
+        eq_(1111, self.mld_proc.ch_info.user_info_list[0].cid)
+        eq_(1111, self.mld_proc.ch_info.user_info_list[1].cid)
+
+        ch_user_info1 = self.mld_proc.ch_info.user_info_list[0]
+        eq_(cid, ch_user_info1.cid)
+        eq_(regist_time1, ch_user_info1.time)
+
+        ch_user_info2 = self.mld_proc.ch_info.user_info_list[1]
+        eq_(cid, ch_user_info2.cid)
+        eq_(regist_time2, ch_user_info2.time)
 
     @attr(do=False)
     def test_remove_user_01(self):

@@ -312,7 +312,6 @@ class mld_process():
             if not mc_info == mc_info_list[-1]:
                 self.logger.debug("waiting %d sec...", wait_time)
                 time.sleep(wait_time)
-#                self.org_thread_time.sleep(wait_time)
 
     # ==================================================================
     # create_mldquery
@@ -636,6 +635,7 @@ class mld_process():
             address = report.address
             src = report.srcs[0] if report.srcs else ""
             report_type = report.type_
+            self.logger.debug("report : " + str(report))
 
             # Reportの内容により、更新が必要な視聴情報を更新する
             reply_type = self.update_user_info(
@@ -644,7 +644,7 @@ class mld_process():
             if reply_type == const.CON_REPLY_NOTHING:
                 # Flow追加削除なしの場合何もしない
                 self.logger.debug("reply_type : CON_REPLY_NOTHING")
-                return -1
+                continue
             else:
                 # reply_typeにより、Flowmod、Packetoutを生成し、ryuに返却する
                 self.reply_to_ryu(
@@ -663,6 +663,8 @@ class mld_process():
                               target_switch, in_port, cid)
             self.logger.debug("self.ch_info : %s",
                               self.ch_info.get_channel_info())
+            self.logger.debug("user_info_list : %s",
+                              self.ch_info.get_user_info_list())
 
             # ALLOW_NEW_SOURCES：視聴情報に追加
             if report_type == icmpv6.ALLOW_NEW_SOURCES:
@@ -673,7 +675,7 @@ class mld_process():
                 self.logger.debug("reply_type : %s", reply_type)
                 self.logger.debug("added self.ch_info : %s",
                                   self.ch_info.get_channel_info())
-                self.logger.debug("user_info_list : %s",
+                self.logger.debug("added user_info_list : %s",
                                   self.ch_info.get_user_info_list())
 
             # BLOCK_OLD_SOURCES：視聴情報から削除
@@ -710,7 +712,7 @@ class mld_process():
                     datapathid=target_switch, port_no=in_port, cid=cid)
                 self.logger.debug("updated self.ch_info : %s",
                                   self.ch_info.get_channel_info())
-                self.logger.debug("user_info_list : %s",
+                self.logger.debug("updated user_info_list : %s",
                                   self.ch_info.get_user_info_list())
 
             # MODE_IS_EXCLUDE
