@@ -9,6 +9,7 @@
 import pdb
 import os
 import sys
+import threading
 import logging
 import logging.config
 import unittest
@@ -19,11 +20,9 @@ from mox import Mox, ExpectedMethodCallsError, IsA
 from nose.tools import ok_, eq_
 from nose.tools.nontrivial import raises
 from nose.plugins.attrib import attr
-from ryu.lib import hub
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from ryu.ofproto import ofproto_v1_3, inet
 from multiprocessing import Value
-hub.patch()
 
 DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 APP_PATH = DIR_PATH + "/../app/"
@@ -133,6 +132,16 @@ class test_mld_process():
     def test_calculate_qqic_over128(self):
         # 引数が128以上の場合は浮動小数として経産した結果を返却する
         arg = 128
+        actual = self.mld_proc.calculate_qqic(arg)
+
+        exp = 0
+        while ((arg >> (exp + 3)) > 0x1f):
+            exp = exp + 1
+        mant = (arg >> (exp + 3)) & 0xf
+        expect = 0x80 | (exp << 4) | mant
+        eq_(expect, actual)
+
+        arg = 1024
         actual = self.mld_proc.calculate_qqic(arg)
 
         exp = 0
@@ -299,14 +308,15 @@ class test_mld_process():
         self.mld_proc.send_mldquery([mc_info])
         self.mocker.ReplayAll()
 
-        send_hub = hub.spawn(self.mld_proc.send_mldquery_regularly)
+        send_thre = threading.Thread(
+            target=self.mld_proc.send_mldquery_regularly)
+        send_thre.start()
         # ループに入る分処理待ち
-        hub.sleep(3)
+        time.sleep(3)
         # ループを抜ける
         self.mld_proc.SEND_LOOP = False
-        hub.sleep(1)
-        send_hub.wait()
-        send_hub.kill()
+        time.sleep(1)
+        send_thre.join()
         self.mld_proc.SEND_LOOP = True
 
         self.mocker.VerifyAll()
@@ -318,13 +328,14 @@ class test_mld_process():
         self.mld_proc.config["mc_query_interval"] = 1
         self.mld_proc.config["mld_esw_ifname"] = "eth0"
 
-        send_hub = hub.spawn(self.mld_proc.send_mldquery_regularly)
+        send_thre = threading.Thread(
+            target=self.mld_proc.send_mldquery_regularly)
+        send_thre.start()
         # ループに入る分処理待ち
-        hub.sleep(5)
+        time.sleep(5)
         # ループを抜けさせる
         self.mld_proc.SEND_LOOP = False
-        send_hub.wait()
-        send_hub.kill()
+        send_thre.join()
         self.mld_proc.SEND_LOOP = True
 
     @attr(do=False)
@@ -822,7 +833,8 @@ class test_mld_process():
         # 受信したmc_addrを引数にcreate_mldreportが呼び出されることを確認
         report_type = [icmpv6.MODE_IS_INCLUDE]
         self.mocker.StubOutWithMock(self.mld_proc, "create_mldreport")
-        self.mld_proc.create_mldreport(mc_addr1, serv_ip, report_type)
+        self.mld_proc.create_mldreport(
+            mc_address=mc_addr1, mc_serv_ip=serv_ip, report_types=report_type)
 
         self.mocker.StubOutWithMock(self.mld_proc, "create_packet")
         self.mld_proc.create_packet(IsA(list), IsA(int), None)
@@ -1319,9 +1331,11 @@ class test_mld_process():
         self.mld_proc.recv_sock = dummy_socket()
 
         # 無限ループを脱出して終了すること
-        hub.spawn(self.mld_proc.receive_from_ryu)
+        recv_thre = threading.Thread(target=self.mld_proc.receive_from_ryu)
+        recv_thre.daemon = True
+        recv_thre.start()
         self.mld_proc.RECV_LOOP = False
-        hub.sleep(1)
+        time.sleep(1)
         self.mld_proc.RECV_LOOP = True
 
 
@@ -2220,7 +2234,7 @@ class test_user_manage():
         dispatch_ = dispatch(const.CON_PACKET_IN, 1, data=data)
 
         # タイムアウトを発生させるため処理待ち
-        hub.sleep(3)
+        time.sleep(3)
 
         self.mld_proc.analyse_receive_packet(dispatch_)
 
@@ -2255,7 +2269,7 @@ class test_user_manage():
         self.mld_proc.ch_info.update_ch_info(
             self.mc_addr2, self.serv_ip, self.datapathid1, self.in_port1, 2111)
         # タイムアウトを発生させるため処理待ち
-        hub.sleep(3)
+        time.sleep(3)
         self.mld_proc.ch_info.update_ch_info(
             self.mc_addr2, self.serv_ip, self.datapathid1, self.in_port1, 1112)
 

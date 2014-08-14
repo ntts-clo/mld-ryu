@@ -483,11 +483,7 @@ class mld_process():
                     pbb_isid=self.switch_mld_info["pbb_isid"],
                     bvid=self.switch_mld_info["bvid"],
                     ivid=self.switch_mld_info["ivid"])
-                flowmod = dispatch(
-                    type_=const.CON_FLOW_MOD,
-                    datapathid=target_switch, data=flowlist)
-                self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
-                self.send_packet_to_ryu(flowmod)
+                self.send_flowmod(target_switch, flowlist)
 
     # ==================================================================
     # create_packetout
@@ -589,19 +585,9 @@ class mld_process():
         if mc_addr == "::" and srcs == []:
             # 視聴中のMCグループ毎にレポートを作成
             for mc_info in self.ch_info.channel_info.keys():
-                report_type = [icmpv6.MODE_IS_INCLUDE]
-                mld = self.create_mldreport(
-                    mc_info[0], mc_info[1], report_type)
-                # packetのsrcはMLD処理部のものを使用する
-                sendpkt = self.create_packet(self.addressinfo, vid, mld)
-                # エッジスイッチにp-out
-                pout = self.create_packetout(
-                    datapathid=datapathid, packet=sendpkt)
-                packetout = dispatch(
-                    type_=const.CON_PACKET_OUT,
-                    datapathid=datapathid, data=pout)
-                self.logger.debug("packetout: %s", str(packetout))
-                self.send_packet_to_ryu(packetout)
+                self.send_packetout(
+                    mc_info[0], mc_info[1], [icmpv6.MODE_IS_INCLUDE],
+                    vid, datapathid)
 
         # Specific Queryの場合
         else:
@@ -611,23 +597,30 @@ class mld_process():
 
             # 対象マルチキャストアドレスを視聴中のユーザがいればレポートを作成
             elif (mc_addr, srcs[0]) in self.ch_info.channel_info:
-                report_type = [icmpv6.MODE_IS_INCLUDE]
-                mld = self.create_mldreport(
-                    mc_addr, srcs[0], report_type)
-                # packetのsrcはMLD処理部のものを使用する
-                sendpkt = self.create_packet(self.addressinfo, vid, mld)
-                # エッジスイッチにp-out
-                pout = self.create_packetout(
-                    datapathid=datapathid, packet=sendpkt)
-                packetout = dispatch(
-                    type_=const.CON_PACKET_OUT,
-                    datapathid=datapathid, data=pout)
-                self.logger.debug("packetout: %s", str(packetout))
-                self.send_packet_to_ryu(packetout)
+                self.send_packetout(
+                    mc_addr, srcs[0], [icmpv6.MODE_IS_INCLUDE],
+                    vid, datapathid)
 
             # 対象マルチキャストアドレスを視聴中のユーザがいない場合
             else:
                 self.logger.debug("No one shows this channel[%s].", mc_addr)
+
+    # ==================================================================
+    # send_packetout
+    # ==================================================================
+    def send_packetout(self, mc_addr, serv_ip, report_type, vid, datapathid):
+        self.logger.debug("")
+
+        mld = self.create_mldreport(
+            mc_address=mc_addr, mc_serv_ip=serv_ip, report_types=report_type)
+        # packetのsrcはMLD処理部のものを使用する
+        sendpkt = self.create_packet(self.addressinfo, vid, mld)
+        # エッジスイッチにp-out
+        pout = self.create_packetout(datapathid=datapathid, packet=sendpkt)
+        packetout = dispatch(
+            type_=const.CON_PACKET_OUT, datapathid=datapathid, data=pout)
+        self.logger.debug("packetout: %s", str(packetout))
+        self.send_packet_to_ryu(packetout)
 
     # ==================================================================
     # manage_user
@@ -782,28 +775,15 @@ class mld_process():
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, mc_ivid=self.switch_mc_info["ivid"],
                 ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
-            flowmod = dispatch(
-                type_=const.CON_FLOW_MOD,
-                datapathid=self.edge_switch["datapathid"], data=flowlist)
-            self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
-            self.send_packet_to_ryu(flowmod)
+            self.send_flowmod(self.edge_switch["datapathid"], flowlist)
 
             # ベストエフォートの場合のみ
             if mc_info_type == self.BEST_EFFORT:
-                # エッジスイッチへ投げるReportを作成
                 report_types = [icmpv6.ALLOW_NEW_SOURCES,
                                 icmpv6.CHANGE_TO_INCLUDE_MODE]
-                mld_report = self.create_mldreport(
-                    mc_address=address, mc_serv_ip=src,
-                    report_types=report_types)
-                packet = self.create_packet(
-                    self.addressinfo, vid, mld_report)
-                pout = self.create_packetout(
-                    datapathid=self.edge_switch["datapathid"], packet=packet)
-                packetout = dispatch(
-                    type_=const.CON_PACKET_OUT,
-                    datapathid=self.edge_switch["datapathid"], data=pout)
-                self.send_packet_to_ryu(packetout)
+                self.send_packetout(
+                    address, src, report_types, vid,
+                    self.edge_switch["datapathid"])
 
         elif reply_type == const.CON_REPLY_ADD_SWITCH:
             # SWの追加
@@ -811,11 +791,7 @@ class mld_process():
             flowlist = self.flowmod_gen.add_datapath(
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
-            flowmod = dispatch(
-                type_=const.CON_FLOW_MOD,
-                datapathid=self.edge_switch["datapathid"], data=flowlist)
-            self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
-            self.send_packet_to_ryu(flowmod)
+            self.send_flowmod(self.edge_switch["datapathid"], flowlist)
 
         elif reply_type == const.CON_REPLY_ADD_PORT:
             # ポートの追加
@@ -823,11 +799,7 @@ class mld_process():
             flowlist = self.flowmod_gen.add_port(
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
-            flowmod = dispatch(
-                type_=const.CON_FLOW_MOD,
-                datapathid=self.edge_switch["datapathid"], data=flowlist)
-            self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
-            self.send_packet_to_ryu(flowmod)
+            self.send_flowmod(self.edge_switch["datapathid"], flowlist)
 
         # Flow削除の場合
         elif reply_type == const.CON_REPLY_DEL_MC_GROUP:
@@ -835,29 +807,15 @@ class mld_process():
             self.logger.debug("reply_type : CON_REPLY_DEL_MC_GROUP")
             # ベストエフォートの場合のみ
             if mc_info_type == self.BEST_EFFORT:
-                # エッジスイッチへ投げるReportを作成
-                report_types = [icmpv6.BLOCK_OLD_SOURCES]
-                mld_report = self.create_mldreport(
-                    mc_address=address, mc_serv_ip=src,
-                    report_types=report_types)
-                packet = self.create_packet(
-                    self.addressinfo, vid, mld_report)
-                pout = self.create_packetout(
-                    datapathid=self.edge_switch["datapathid"], packet=packet)
-                packetout = dispatch(
-                    type_=const.CON_PACKET_OUT,
-                    datapathid=self.edge_switch["datapathid"], data=pout)
-                self.send_packet_to_ryu(packetout)
+                self.send_packetout(
+                    address, src, [icmpv6.BLOCK_OLD_SOURCES], vid,
+                    self.edge_switch["datapathid"])
 
             flowlist = self.flowmod_gen.remove_mg(
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, mc_ivid=self.switch_mc_info["ivid"],
                 ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
-            flowmod = dispatch(
-                type_=const.CON_FLOW_MOD,
-                datapathid=self.edge_switch["datapathid"], data=flowlist)
-            self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
-            self.send_packet_to_ryu(flowmod)
+            self.send_flowmod(self.edge_switch["datapathid"], flowlist)
 
         elif reply_type == const.CON_REPLY_DEL_SWITCH:
             # SWの削除
@@ -865,11 +823,7 @@ class mld_process():
             flowlist = self.flowmod_gen.remove_datapath(
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
-            flowmod = dispatch(
-                type_=const.CON_FLOW_MOD,
-                datapathid=self.edge_switch["datapathid"], data=flowlist)
-            self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
-            self.send_packet_to_ryu(flowmod)
+            self.send_flowmod(self.edge_switch["datapathid"], flowlist)
 
         elif reply_type == const.CON_REPLY_DEL_PORT:
             # ポートの削除
@@ -877,11 +831,18 @@ class mld_process():
             flowlist = self.flowmod_gen.remove_port(
                 multicast_address=address, datapathid=target_switch,
                 portno=in_port, ivid=ivid, pbb_isid=pbb_isid, bvid=bvid)
-            flowmod = dispatch(
-                type_=const.CON_FLOW_MOD,
-                datapathid=self.edge_switch["datapathid"], data=flowlist)
-            self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
-            self.send_packet_to_ryu(flowmod)
+            self.send_flowmod(self.edge_switch["datapathid"], flowlist)
+
+    # ==================================================================
+    # send_flowmod
+    # ==================================================================
+    def send_flowmod(self, datapathid, flowlist):
+        self.logger.debug("")
+
+        flowmod = dispatch(
+            type_=const.CON_FLOW_MOD, datapathid=datapathid, data=flowlist)
+        self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
+        self.send_packet_to_ryu(flowmod)
 
     # ==================================================================
     # receive_from_ryu
