@@ -871,4 +871,6 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         # ctrl-cが入力されたら終了
+        mld_proc.SEND_LOOP = False
+        mld_proc.RECV_LOOP = False
         sys.exit()
