@@ -247,6 +247,7 @@ class mld_process():
             while self.SEND_LOOP:
                 query_proc = Process(
                     target=self.wait_query_interval, args=(next_interval,))
+                query_proc.daemon = True
                 query_proc.start()
                 self.logger.debug(
                     "next_interval : %s", str(next_interval.value))
@@ -858,11 +859,16 @@ class mld_process():
 
 
 if __name__ == "__main__":
-    mld_proc = mld_process()
-    # Query定期送信スレッド
-    send_thre = threading.Thread(
-        target=mld_proc.send_mldquery_regularly, name="SendRegThread")
-    send_thre.daemon = True
-    send_thre.start()
-    # パケット受信処理
-    mld_proc.receive_from_ryu()
+    try:
+        mld_proc = mld_process()
+        # Query定期送信スレッド
+        send_thre = threading.Thread(
+            target=mld_proc.send_mldquery_regularly, name="SendRegThread")
+        send_thre.daemon = True
+        send_thre.start()
+        # パケット受信処理
+        mld_proc.receive_from_ryu()
+
+    except KeyboardInterrupt:
+        # ctrl-cが入力されたら終了
+        sys.exit()
