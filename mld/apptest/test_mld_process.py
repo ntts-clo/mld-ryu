@@ -119,6 +119,30 @@ class test_mld_process():
         ok_(self.mld_proc.flowmod_gen)
 
     @attr(do=False)
+    def test_calculate_qqic_under128(self):
+        # 引数が128より小さい場合は値をそのまま返却する
+        arg = 127
+        actual = self.mld_proc.calculate_qqic(arg)
+        eq_(arg, actual)
+
+        arg = 1
+        actual = self.mld_proc.calculate_qqic(arg)
+        eq_(arg, actual)
+
+    @attr(do=False)
+    def test_calculate_qqic_over128(self):
+        # 引数が128以上の場合は浮動小数として経産した結果を返却する
+        arg = 128
+        actual = self.mld_proc.calculate_qqic(arg)
+
+        exp = 0
+        while ((arg >> (exp + 3)) > 0x1f):
+            exp = exp + 1
+        mant = (arg >> (exp + 3)) & 0xf
+        expect = 0x80 | (exp << 4) | mant
+        eq_(expect, actual)
+
+    @attr(do=False)
     def test_init_check_url_true(self):
         logger.debug("")
 
@@ -355,26 +379,34 @@ class test_mld_process():
         # GeneralQueryを生成する
         mc_addr = "::"
         serv_ip = None
+        temp_qqic = self.mld_proc.QQIC
+        self.mld_proc.QQIC = 125
 
         actual = self.mld_proc.create_mldquery(mc_addr, serv_ip)
         eq_(mc_addr, actual.address)
         eq_([], actual.srcs)
         eq_(self.mld_proc.QUERY_MAX_RESPONSE, actual.maxresp)
         eq_(self.mld_proc.QUERY_QRV, actual.qrv)
-        eq_(self.mld_proc.config["reguraly_query_interval"], actual.qqic)
+        eq_(self.mld_proc.QQIC, actual.qqic)
+
+        self.mld_proc.QQIC = temp_qqic
 
     @attr(do=False)
     def test_create_mldquery_specific(self):
         # SpecificQueryを生成する
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
+        temp_qqic = self.mld_proc.QQIC
+        self.mld_proc.QQIC = 125
 
         actual = self.mld_proc.create_mldquery(mc_addr, serv_ip)
         eq_(mc_addr, actual.address)
         eq_([serv_ip], actual.srcs)
         eq_(self.mld_proc.QUERY_MAX_RESPONSE, actual.maxresp)
         eq_(self.mld_proc.QUERY_QRV, actual.qrv)
-        eq_(self.mld_proc.config["reguraly_query_interval"], actual.qqic)
+        eq_(self.mld_proc.QQIC, actual.qqic)
+
+        self.mld_proc.QQIC = temp_qqic
 
     @attr(do=False)
     def test_create_mldreport(self):
@@ -730,15 +762,8 @@ class test_mld_process():
         self.mld_proc.ch_info.update_ch_info(
             mc_addr2, serv_ip, datapathid2, port_no1, cid5)
 
-        # send_mldqueryをスタブ化
-        mc_info = {"mc_addr": mc_addr1, "serv_ip": serv_ip}
-        self.mocker.StubOutWithMock(self.mld_proc, "send_mldquery")
-        self.mld_proc.send_mldquery([mc_info])
-        self.mld_proc.send_mldquery([mc_info])
-
         # reply_to_ryuの呼び出し確認
         #   cid1が削除された段階でreply_typeがポート駆除で呼び出されること
-        mc_info = {"mc_addr": mc_addr1, "serv_ip": serv_ip}
         self.mocker.StubOutWithMock(self.mld_proc, "reply_to_ryu")
         self.mld_proc.reply_to_ryu(
             mc_addr1, serv_ip, datapathid2, port_no1,
@@ -1877,6 +1902,9 @@ class test_user_manage():
             self.mc_addr1, self.serv_ip, self.datapathid1, self.in_port1,
             cid, icmpv6.BLOCK_OLD_SOURCES)
 
+        # sendの実行待ち
+        time.sleep(1)
+
         # 返却値の確認
         eq_(const.CON_REPLY_NOTHING, actual)
 
@@ -1941,6 +1969,9 @@ class test_user_manage():
             self.mc_addr1, self.serv_ip, self.datapathid1, self.in_port1,
             cid, icmpv6.BLOCK_OLD_SOURCES)
 
+        # sendの実行待ち
+        time.sleep(1)
+
         # 返却値の確認
         eq_(const.CON_REPLY_DEL_PORT, actual)
 
@@ -1999,6 +2030,9 @@ class test_user_manage():
             self.mc_addr1, self.serv_ip, self.datapathid2, self.in_port1,
             cid, icmpv6.BLOCK_OLD_SOURCES)
 
+        # sendの実行待ち
+        time.sleep(1)
+
         # 返却値の確認
         eq_(const.CON_REPLY_DEL_SWITCH, actual)
 
@@ -2049,6 +2083,9 @@ class test_user_manage():
             self.mc_addr1, self.serv_ip, self.datapathid1, self.in_port2,
             cid, icmpv6.BLOCK_OLD_SOURCES)
 
+        # sendの実行待ち
+        time.sleep(1)
+
         # 返却値の確認
         eq_(const.CON_REPLY_DEL_MC_GROUP, actual)
 
@@ -2088,6 +2125,9 @@ class test_user_manage():
         actual = self.mld_proc.update_user_info(
             self.mc_addr1, self.serv_ip, self.datapathid1, self.in_port2,
             cid, icmpv6.BLOCK_OLD_SOURCES)
+
+        # sendの実行待ち
+        time.sleep(1)
 
         # 返却値の確認
         eq_(const.CON_REPLY_NOTHING, actual)
@@ -2129,6 +2169,9 @@ class test_user_manage():
         actual = self.mld_proc.update_user_info(
             self.mc_addr2, self.serv_ip, self.datapathid1, self.in_port1,
             cid1, icmpv6.BLOCK_OLD_SOURCES)
+
+        # sendの実行待ち
+        time.sleep(1)
 
         # 返却値の確認
         eq_(const.CON_REPLY_NOTHING, actual)

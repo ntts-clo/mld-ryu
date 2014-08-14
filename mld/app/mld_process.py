@@ -9,17 +9,18 @@ from ryu.ofproto import ofproto_v1_3_parser as parser
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from scapy import sendrecv
 from scapy import packet as scapy_packet
-from eventlet import patcher
 from multiprocessing import Process, Value
 import os
 import traceback
 import json
 import logging
+import logging.config
 import cPickle
 import zmq
 import sys
 import time
 import ctypes
+import threading
 
 from user_manage import channel_info, channel_user_info
 from flowmod_gen import flow_mod_generator
@@ -37,6 +38,7 @@ CHECK_URL_TCP = "tcp://"
 MLD_ZMQ_URL = "mld_zmq_url"
 MLD_ZMQ_SEND = "mld_zmq_send"
 MLD_ZMQ_RECV = "mld_zmq_recv"
+
 
 # ======================================================================
 # mld_process
@@ -67,10 +69,6 @@ class mld_process():
     SEND_LOOP = True
     RECV_LOOP = True
 
-    # ネイティブスレッドの取得
-    org_thread = patcher.original("threading")
-    org_thread_time = patcher.original("time")
-
     def __init__(self):
         try:
             # ロガーの設定
@@ -84,6 +82,10 @@ class mld_process():
             self.logger.info("%s:%s", const.CONF_FILE, json.dumps(
                 config.data, indent=4, sort_keys=True, ensure_ascii=False))
             self.config = config.data["settings"]
+
+            # QueryのQQIC設定
+            self.QQIC = self.calculate_qqic(
+                self.config["reguraly_query_interval"])
 
             # 視聴情報初期化
             self.ch_info = channel_info(self.config)
@@ -140,6 +142,24 @@ class mld_process():
 
         except:
             self.logger.error("%s ", traceback.print_exc())
+
+    # =========================================================================
+    # calculate_qqic
+    # =========================================================================
+    def calculate_qqic(self, interval):
+        self.logger.debug("")
+
+        if interval < 128:
+            return interval
+        else:
+            mant = 0
+            exp = 0
+
+            # Calculate the "mant" and the "exp"
+            while ((interval >> (exp + 3)) > 0x1f):
+                exp = exp + 1
+            mant = (interval >> (exp + 3)) & 0xf
+            return 0x80 | (exp << 4) | mant
 
     # =========================================================================
     # check_url
@@ -291,7 +311,8 @@ class mld_process():
             # 最後のmcアドレス情報以外は送信待ちする
             if not mc_info == mc_info_list[-1]:
                 self.logger.debug("waiting %d sec...", wait_time)
-                self.org_thread_time.sleep(wait_time)
+                time.sleep(wait_time)
+#                self.org_thread_time.sleep(wait_time)
 
     # ==================================================================
     # create_mldquery
@@ -303,7 +324,7 @@ class mld_process():
             address=str(mc_address),
             srcs=[str(mc_serv_ip)] if mc_serv_ip else None,
             maxresp=self.QUERY_MAX_RESPONSE, qrv=self.QUERY_QRV,
-            qqic=self.config["reguraly_query_interval"])
+            qqic=self.QQIC)
         self.logger.debug("created query : %s", str(query))
         return query
 
@@ -465,8 +486,7 @@ class mld_process():
                 flowmod = dispatch(
                     type_=const.CON_FLOW_MOD,
                     datapathid=target_switch, data=flowlist)
-                self.logger.debug("flowmod[data] : %s",
-                                  str(flowmod["data"]))
+                self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
                 self.send_packet_to_ryu(flowmod)
 
     # ==================================================================
@@ -518,13 +538,18 @@ class mld_process():
                             del_user_info.datapathid, del_user_info.port_no,
                             del_user_info.cid)
 
-                        # SpecificQueryを生成し、エッジスイッチに送信
-                        mc_info = {"mc_addr": del_user_info.mc_addr,
-                                   "serv_ip": del_user_info.serv_ip}
-                        self.send_mldquery([mc_info])
-
                         # 削除が行われた場合
                         if not reply_type == const.CON_REPLY_NOTHING:
+
+                            # SpecificQueryを生成し、エッジスイッチに送信
+                            mc_info = {"mc_addr": del_user_info.mc_addr,
+                                       "serv_ip": del_user_info.serv_ip}
+                            send_thre = threading.Thread(
+                                target=self.send_mldquery,
+                                name="SendQueryThread", args=[[mc_info], ])
+                            send_thre.daemon = True
+                            send_thre.start()
+
                             self.reply_to_ryu(
                                 del_user_info.mc_addr, del_user_info.serv_ip,
                                 del_user_info.datapathid,
@@ -674,7 +699,11 @@ class mld_process():
 
                     # SpecificQueryを生成し、エッジスイッチに送信
                     mc_info = {"mc_addr": address, "serv_ip": src}
-                    self.send_mldquery([mc_info])
+                    send_thre = threading.Thread(
+                        target=self.send_mldquery,
+                        name="SendQueryThread", args=[[mc_info], ])
+                    send_thre.daemon = True
+                    send_thre.start()
                 else:
                     # 削除が行われなかった場合
                     reply_type = const.CON_REPLY_NOTHING
@@ -869,10 +898,9 @@ class mld_process():
 if __name__ == "__main__":
     mld_proc = mld_process()
     # Query定期送信スレッド
-    send_thre = mld_proc.org_thread.Thread(
+    send_thre = threading.Thread(
         target=mld_proc.send_mldquery_regularly, name="SendRegThread")
+    send_thre.daemon = True
     send_thre.start()
-    # 定期送信開始待ち
-    mld_proc.org_thread_time.sleep(1)
     # パケット受信処理
     mld_proc.receive_from_ryu()
