@@ -89,18 +89,8 @@ class mld_process():
             self.config = config.data["settings"]
 
             # QueryのQQIC設定
-            interval = self.config["reguraly_query_interval"]
-            if interval < 128:
-                self.QQIC = interval
-            else:
-                mant = 0
-                exp = 0
-
-                # Calculate the "mant" and the "exp"
-                while ((interval >> (exp + 3)) > 0x1f):
-                    exp = exp + 1
-                mant = (interval >> (exp + 3)) & 0xf
-                self.QQIC = 0x80 | (exp << 4) | mant
+            self.QQIC = self.calculate_qqic(
+                self.config["reguraly_query_interval"])
 
             # 視聴情報初期化
             self.ch_info = channel_info(self.config)
@@ -157,6 +147,24 @@ class mld_process():
 
         except:
             self.logger.error("%s ", traceback.print_exc())
+
+    # =========================================================================
+    # calculate_qqic
+    # =========================================================================
+    def calculate_qqic(self, interval):
+        self.logger.debug("")
+
+        if interval < 128:
+            return interval
+        else:
+            mant = 0
+            exp = 0
+
+            # Calculate the "mant" and the "exp"
+            while ((interval >> (exp + 3)) > 0x1f):
+                exp = exp + 1
+            mant = (interval >> (exp + 3)) & 0xf
+            return 0x80 | (exp << 4) | mant
 
     # =========================================================================
     # check_url
@@ -284,7 +292,6 @@ class mld_process():
     # ==================================================================
     def send_mldquery(self, mc_info_list, wait_time=0, next_interval=None):
         self.logger.debug("")
-        self.logger.debug("mc_info_list : %s", str(mc_info_list))
 
         vid = self.config["c_tag_id"]
         for mc_info in mc_info_list:
@@ -294,7 +301,6 @@ class mld_process():
                                   str(next_interval.value))
                 return -1
 
-#            self.logger.debug("type(mc_info) : ", str(type(mc_info)))
             self.logger.debug("mc_addr, serv_ip : %s, %s",
                               mc_info["mc_addr"], mc_info["serv_ip"])
             mld = self.create_mldquery(
