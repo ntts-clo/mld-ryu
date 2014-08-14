@@ -32,9 +32,9 @@ from user_manage import channel_info
 
 COMMON_PATH = DIR_PATH + "/../../common/"
 sys.path.append(COMMON_PATH)
+import mld_const as const
 from zmq_dispatch import dispatch, packet_out_data
 from read_json import read_json
-import mld_const as const
 from icmpv6_extend import icmpv6_extend, checksum_ip, checksum
 
 logging.config.fileConfig(COMMON_PATH + const.MLD_LOG_CONF)
@@ -72,12 +72,12 @@ class test_mld_process():
 
     def setup(self):
         self.mocker = Mox()
-        # 設定値の初期化
-        self.mld_proc.ch_info = channel_info(self.config)
-        self.mld_proc.config = self.config
 
     def teardown(self):
         self.mocker.UnsetStubs()
+        # 設定値の初期化
+        self.mld_proc.ch_info = channel_info(self.config)
+        self.mld_proc.config = self.config
 
     @attr(do=False)
     def test_init(self):
@@ -169,19 +169,25 @@ class test_mld_process():
 
     @attr(do=False)
     def test_init_check_url_exception(self):
-        # errorログが出力されることを机上で確認
-
         # 読み込む設定ファイルを変更(check_urlがTrueを返却)
         temp_common = mld_process.COMMON_PATH
         mld_process.COMMON_PATH = DIR_PATH + "/test_common/"
         temp_conf = const.CONF_FILE
         const.CONF_FILE = "config_other.json"
 
+        # errorの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
+        self.mld_proc.logger.error(IsA(str), mld_process.MLD_ZMQ_URL, "udp://")
+        self.mld_proc.logger.error(IsA(str), None)
+        self.mocker.ReplayAll()
+
         mld_process.mld_process()
 
         # 変更した設定を元に戻す
         mld_process.COMMON_PATH = temp_common
         const.CONF_FILE = temp_conf
+
+        self.mocker.VerifyAll()
 
     @attr(do=False)
     def test_check_url_ipc(self):
@@ -651,7 +657,8 @@ class test_mld_process():
         self.mocker.StubOutWithMock(self.mld_proc, "set_switch_config")
         self.mld_proc.set_switch_config(
             {'data': None, 'type_': 11, 'datapathid': 1,
-             'in_port': -1, 'cid': 0}).AndRaise(Exception())
+             'in_port': -1, 'cid': 0}).AndRaise(
+                 Exception("test_analyse_receive_packet_exception"))
 
         # logger.errorの呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
@@ -810,6 +817,36 @@ class test_mld_process():
         eq_(datapathid2, user_info.datapathid)
         eq_(port_no1, user_info.port_no)
         eq_(cid5, user_info.cid)
+
+    @attr(do=False)
+    def test_check_user_timeout_exception(self):
+        # 1秒でタイムアウトとする
+        self.mld_proc.config["user_time_out"] = 1
+
+        mc_addr = "ff38::1:1"
+        serv_ip = "2001::1:20"
+        datapathid = self.mld_proc.switches[1]["datapathid"]
+        port_no = 1
+        cid = 12101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr, serv_ip, datapathid, port_no, cid)
+
+        # タイムアウトを起こすために処理待ち
+        time.sleep(1)
+
+        # remove_ch_infoで例外を返却
+        self.mocker.StubOutWithMock(self.mld_proc.ch_info, "remove_ch_info")
+        self.mld_proc.ch_info.remove_ch_info(
+            mc_addr, serv_ip, datapathid, port_no, cid).AndRaise(
+                Exception("test_check_user_timeout_exception"))
+
+        # errorの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
+        self.mld_proc.logger.error(IsA(str), None)
+        self.mocker.ReplayAll()
+
+        self.mld_proc.check_user_timeout()
+        self.mocker.VerifyAll()
 
     @attr(do=False)
     def test_reply_proxy_no_user(self):
@@ -1076,6 +1113,33 @@ class test_mld_process():
             actual = self.mld_proc.update_user_info(
                 mc_addr, serv_ip, datapathid, in_port, cid, type_)
             eq_(const.CON_REPLY_NOTHING, actual)
+
+    @attr(do=False)
+    def test_update_user_info_exception(self):
+        # 上記以外のtypeはCON_REPLY_NOTHINGを返却
+        mc_addr = "ff38::1:1"
+        serv_ip = "2001::1:20"
+        datapathid = self.mld_proc.switches[1]["datapathid"]
+        in_port = 1
+        cid = 100
+
+        # update_ch_infoで例外を返却
+        self.mocker.StubOutWithMock(self.mld_proc.ch_info, "update_ch_info")
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr=mc_addr, serv_ip=serv_ip, datapathid=datapathid,
+            port_no=in_port, cid=cid).AndRaise(
+                Exception("test_update_user_info_exception"))
+
+        # errorの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
+        self.mld_proc.logger.error(IsA(str), None)
+        self.mocker.ReplayAll()
+
+        actual = self.mld_proc.update_user_info(
+            mc_addr, serv_ip, datapathid, in_port, cid,
+            icmpv6.ALLOW_NEW_SOURCES)
+        eq_(const.CON_REPLY_NOTHING, actual)
+        self.mocker.VerifyAll()
 
     @attr(do=False)
     def test_reply_to_ryu_add_mc_be(self):
@@ -1400,12 +1464,12 @@ class test_user_manage():
 
     def setup(self):
         self.mocker = Mox()
-        # 設定値の初期化
-        self.mld_proc.ch_info = channel_info(self.config)
-        self.mld_proc.config = self.config
 
     def teardown(self):
         self.mocker.UnsetStubs()
+        # 設定値の初期化
+        self.mld_proc.ch_info = channel_info(self.config)
+        self.mld_proc.config = self.config
 
     @attr(do=False)
     def test_add_user_01(self):
@@ -2185,7 +2249,7 @@ class test_user_manage():
             cid1, icmpv6.BLOCK_OLD_SOURCES)
 
         # sendの実行待ち
-        time.sleep(1)
+        time.sleep(2)
 
         # 返却値の確認
         eq_(const.CON_REPLY_NOTHING, actual)

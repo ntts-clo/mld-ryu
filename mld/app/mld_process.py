@@ -175,7 +175,7 @@ class mld_process():
 
         else:
             self.logger.error("self.config[%s]:%s", MLD_ZMQ_URL, zmq_url)
-            raise Exception.message("self.config[%s]:%s", MLD_ZMQ_URL, zmq_url)
+            raise Exception("self.config[%s]:%s" % (MLD_ZMQ_URL, zmq_url))
 
     # ==================================================================
     # check_exists_tmp
@@ -563,8 +563,7 @@ class mld_process():
                 self.logger.debug("ch_info is nothing.")
 
         except:
-            self.logger.error(
-                "%s ", traceback.print_exc())
+            self.logger.error("%s ", traceback.print_exc())
 
     # ==================================================================
     # reply_proxy
