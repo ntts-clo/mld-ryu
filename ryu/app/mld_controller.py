@@ -57,7 +57,8 @@ class mld_controller(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
         try:
             # ログ設定ファイル読み込み
-            logging.config.fileConfig(COMMON_PATH + mld_const.RYU_LOG_CONF)
+            logging.config.fileConfig(COMMON_PATH + mld_const.RYU_LOG_CONF,
+                                      disable_existing_loggers=False)
             self.logger = logging.getLogger(__name__)
             self.logger.debug("")
 
@@ -113,25 +114,17 @@ class mld_controller(app_manager.RyuApp):
             self.logger.info("OFPSwitchFeatures.[ver]:%s [dpid]:%s [xid]:%s ",
                               msg.version, msg.datapath.id, msg.datapath.xid)
 
-            # CHECK Already send
-            if not datapath.id in self.dict_msg:
+            # set msg to Dictionary
+            self.dict_msg[datapath.id] = msg
 
-                # set msg to Dictionary
-                self.dict_msg[datapath.id] = msg
+            dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
+                                    datapathid=datapath.id)
 
-                dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
-                                        datapathid=datapath.id)
+            self.logger.debug("dispatch[type_]:%s",
+                              mld_const.CON_SWITCH_FEATURE)
+            self.logger.debug("dispatch[datapathid]:%s", datapath.id)
 
-                self.logger.debug("dispatch[type_]:%s",
-                                  mld_const.CON_SWITCH_FEATURE)
-                self.logger.debug("dispatch[datapathid]:%s", datapath.id)
-
-                self.send_to_mld(dispatch_)
-
-            else:
-                self.logger.info("dict_msg[datapathid]:Already Exist(%s)",
-                                 datapath.id)
-                return True
+            self.send_to_mld(dispatch_)
 
         except:
             self.logger.error("%s ", traceback.print_exc())
