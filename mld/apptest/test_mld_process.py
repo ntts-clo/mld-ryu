@@ -10,6 +10,7 @@ import pdb
 import os
 import sys
 import logging
+import logging.config
 import unittest
 import time
 import ctypes
@@ -20,7 +21,7 @@ from nose.tools.nontrivial import raises
 from nose.plugins.attrib import attr
 from ryu.lib import hub
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
-from ryu.ofproto import ofproto_v1_3, inet
+from ryu.ofproto import ofproto_v1_3,  ether, inet
 from multiprocessing import Value
 hub.patch()
 
@@ -423,9 +424,45 @@ class test_mld_process():
         eq_(query, icmp6.data)
 
     @attr(do=False)
-    @raises(Exception)
     def test_create_packet_query02(self):
         # MLD Queryを持つpacketを生成
+        # icmpv6_extendにて拡張ヘッダーがない場合の動作確認
+        # ip6のnexthederがinet.IPPROTO_ICMPV6となっていること
+        mc_addr = "ff38::1:1"
+        serv_ip = "2001::1:20"
+        vid = self.config["c_tag_id"]
+        query = self.mld_proc.create_mldquery(mc_addr, serv_ip)
+
+        # VLAN
+        vln = vlan.vlan(vid=vid, ethertype=ether.ETH_TYPE_IPV6)
+
+        # MLDV2_Query
+        # ETHER
+        eth = ethernet.ethernet(
+            ethertype=ether.ETH_TYPE_8021Q,
+            src=self.addressinfo[0], dst=self.mld_proc.QUERY_DST)
+
+        # IPV6 with ExtensionHeader
+        ip6 = ipv6.ipv6(
+            src=self.addressinfo[1], dst=self.mld_proc.QUERY_DST_IP,
+            nxt=inet.IPPROTO_ICMPV6)
+
+        # MLD Query
+        icmp6 = icmpv6_extend(
+            type_=icmpv6.MLD_LISTENER_QUERY, data=query)
+
+        sendpkt = eth / vln / ip6 / icmp6
+        sendpkt.serialize()
+
+        ip6 = sendpkt.get_protocol(ipv6.ipv6)
+        eq_(ip6.nxt, inet.IPPROTO_ICMPV6)
+
+    @attr(do=False)
+    @raises(Exception)
+    def test_create_packet_query03(self):
+        # MLD Queryを持つpacketを生成
+        # icmpv6_extendにてquery.versionに6以外を設定した場合の動作確認
+        # Exceptionが発生すること
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:20"
         query = self.mld_proc.create_mldquery(mc_addr, serv_ip)
