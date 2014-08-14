@@ -6,22 +6,21 @@
 from ryu.ofproto import ether, inet
 from ryu.ofproto import ofproto_v1_3
 from ryu.ofproto import ofproto_v1_3_parser as parser
-#from ryu.lib import hub
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from scapy import sendrecv
 from scapy import packet as scapy_packet
-from eventlet import patcher
 from multiprocessing import Process, Value
 import os
 import traceback
 import json
 import logging
+import logging.config
 import cPickle
 import zmq
 import sys
 import time
 import ctypes
-#hub.patch()
+import threading
 
 from user_manage import channel_info, channel_user_info
 from flowmod_gen import flow_mod_generator
@@ -69,10 +68,6 @@ class mld_process():
     # 送受信のループフラグ
     SEND_LOOP = True
     RECV_LOOP = True
-
-    # ネイティブスレッドの取得
-    org_thread = patcher.original("threading")
-    org_thread_time = patcher.original("time")
 
     def __init__(self):
         try:
@@ -316,7 +311,8 @@ class mld_process():
             # 最後のmcアドレス情報以外は送信待ちする
             if not mc_info == mc_info_list[-1]:
                 self.logger.debug("waiting %d sec...", wait_time)
-                self.org_thread_time.sleep(wait_time)
+                time.sleep(wait_time)
+#                self.org_thread_time.sleep(wait_time)
 
     # ==================================================================
     # create_mldquery
@@ -490,8 +486,7 @@ class mld_process():
                 flowmod = dispatch(
                     type_=const.CON_FLOW_MOD,
                     datapathid=target_switch, data=flowlist)
-                self.logger.debug("flowmod[data] : %s",
-                                  str(flowmod["data"]))
+                self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
                 self.send_packet_to_ryu(flowmod)
 
     # ==================================================================
@@ -549,9 +544,10 @@ class mld_process():
                             # SpecificQueryを生成し、エッジスイッチに送信
                             mc_info = {"mc_addr": del_user_info.mc_addr,
                                        "serv_ip": del_user_info.serv_ip}
-                            send_thre = self.org_thread.Thread(
+                            send_thre = threading.Thread(
                                 target=self.send_mldquery,
                                 name="SendQueryThread", args=[[mc_info], ])
+                            send_thre.daemon = True
                             send_thre.start()
 
                             self.reply_to_ryu(
@@ -703,9 +699,10 @@ class mld_process():
 
                     # SpecificQueryを生成し、エッジスイッチに送信
                     mc_info = {"mc_addr": address, "serv_ip": src}
-                    send_thre = self.org_thread.Thread(
+                    send_thre = threading.Thread(
                         target=self.send_mldquery,
                         name="SendQueryThread", args=[[mc_info], ])
+                    send_thre.daemon = True
                     send_thre.start()
                 else:
                     # 削除が行われなかった場合
@@ -901,10 +898,9 @@ class mld_process():
 if __name__ == "__main__":
     mld_proc = mld_process()
     # Query定期送信スレッド
-    send_thre = mld_proc.org_thread.Thread(
+    send_thre = threading.Thread(
         target=mld_proc.send_mldquery_regularly, name="SendRegThread")
+    send_thre.daemon = True
     send_thre.start()
-    # 定期送信開始待ち
-    mld_proc.org_thread_time.sleep(1)
     # パケット受信処理
     mld_proc.receive_from_ryu()
