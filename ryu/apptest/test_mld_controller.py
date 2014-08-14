@@ -20,15 +20,14 @@ import pdb
 import nose
 import os
 import logging
+import logging.config
 import sys
 import unittest
-import mox
-from mox import UnknownMethodCallError, ExpectedMethodCallsError,\
+from mox import Mox, UnknownMethodCallError, ExpectedMethodCallsError,\
     UnexpectedMethodCallError, IsA, StrContains
 
 import cPickle
 import zmq
-#from nose.tools import *
 from nose.tools import assert_equal
 from nose.tools import assert_not_equal
 from nose.tools import assert_raises
@@ -38,9 +37,7 @@ from nose.tools import ok_
 DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 APP_PATH = DIR_PATH + "/../app/"
 sys.path.append(APP_PATH)
-#from mld_process import mld_process
-from mld_controller import mld_controller
-#from ryu.app import mld_controller
+import mld_controller
 
 from ryu.ofproto import ofproto_v1_3
 from ryu.ofproto import ofproto_v1_3_parser
@@ -63,10 +60,23 @@ from read_json import read_json
 from ryu.lib import hub
 hub.patch()
 
-#from common.mld_const import mld_const
 import mld_const
 
+logging.config.fileConfig(COMMON_PATH + mld_const.RYU_LOG_CONF)
 logger = logging.getLogger(__name__)
+
+# OpenFlowのバージョン
+OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
+# Socketタイプチェック用定数
+CHECK_URL_IPC = "ipc://"
+CHECK_URL_TCP = "tcp://"
+
+# 設定ファイルの定義名
+SETTING = "settings"
+CHECK_VLAN_FLG = "check_vlan_flg"
+OFC_ZMQ_URL = "ofc_zmq_url"
+OFC_ZMQ_SEND = "ofc_zmq_send"
+OFC_ZMQ_RECV = "ofc_zmq_recv"
 
 MC_ADDR1 = "ff38::1:1"
 SERVER_IP1 = "2001::1:20"
@@ -88,6 +98,7 @@ SEND_FILE_PATH = "/tmp/feeds/test/ut"
 RECV_FILE_PATH = "/tmp/feeds/test/ut"
 SEND_IP = "0.0.0.0:7002"
 RECV_IP = "192.168.5.11:7002"
+
 
 class _Datapath(object):
     """
@@ -121,27 +132,43 @@ class test_mld_controller():
 
     # このクラスのテストケースを実行する前に１度だけ実行する
     @classmethod
-    def setup_class(clazz):
-#        clazz.mocker = mox.Mox()
-        logger.debug("setup")
-        clazz.mld_ctrl = mld_controller()
+    def setup_class(cls):
+        logger.debug("setup_class")
 
-        for line in open(clazz.ADDRESS_INFO, "r"):
+        config = read_json(COMMON_PATH + mld_const.CONF_FILE)
+        cls.config = config.data["settings"]
+
+        cls.addressinfo = []
+        for line in open(COMMON_PATH + mld_const.ADDRESS_INFO, "r"):
             if line[0] == "#":
                 continue
             else:
                 columns = list(line[:-1].split(","))
                 for column in columns:
-                    clazz.addressinfo.append(column)
+                    cls.addressinfo.append(column)
+
+        mc_info = read_json(COMMON_PATH + mld_const.MULTICAST_INFO)
+        cls.mc_info_list = mc_info.data["mc_info"]
+
+        cls.mld_ctrl = mld_controller.mld_controller()
 
     # このクラスのテストケースをすべて実行した後に１度だけ実行する
     @classmethod
     def teardown_class(clazz):
         logger.debug("teardown")
 
-    def setUp(self):
-        # Mox インスタンスを作成
-        self.mocker = mox.Mox()
+    def setup(self):
+        self.mocker = Mox()
+        # 設定値の初期化
+        self.mld_ctrl.config = self.config
+
+        # zmq設定情報の読み込み
+        send_path = self.config[OFC_ZMQ_SEND]
+        recv_path = self.config[OFC_ZMQ_RECV]
+        # CHECK TMP FILE(SEND)
+        self.mld_ctrl.check_exists_tmp(send_path)
+        # CHECK TMP FILE(RECV)
+        self.mld_ctrl.check_exists_tmp(recv_path)
 
     def tearDown(self):
         # StubOutWithMoc()を呼んだ後に必要。常に呼んでおけば安心
@@ -609,8 +636,6 @@ class test_mld_controller():
                                                 ip_proto=inet.IPPROTO_ICMPV6)
 
         # 結果確認
-        logger.debug("test_create_flow_mod_Success001 [result] %s", result)
-
         assert_equal(result.table_id, ch_table_id)
         assert_equal(result.command, ch_command)
         assert_equal(result.priority, ch_priority)
@@ -1134,35 +1159,6 @@ class test_mld_controller():
                      str(result))
         assert_equal(result, None)
         assert_equal(self.mld_ctrl.dict_msg[datapath.id], ev.msg)
-
-    def test_switch_features_handler_Success002(self):
-        # mld_controller._switch_features_handler
-        logger.debug("test_switch_features_handler_Success002")
-        """
-        概要：SwitchFeaturesイベント発生時の処理
-        条件：dict_msgに存在するdatapath.idを設定し、実行する
-        結果：resultがTrueであること
-        """
-        # 【前処理】
-        # DummyDatapathを生成
-        datapath = _Datapath()
-        # DummyDatapathidを設定
-        datapath.id = 1
-        datapath.xid = 999
-        # FeaturesRequestEventの作成
-        featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
-        ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
-
-        # dict_msgの作成
-        self.mld_ctrl.dict_msg[datapath.id] = ev.msg
-
-        # 【実行】
-        result = self.mld_ctrl._switch_features_handler(ev)
-
-        # 【結果】
-        logger.debug("test_switch_features_handler_Success002 [result] %s",
-                     str(result))
-        assert_equal(result, True)
 
     def test_switch_features_handler_Failuer001(self):
         # mld_controller._switch_features_handler
@@ -1814,7 +1810,7 @@ class test_mld_controller():
         # 【結果】
         logger.debug("test_packet_in_handler_Failure007 [result_ture] %s",
                      str(result_ture))
-        assert_equal(result_ture, None)
+        assert_not_equal(result_ture, None)
 
     def test_packet_in_handler_Failure008(self):
         # mld_controller._packet_in_handler(self, ev)
@@ -1889,9 +1885,9 @@ class test_mld_controller():
             self.SOCKET_TIME_OUT = self.config[SOCKET_TIME_OUT]
 
             # zmq設定情報の読み込み
-            zmq_url = self.config[OFC_URL]
-            send_path = self.config[OFC_SEND]
-            recv_path = self.config[OFC_RECV]
+            zmq_url = self.config[OFC_ZMQ_URL]
+            send_path = self.config[OFC_ZMQ_SEND]
+            recv_path = self.config[OFC_ZMQ_RECV]
 
             # VLANチェックフラグの読み込み
             self.check_vlan_flg = self.config[CHECK_VLAN_FLG]
