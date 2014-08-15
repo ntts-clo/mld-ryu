@@ -3,10 +3,10 @@
 # --インストール
 # mld@vlc1:~$ unzip mld-ryu.zip
 # mld@vlc1:~$ cd ./mld-ryu/mld/apptest
-# --3000ユーザ追加
-# mld@vlc1:~/mld-ryu/mld/apptest$ sudo python mldv2_report_sender.py add
-# --3000ユーザ削除
-# mld@vlc1:~/mld-ryu/mld/apptest$ sudo python mldv2_report_sender.py del
+# --3000ユーザ追加(nowait)
+# mld@vlc1:~/mld-ryu/mld/apptest$ sudo python mldv2_report_sender.py add 3000 False
+# --3000ユーザ削除(50ユーザ登録毎に1秒wait)
+# mld@vlc1:~/mld-ryu/mld/apptest$ sudo python mldv2_report_sender.py del 3000 True
 
 import os
 from ryu.lib.packet import icmpv6, vlan, ipv6, ethernet
@@ -14,6 +14,7 @@ from ryu.ofproto import ether, inet
 from scapy import sendrecv
 from scapy import packet as scapy_packet
 import sys
+import time
 
 DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 COMMON_PATH = DIR_PATH + "/../../common/"
@@ -37,7 +38,7 @@ class mldv2_report_sender(object):
     # ==================================================================
     # send_add
     # ==================================================================
-    def send_add(self, num_of=3000):
+    def send_add(self, num_of=3000, is_wait=True):
 
         record_list = []
         for report_type in [icmpv6.ALLOW_NEW_SOURCES,
@@ -53,11 +54,14 @@ class mldv2_report_sender(object):
                                             mld_report)
             scapypkt = scapy_packet.Packet(ryu_packet.data)
             sendrecv.sendp(scapypkt, iface=IFACE, verbose=0)
+            if is_wait and vid % 50 == 0:
+                print "wait 1sec..."
+                time.sleep(1)
 
     # ==================================================================
     # send_del
     # ==================================================================
-    def send_del(self, num_of=3000):
+    def send_del(self, num_of=3000, is_wait=True):
 
         record_list = []
         for report_type in [icmpv6.BLOCK_OLD_SOURCES]:
@@ -72,6 +76,9 @@ class mldv2_report_sender(object):
                                             mld_report)
             scapypkt = scapy_packet.Packet(ryu_packet.data)
             sendrecv.sendp(scapypkt, iface=IFACE, verbose=0)
+            if is_wait and vid % 50 == 0:
+                print "wait 1sec..."
+                time.sleep(1)
 
     # ==================================================================
     # create_packet
@@ -108,13 +115,31 @@ class mldv2_report_sender(object):
 
 
 def main():
-    if len(sys.argv) != 2 or sys.argv[1] not in ("add", "del"):
-        print "python mldv2_report_sender.py [add|del]"
+    if len(sys.argv) != 4:
+        print "python mldv2_report_sender.py [add|del] num_of [True|False]"
         return 1
-    elif sys.argv[1] == "add":
-        mldv2_report_sender().send_add()
-    elif sys.argv[1] == "del":
-        mldv2_report_sender().send_del()
+
+    command = sys.argv[1]
+    if command not in ("add", "del"):
+        print "python mldv2_report_sender.py [add|del] num_of [True|False]"
+        return 1
+
+    num_of = int(sys.argv[2])
+
+    is_wait = None
+    if sys.argv[3] == "True":
+        is_wait = True
+    elif sys.argv[3] == "False":
+        is_wait = False
+    else:
+        print "python mldv2_report_sender.py [add|del] num_of [True|False]"
+        return 1
+
+    sender = mldv2_report_sender()
+    if command == "add":
+        sender.send_add(num_of, is_wait)
+    elif command == "del":
+        sender.send_del(num_of, is_wait)
     return 0
 
 if __name__ == '__main__':
