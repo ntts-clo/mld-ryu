@@ -13,6 +13,7 @@ from ryu.lib.packet import icmpv6, vlan, ipv6, ethernet
 from ryu.ofproto import ether, inet
 from scapy import sendrecv
 from scapy import packet as scapy_packet
+from scapy.layers import inet6
 import sys
 import time
 
