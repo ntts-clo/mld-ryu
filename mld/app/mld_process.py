@@ -119,6 +119,10 @@ class mld_process():
             self.logger.info("%s:%s", const.MULTICAST_INFO, json.dumps(
                 mc_info.data, indent=4, sort_keys=True, ensure_ascii=False))
             self.mc_info_list = mc_info.data["mc_info"]
+            self.mc_info_dict = {}
+            for mc_info in self.mc_info_list:
+                self.mc_info_dict[
+                    mc_info["mc_addr"], mc_info["serv_ip"]] = mc_info
 
             # bvidパターン読み込み
             bvid_variation = read_json(COMMON_PATH + const.BVID_VARIATION)
@@ -274,14 +278,14 @@ class mld_process():
     # ==================================================================
     def wait_query_interval(self, next_interval):
         self.logger.debug("")
-        self.logger.debug("waiting %d sec...",
-                          self.config["reguraly_query_interval"])
+        self.logger.debug(
+            "waiting %d sec...", self.config["reguraly_query_interval"])
         time.sleep(self.config["reguraly_query_interval"])
-        self.logger.debug("waited %d sec",
-                          self.config["reguraly_query_interval"])
+        self.logger.debug(
+            "waited %d sec", self.config["reguraly_query_interval"])
         next_interval.value = True
-        self.logger.debug("update next_interval : %s",
-                          str(next_interval.value))
+        self.logger.debug(
+            "update next_interval : %s", str(next_interval.value))
 
     # ==================================================================
     # send_mldquery
@@ -633,8 +637,13 @@ class mld_process():
         cid = dispatch_["cid"]
 
         for report in mldv2_report.records:
+            # srcsが存在しない（VLC起動時にサーバIPを指定しなかった)場合
+            if not report.srcs:
+                self.logger.info("input server ip when VLC started.")
+                continue
+
             address = report.address
-            src = report.srcs[0] if report.srcs else ""
+            src = report.srcs[0]
             report_type = report.type_
             self.logger.debug("report : " + str(report))
 
@@ -666,6 +675,14 @@ class mld_process():
                               self.ch_info.get_channel_info())
             self.logger.debug("user_info_list : %s",
                               self.ch_info.get_user_info_list())
+
+
+            # multicast_info.jsonに存在しないmcアドレスとサーバIPの組み合わせが指定された場合
+            if not (address, src) in self.mc_info_dict:
+                self.logger.info(
+                    "this multicast address[%s] and server ip[%s] %s",
+                    address, src, "is not exist multicast_info.json.")
+                return const.CON_REPLY_NOTHING
 
             # ALLOW_NEW_SOURCES：視聴情報に追加
             if report_type == icmpv6.ALLOW_NEW_SOURCES:
@@ -743,12 +760,10 @@ class mld_process():
         vid = self.config["c_tag_id"]
 
         # マルチキャストアドレスに対応するpbb_isidとividを抽出
-        for mc_info in self.mc_info_list:
-            if mc_info["mc_addr"] == address and mc_info["serv_ip"] == src:
-                pbb_isid = mc_info["pbb_isid"]
-                ivid = mc_info["ivid"]
-                mc_info_type = mc_info["type"]
-                break
+        mc_info = self.mc_info_dict[address, src]
+        pbb_isid = mc_info["pbb_isid"]
+        ivid = mc_info["ivid"]
+        mc_info_type = mc_info["type"]
 
         # 視聴情報からbvidを特定する
         if self.ch_info.channel_info and \
