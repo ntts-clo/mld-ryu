@@ -129,7 +129,11 @@ class mld_process():
             self.logger.info("%s:%s", const.BVID_VARIATION, json.dumps(
                 bvid_variation.data, indent=4, sort_keys=True,
                 ensure_ascii=False))
-            self.bvid_variation = bvid_variation.data["bvid_variation"]
+            bvid_variations = bvid_variation.data["bvid_variation"]
+            self.bvid_variation = {}
+            for bvid_variation in bvid_variations:
+                self.bvid_variation[bvid_variation["key"]] = \
+                    bvid_variation["bvid"]
 
             # ZeroMQ送受信用設定
             if self.check_url(zmq_url):
@@ -774,10 +778,7 @@ class mld_process():
             # datapathidの昇順に":"でつなぐ
             bvid_key = ":".join(map(str, sorted(listening_switch)))
             self.logger.debug("bvid_key : %s", bvid_key)
-            for bvid_variation in self.bvid_variation:
-                if bvid_key == bvid_variation["key"]:
-                    bvid = bvid_variation["bvid"]
-                    break
+            bvid = self.bvid_variation[bvid_key]
         else:
             # 全く視聴されていない（離脱によって視聴ユーザがいなくなった）場合
             bvid = -1

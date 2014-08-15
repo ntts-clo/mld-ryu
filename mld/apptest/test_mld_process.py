@@ -100,19 +100,16 @@ class test_mld_process():
 
         # スイッチ情報読み込み
         switches = read_json(TEST_COMMON_PATH + const.SWITCH_INFO)
-        eq_(self.mld_proc.switch_mld_info,
-            switches.data["switch_mld_info"])
-        eq_(self.mld_proc.switch_mc_info,
-            switches.data["switch_mc_info"])
+        eq_(self.mld_proc.switch_mld_info, switches.data["switch_mld_info"])
+        eq_(self.mld_proc.switch_mc_info, switches.data["switch_mc_info"])
+        eq_(self.mld_proc.switches, switches.data["switches"])
 
         # マルチキャスト情報読み込み
         eq_(self.mld_proc.mc_info_list, self.mc_info_list)
         ok_(self.mld_proc.mc_info_dict)
 
         # bvidパターン読み込み
-        bvid_variation = read_json(TEST_COMMON_PATH + const.BVID_VARIATION)
-        eq_(self.mld_proc.bvid_variation,
-            bvid_variation.data["bvid_variation"])
+        ok_(self.mld_proc.bvid_variation)
 
         # ZeroMQ送受信用設定
         ok_(self.mld_proc.send_sock)
