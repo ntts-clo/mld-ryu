@@ -1,8 +1,4 @@
 {
-    "_switch_mc_info(comment)": "マルチキャスト配信設定", 
-    "_switch_mld_info(comment)": "定期クエリ配信設定", 
-    "_switches(comment)": "ベストエフォートサービス用設定", 
-    "_switches_qa(comment)": "品質保証サービス用設定例", 
     "switch_mc_info": {
         "_ivid(comment)": "一時内部VID", 
         "ivid": 1001
@@ -18,13 +14,6 @@
     "switches": [
         {
             "__comment": "エッジスイッチ", 
-            "_container_sw_ports(comment)": "収容スイッチとの接続ポート", 
-            "_datapathid(comment)": "SWのデータパスID", 
-            "_edge_router_port(comment)": "エッジルータとの接続ポート", 
-            "_mld_port(comment)": "MLD処理部との接続ポート", 
-            "_sw_bmac(comment)": "SWのBMAC", 
-            "_sw_name(comment)": "SW種別名 エッジSW: esw, 収容SW: esw以外", 
-            "_sw_type(comment)": "SWの製品 Apresia12000: 12000, Apresia26000: 26000", 
             "container_sw_ports": [
                 49, 
                 50
@@ -38,12 +27,6 @@
         }, 
         {
             "__comment": "収容スイッチ1", 
-            "_datapathid(comment)": "SWのデータパスID", 
-            "_edge_switch_port(comment)": "エッジスイッチとの接続ポート", 
-            "_olt_ports(comment)": "OLTとの接続ポート", 
-            "_sw_bmac(comment)": "SWのBMAC", 
-            "_sw_name(comment)": "SW種別名 エッジSW: esw, 収容SW: esw以外", 
-            "_sw_type(comment)": "SWの製品 Apresia12000: 12000, Apresia26000: 26000", 
             "datapathid": 276596903168, 
             "edge_switch_port": 50, 
             "olt_ports": [
@@ -55,106 +38,6 @@
         }, 
         {
             "__comment": "収容スイッチ2", 
-            "_datapathid(comment)": "SWのデータパスID", 
-            "_edge_switch_port(comment)": "エッジスイッチとの接続ポート", 
-            "_olt_ports(comment)": "OLTとの接続ポート", 
-            "_sw_bmac(comment)": "SWのBMAC", 
-            "_sw_name(comment)": "SW種別名 エッジSW: esw, 収容SW: esw以外", 
-            "_sw_type(comment)": "SWの製品 Apresia12000: 12000, Apresia26000: 26000", 
-            "datapathid": 276596902016, 
-            "edge_switch_port": 50, 
-            "olt_ports": [
-                1
-            ], 
-            "sw_bmac": "02:40:66:75:c8:80", 
-            "sw_name": "sw2", 
-            "sw_type": 12000
-        }
-    ], 
-    "switches_qa": [
-        {
-            "__comment": "エッジスイッチ Primary", 
-            "_container_sw_port(comment)": "収容スイッチとの接続ポート", 
-            "_datapathid(comment)": "SWのデータパスID", 
-            "_edge_router_port(comment)": "エッジルータとの接続ポート (16進数では0x0101)", 
-            "_fcrp_port(comment)": "FCRPポート", 
-            "_mld_port(comment)": "MLD処理部との接続ポート (16進数では0x0102)", 
-            "_sw_bmac(comment)": "SWのBMAC", 
-            "_sw_name(comment)": "SW種別名 エッジSW: esw, 収容SW: esw以外", 
-            "_sw_type(comment)": "SWの製品 Apresia12000: 12000, Apresia26000: 26000", 
-            "container_sw_port": {
-                "_lag": "16進数では0x0004", 
-                "_physical": "16進数では0x0201", 
-                "lag": 4, 
-                "physical": 513
-            }, 
-            "datapathid": 3298518106113, 
-            "edge_router_port": 257, 
-            "fcrp_port": {
-                "_fcrp": "16進数では0x0001", 
-                "_physical": "16進数では0x0103", 
-                "fcrp": 1, 
-                "physical": 259
-            }, 
-            "mld_port": 258, 
-            "sw_bmac": "02:ff:ff:00:00:01", 
-            "sw_name": "esw", 
-            "sw_type": 26000
-        }, 
-        {
-            "__comment": "エッジスイッチ Secondary", 
-            "_container_sw_port(comment)": "収容スイッチとの接続ポート", 
-            "_datapathid(comment)": "SWのデータパスID", 
-            "_edge_router_port(comment)": "エッジルータとの接続ポート (16進数では0x0101)", 
-            "_fcrp_port(comment)": "FCRPポート", 
-            "_mld_port(comment)": "MLD処理部との接続ポート (16進数では0x0102)", 
-            "_sw_bmac(comment)": "SWのBMAC", 
-            "_sw_name(comment)": "SW種別名 エッジSW: esw, 収容SW: esw以外", 
-            "_sw_type(comment)": "SWの製品 Apresia12000: 12000, Apresia26000: 26000", 
-            "container_sw_port": {
-                "_lag": "16進数では0x0004", 
-                "_physical": "16進数では0x0201", 
-                "lag": 4, 
-                "physical": 513
-            }, 
-            "datapathid": 3298518106114, 
-            "edge_router_port": 257, 
-            "fcrp_port": {
-                "_fcrp": "16進数では0x1001", 
-                "_physical": "16進数では0x0103", 
-                "fcrp": 4097, 
-                "physical": 259
-            }, 
-            "mld_port": 258, 
-            "sw_bmac": "02:ff:ff:00:00:02", 
-            "sw_name": "esw", 
-            "sw_type": 26000
-        }, 
-        {
-            "__comment": "収容スイッチ1", 
-            "_datapathid(comment)": "SWのデータパスID", 
-            "_edge_switch_port(comment)": "エッジスイッチとの接続ポート", 
-            "_olt_ports(comment)": "OLTとの接続ポート", 
-            "_sw_bmac(comment)": "SWのBMAC", 
-            "_sw_name(comment)": "SW種別名 エッジSW: esw, 収容SW: esw以外", 
-            "_sw_type(comment)": "SWの製品 Apresia12000: 12000, Apresia26000: 26000", 
-            "datapathid": 276596903168, 
-            "edge_switch_port": 50, 
-            "olt_ports": [
-                1
-            ], 
-            "sw_bmac": "02:40:66:75:cd:00", 
-            "sw_name": "sw1", 
-            "sw_type": 12000
-        }, 
-        {
-            "__comment": "収容スイッチ2", 
-            "_datapathid(comment)": "SWのデータパスID", 
-            "_edge_switch_port(comment)": "エッジスイッチとの接続ポート", 
-            "_olt_ports(comment)": "OLTとの接続ポート", 
-            "_sw_bmac(comment)": "SWのBMAC", 
-            "_sw_name(comment)": "SW種別名 エッジSW: esw, 収容SW: esw以外", 
-            "_sw_type(comment)": "SWの製品 Apresia12000: 12000, Apresia26000: 26000", 
             "datapathid": 276596902016, 
             "edge_switch_port": 50, 
             "olt_ports": [

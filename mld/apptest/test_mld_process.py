@@ -6,7 +6,6 @@
 # mox install
 #  >sudo pip install mox
 #
-import pdb
 import os
 import sys
 import threading
@@ -35,9 +34,11 @@ sys.path.append(COMMON_PATH)
 import mld_const as const
 from zmq_dispatch import dispatch, packet_out_data
 from read_json import read_json
-from icmpv6_extend import icmpv6_extend, checksum_ip, checksum
+from icmpv6_extend import icmpv6_extend, checksum_ip
 
-logging.config.fileConfig(COMMON_PATH + const.MLD_LOG_CONF)
+TEST_COMMON_PATH = DIR_PATH + "/test_common/"
+
+logging.config.fileConfig(TEST_COMMON_PATH + const.MLD_LOG_CONF)
 logger = logging.getLogger(__name__)
 
 
@@ -48,11 +49,11 @@ class test_mld_process():
     def setup_class(cls):
         logger.debug("setup_class")
 
-        config = read_json(COMMON_PATH + const.CONF_FILE)
+        config = read_json(TEST_COMMON_PATH + const.CONF_FILE)
         cls.config = config.data["settings"]
 
         cls.addressinfo = []
-        for line in open(COMMON_PATH + const.ADDRESS_INFO, "r"):
+        for line in open(TEST_COMMON_PATH + const.ADDRESS_INFO, "r"):
             if line[0] == "#":
                 continue
             else:
@@ -60,9 +61,11 @@ class test_mld_process():
                 for column in columns:
                     cls.addressinfo.append(column)
 
-        mc_info = read_json(COMMON_PATH + const.MULTICAST_INFO)
+        mc_info = read_json(TEST_COMMON_PATH + const.MULTICAST_INFO)
         cls.mc_info_list = mc_info.data["mc_info"]
 
+        # テスト用の設定ファイルを読み込ませる
+        mld_process.COMMON_PATH = TEST_COMMON_PATH
         cls.mld_proc = mld_process.mld_process()
 
     # このクラスのテストケースをすべて実行した後に１度だけ実行する
@@ -79,7 +82,7 @@ class test_mld_process():
         self.mld_proc.ch_info = channel_info(self.config)
         self.mld_proc.config = self.config
 
-    @attr(do=False)
+    @attr(do=True)
     def test_init(self):
         logger.debug("test_init")
 
@@ -96,7 +99,7 @@ class test_mld_process():
         eq_(self.mld_proc.addressinfo, self.addressinfo)
 
         # スイッチ情報読み込み
-        switches = read_json(COMMON_PATH + const.SWITCH_INFO)
+        switches = read_json(TEST_COMMON_PATH + const.SWITCH_INFO)
         eq_(self.mld_proc.switch_mld_info,
             switches.data["switch_mld_info"])
         eq_(self.mld_proc.switch_mc_info,
@@ -104,9 +107,10 @@ class test_mld_process():
 
         # マルチキャスト情報読み込み
         eq_(self.mld_proc.mc_info_list, self.mc_info_list)
+        ok_(self.mld_proc.mc_info_dict)
 
         # bvidパターン読み込み
-        bvid_variation = read_json(COMMON_PATH + const.BVID_VARIATION)
+        bvid_variation = read_json(TEST_COMMON_PATH + const.BVID_VARIATION)
         eq_(self.mld_proc.bvid_variation,
             bvid_variation.data["bvid_variation"])
 
@@ -156,22 +160,17 @@ class test_mld_process():
         logger.debug("")
 
         # 読み込む設定ファイルを変更(check_urlがTrueを返却)
-        temp_common = mld_process.COMMON_PATH
-        mld_process.COMMON_PATH = DIR_PATH + "/test_common/"
         temp_conf = const.CONF_FILE
         const.CONF_FILE = "config_ipc.json"
 
         mld_process.mld_process()
 
         # 変更した設定を元に戻す
-        mld_process.COMMON_PATH = temp_common
         const.CONF_FILE = temp_conf
 
     @attr(do=False)
     def test_init_check_url_exception(self):
         # 読み込む設定ファイルを変更(check_urlがTrueを返却)
-        temp_common = mld_process.COMMON_PATH
-        mld_process.COMMON_PATH = DIR_PATH + "/test_common/"
         temp_conf = const.CONF_FILE
         const.CONF_FILE = "config_other.json"
 
@@ -184,7 +183,6 @@ class test_mld_process():
         mld_process.mld_process()
 
         # 変更した設定を元に戻す
-        mld_process.COMMON_PATH = temp_common
         const.CONF_FILE = temp_conf
 
         self.mocker.VerifyAll()
@@ -356,8 +354,8 @@ class test_mld_process():
 
     @attr(do=False)
     def test_send_mldquery_no_next_interval(self):
-        mc_info_list = [{"mc_addr": "ff38::1:1", "serv_ip": "2001::1:20"},
-                        {"mc_addr": "ff38::1:2", "serv_ip": "2001::1:20"}]
+        mc_info_list = [{"mc_addr": "ff38::1:1", "serv_ip": "2001:1::20"},
+                        {"mc_addr": "ff38::1:2", "serv_ip": "2001:1::20"}]
         wait_time = 1
         qqrv = 2
 
@@ -382,8 +380,8 @@ class test_mld_process():
 
     @attr(do=False)
     def test_send_mldquery_exists_next_interval(self):
-        mc_info_list = [{"mc_addr": "ff38::1:1", "serv_ip": "2001::1:20"},
-                        {"mc_addr": "ff38::1:2", "serv_ip": "2001::1:20"}]
+        mc_info_list = [{"mc_addr": "ff38::1:1", "serv_ip": "2001:1::20"},
+                        {"mc_addr": "ff38::1:2", "serv_ip": "2001:1::20"}]
         wait_time = 1
         next_interval = Value(ctypes.c_bool, True)
 
@@ -412,7 +410,7 @@ class test_mld_process():
     def test_create_mldquery_specific(self):
         # SpecificQueryを生成する
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         temp_qqic = self.mld_proc.QQIC
         self.mld_proc.QQIC = 125
 
@@ -428,7 +426,7 @@ class test_mld_process():
     @attr(do=False)
     def test_create_mldreport(self):
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         types = [icmpv6.MODE_IS_INCLUDE, icmpv6.MODE_IS_EXCLUDE,
                  icmpv6.CHANGE_TO_INCLUDE_MODE, icmpv6.CHANGE_TO_EXCLUDE_MODE,
                  icmpv6.ALLOW_NEW_SOURCES, icmpv6.BLOCK_OLD_SOURCES]
@@ -448,7 +446,7 @@ class test_mld_process():
     def test_create_packet_query01(self):
         # MLD Queryを持つpacketを生成
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         vid = self.config["c_tag_id"]
         query = self.mld_proc.create_mldquery(mc_addr, serv_ip)
         actual = self.mld_proc.create_packet(
@@ -478,7 +476,7 @@ class test_mld_process():
         # icmpv6_extendにて拡張ヘッダーがない場合の動作確認
         # ip6のnexthederがinet.IPPROTO_ICMPV6となっていること
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         vid = self.config["c_tag_id"]
         query = self.mld_proc.create_mldquery(mc_addr, serv_ip)
 
@@ -513,7 +511,7 @@ class test_mld_process():
         # icmpv6_extendにてquery.versionに6以外を設定した場合の動作確認
         # Exceptionが発生すること
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         query = self.mld_proc.create_mldquery(mc_addr, serv_ip)
 
         query.version = 4
@@ -531,7 +529,7 @@ class test_mld_process():
     def test_create_packet_report(self):
         # MLD Reportを持つpacketを生成
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         vid = self.config["c_tag_id"]
         types = [icmpv6.ALLOW_NEW_SOURCES, icmpv6.CHANGE_TO_INCLUDE_MODE]
         report = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
@@ -597,7 +595,7 @@ class test_mld_process():
     def test_analyse_receive_packet_packetin_query(self):
         # packet-in受信時：queryであればreply_proxyを呼び出す
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         query = self.mld_proc.create_mldquery(mc_addr, serv_ip)
         data = icmpv6.icmpv6(
             type_=icmpv6.ICMPV6_MEMBERSHIP_QUERY, data=query)
@@ -617,7 +615,7 @@ class test_mld_process():
     def test_analyse_receive_packet_packetin_report(self):
         # packet-in受信時：reportであればmanage_userを呼び出す
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         types = [icmpv6.MODE_IS_INCLUDE]
         report = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
         data = icmpv6.icmpv6(
@@ -725,7 +723,7 @@ class test_mld_process():
     def test_check_user_timeout_no_timeout(self):
         # タイムアウトのユーザーなし
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         datapathid = self.mld_proc.switches[1]["datapathid"]
         port_no = 1
         cid = 2101
@@ -751,7 +749,7 @@ class test_mld_process():
         self.mld_proc.config["user_time_out"] = 2
 
         mc_addr1 = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         datapathid2 = self.mld_proc.switches[1]["datapathid"]
         port_no1 = 1
         cid1 = 12101
@@ -824,7 +822,7 @@ class test_mld_process():
         self.mld_proc.config["user_time_out"] = 1
 
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         datapathid = self.mld_proc.switches[1]["datapathid"]
         port_no = 1
         cid = 12101
@@ -858,7 +856,7 @@ class test_mld_process():
     def test_reply_proxy_exists_user_gq(self):
         # 視聴情報がありGeneralQueryの場合、視聴中のmcアドレス分p-out
         mc_addr1 = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         datapathid2 = 2
         port_no1 = 1
         cid1 = 12101
@@ -869,7 +867,7 @@ class test_mld_process():
             mc_addr1, serv_ip, datapathid2, port_no1, cid2)
 
         mc_addr2 = "ff38::1:2"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         cid3 = 22101
         self.mld_proc.ch_info.update_ch_info(
             mc_addr2, serv_ip, datapathid2, port_no1, cid3)
@@ -887,7 +885,7 @@ class test_mld_process():
     def test_reply_proxy_exists_user_sq_exists_user(self):
         # 視聴情報がありSpecificQuery場合、受信したmcアドレスが視聴中であればp-out
         mc_addr1 = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         datapathid2 = 2
         port_no1 = 1
         cid1 = 12101
@@ -898,7 +896,7 @@ class test_mld_process():
             mc_addr1, serv_ip, datapathid2, port_no1, cid2)
 
         mc_addr2 = "ff38::1:2"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         cid3 = 22101
         self.mld_proc.ch_info.update_ch_info(
             mc_addr2, serv_ip, datapathid2, port_no1, cid3)
@@ -928,7 +926,7 @@ class test_mld_process():
     def test_reply_proxy_exists_user_sq_no_user(self):
         # 視聴情報がありSpecificQuery場合、受信したmcアドレスが視聴中ででなければなにもしない
         mc_addr1 = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         datapathid2 = 2
         port_no1 = 1
         cid1 = 12101
@@ -950,7 +948,7 @@ class test_mld_process():
     def test_reply_proxy_exists_user_sq_no_srcs(self):
         # 視聴情報がありSpecificQuery場合、受信したmcアドレスが視聴中ででなければなにもしない
         mc_addr1 = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         datapathid2 = 2
         port_no1 = 1
         cid1 = 12101
@@ -969,10 +967,43 @@ class test_mld_process():
         self.mocker.VerifyAll()
 
     @attr(do=False)
+    def test_manage_user_no_srcs(self):
+        # reportにsrcsが設定されていない場合はinfoログを出力する
+        mc_addr = "ff38::1:1"
+        types = [icmpv6.MODE_IS_EXCLUDE,
+                 icmpv6.CHANGE_TO_EXCLUDE_MODE,
+                 icmpv6.CHANGE_TO_INCLUDE_MODE]
+
+        record_list = []
+        for report_type in types:
+            record_list.append(icmpv6.mldv2_report_group(
+                type_=report_type, address=mc_addr, srcs=[]))
+
+        mld = icmpv6.mldv2_report(records=record_list)
+        data = icmpv6.icmpv6(
+            type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
+
+        datapathid = self.mld_proc.switches[1]["datapathid"]
+        in_port = 1
+        cid = 100
+        dispatch_ = dispatch(
+            const.CON_PACKET_IN, datapathid, in_port, cid, data)
+
+        # logger.infoの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc.logger, "info")
+        self.mld_proc.logger.info("input server ip when VLC started.")
+        self.mld_proc.logger.info("input server ip when VLC started.")
+        self.mld_proc.logger.info("input server ip when VLC started.")
+        self.mocker.ReplayAll()
+
+        self.mld_proc.manage_user(dispatch_)
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
     def test_manage_user_reply(self):
         # update_user_infoがCON_REPLY_NOTHING以外を返却する場合はreply_to_ryuを呼び出す
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         types = [icmpv6.MODE_IS_INCLUDE]
         mld = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
         data = icmpv6.icmpv6(
@@ -1001,9 +1032,30 @@ class test_mld_process():
         self.mocker.VerifyAll()
 
     @attr(do=False)
+    def test_update_user_info_no_mcinfo(self):
+        mc_addr = "ff38::1:1"
+        serv_ip = "2001::1:30"
+        datapathid = self.mld_proc.switches[1]["datapathid"]
+        in_port = 1
+        cid = 100
+
+        # logger.infoの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc.logger, "info")
+        self.mld_proc.logger.info(
+            "this multicast address[%s] and server ip[%s] %s",
+            mc_addr, serv_ip, "is not exist multicast_info.json.")
+        self.mocker.ReplayAll()
+
+        actual = self.mld_proc.update_user_info(
+            mc_addr, serv_ip, datapathid, in_port, cid,
+            icmpv6.ALLOW_NEW_SOURCES)
+        eq_(const.CON_REPLY_NOTHING, actual)
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
     def test_update_user_info_allow(self):
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
@@ -1024,7 +1076,7 @@ class test_mld_process():
     @attr(do=False)
     def test_update_user_info_block(self):
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
@@ -1055,7 +1107,7 @@ class test_mld_process():
     def test_update_user_info_include(self):
         # 既存ユーザのMODE_IS_INCLUDEの場合
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
@@ -1077,7 +1129,7 @@ class test_mld_process():
     def test_update_user_info_other(self):
         # 上記以外のtypeはCON_REPLY_NOTHINGを返却
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
@@ -1095,7 +1147,7 @@ class test_mld_process():
     def test_update_user_info_exception(self):
         # 上記以外のtypeはCON_REPLY_NOTHINGを返却
         mc_addr = "ff38::1:1"
-        serv_ip = "2001::1:20"
+        serv_ip = "2001:1::20"
         datapathid = self.mld_proc.switches[1]["datapathid"]
         in_port = 1
         cid = 100
@@ -1420,7 +1472,7 @@ class test_user_manage():
 
     mc_addr1 = "ff38::1:1"
     mc_addr2 = "ff38::1:2"
-    serv_ip = "2001::1:20"
+    serv_ip = "2001:1::20"
     datapathid1 = 276595101184
     datapathid2 = 276596903168
     in_port1 = 1
@@ -1430,8 +1482,11 @@ class test_user_manage():
     @classmethod
     def setup_class(cls):
         logger.debug("setup")
-        config = read_json(COMMON_PATH + const.CONF_FILE)
+        config = read_json(TEST_COMMON_PATH + const.CONF_FILE)
         cls.config = config.data["settings"]
+
+        # テスト用の設定ファイルを読み込ませる
+        mld_process.COMMON_PATH = TEST_COMMON_PATH
         cls.mld_proc = mld_process.mld_process()
 
     # このクラスのテストケースをすべて実行した後に１度だけ実行する
@@ -2530,8 +2585,6 @@ class test_user_manage():
         #   database_accessor.clientがNoneのままであること
 
         # 読み込む設定ファイルを変更(check_urlがTrueを返却)
-        temp_common = mld_process.COMMON_PATH
-        mld_process.COMMON_PATH = DIR_PATH + "/test_common/"
         temp_conf = const.CONF_FILE
         const.CONF_FILE = "config_nodb.json"
 
@@ -2584,7 +2637,6 @@ class test_user_manage():
         eq_(regist_time, ch_user_info.time)
 
         # 変更した設定を元に戻す
-        mld_process.COMMON_PATH = temp_common
         const.CONF_FILE = temp_conf
 
 
