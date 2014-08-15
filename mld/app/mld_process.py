@@ -9,12 +9,12 @@ from ryu.ofproto import ofproto_v1_3_parser as parser
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from scapy import sendrecv
 from scapy import packet as scapy_packet
+from scapy.layers import inet6
 from multiprocessing import Process, Value
 import os
 import traceback
 import json
 import logging
-import logging.config
 import cPickle
 import zmq
 import sys
@@ -72,8 +72,6 @@ class mld_process():
     def __init__(self):
         try:
             # ロガーの設定
-            logging.config.fileConfig(COMMON_PATH + const.MLD_LOG_CONF,
-                                      disable_existing_loggers=False)
             self.logger = logging.getLogger(__name__)
             self.logger.debug("")
 
@@ -685,7 +683,7 @@ class mld_process():
 
             # CHANGE_TO_EXCLUDE_MODE:INFOメッセージ出力
             elif report_type == icmpv6.CHANGE_TO_EXCLUDE_MODE:
-                self.logger.info("input server ip when VLC started.")
+                self.logger.info("input server_ip when VLC started.")
                 reply_type = const.CON_REPLY_NOTHING
 
             else:
