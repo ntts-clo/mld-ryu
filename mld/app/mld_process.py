@@ -637,13 +637,9 @@ class mld_process():
         cid = dispatch_["cid"]
 
         for report in mldv2_report.records:
-            # srcsが存在しない（VLC起動時にサーバIPを指定しなかった)場合
-            if not report.srcs:
-                self.logger.info("input server ip when VLC started.")
-                continue
 
             address = report.address
-            src = report.srcs[0]
+            src = report.srcs[0] if report.srcs else ""
             report_type = report.type_
             self.logger.debug("report : " + str(report))
 
@@ -676,69 +672,74 @@ class mld_process():
             self.logger.debug("user_info_list : %s",
                               self.ch_info.get_user_info_list())
 
-
-            # multicast_info.jsonに存在しないmcアドレスとサーバIPの組み合わせが指定された場合
-            if not (address, src) in self.mc_info_dict:
-                self.logger.info(
-                    "this multicast address[%s] and server ip[%s] %s",
-                    address, src, "is not exist multicast_info.json.")
-                return const.CON_REPLY_NOTHING
-
-            # ALLOW_NEW_SOURCES：視聴情報に追加
-            if report_type == icmpv6.ALLOW_NEW_SOURCES:
-                self.logger.debug("ALLOW_NEW_SOURCES")
-                reply_type = self.ch_info.update_ch_info(
-                    mc_addr=address, serv_ip=src,
-                    datapathid=target_switch, port_no=in_port, cid=cid)
-                self.logger.debug("reply_type : %s", reply_type)
-                self.logger.debug("added self.ch_info : %s",
-                                  self.ch_info.get_channel_info())
-                self.logger.debug("added user_info_list : %s",
-                                  self.ch_info.get_user_info_list())
-
-            # BLOCK_OLD_SOURCES：視聴情報から削除
-            elif report_type == icmpv6.BLOCK_OLD_SOURCES:
-                self.logger.debug("BLOCK_OLD_SOURCES")
-                reply_type = self.ch_info.remove_ch_info(
-                    mc_addr=address, serv_ip=src,
-                    datapathid=target_switch, port_no=in_port, cid=cid)
-
-                if reply_type is not None:
-                    # 削除が行われた場合
-                    self.logger.debug("reply_type : %s", reply_type)
-                    self.logger.debug("removed self.ch_info : %s",
-                                      self.ch_info.get_channel_info())
-
-                    # SpecificQueryを生成し、エッジスイッチに送信
-                    mc_info = {"mc_addr": address, "serv_ip": src}
-                    send_thre = threading.Thread(
-                        target=self.send_mldquery,
-                        name="SendQueryThread", args=[[mc_info], ])
-                    send_thre.daemon = True
-                    send_thre.start()
-                else:
-                    # 削除が行われなかった場合
-                    reply_type = const.CON_REPLY_NOTHING
-
-            # MODE_IS_INCLUDE：視聴情報に存在するか確認
-            elif report_type == icmpv6.MODE_IS_INCLUDE:
-                self.logger.debug("MODE_IS_INCLUDE")
-
-                # 視聴情報のタイマ更新
-                reply_type = self.ch_info.update_ch_info(
-                    mc_addr=address, serv_ip=src,
-                    datapathid=target_switch, port_no=in_port, cid=cid)
-                self.logger.debug("updated self.ch_info : %s",
-                                  self.ch_info.get_channel_info())
-                self.logger.debug("updated user_info_list : %s",
-                                  self.ch_info.get_user_info_list())
-
             # MODE_IS_EXCLUDE
-            # CHANGE_TO_INCLUDE_MODE
-            # CHANGE_TO_EXCLUDE_MODE の場合は何もしない
-            else:
+            # CHANGE_TO_INCLUDE_MODE の場合は何もしない
+            if report_type in [
+                    icmpv6.CHANGE_TO_INCLUDE_MODE, icmpv6.MODE_IS_EXCLUDE]:
                 self.logger.debug("report_type : %s", report_type)
                 reply_type = const.CON_REPLY_NOTHING
+
+            # CHANGE_TO_EXCLUDE_MODE:INFOメッセージ出力
+            elif report_type == icmpv6.CHANGE_TO_EXCLUDE_MODE:
+                self.logger.info("input server ip when VLC started.")
+                reply_type = const.CON_REPLY_NOTHING
+
+            else:
+                # multicast_info.jsonに存在しないmcアドレスとサーバIPの組み合わせが指定された場合
+                if not (address, src) in self.mc_info_dict:
+                    self.logger.info(
+                        "this multicast address[%s] and server ip[%s] %s",
+                        address, src, "is not exist multicast_info.json.")
+                    reply_type = const.CON_REPLY_NOTHING
+
+                # ALLOW_NEW_SOURCES：視聴情報に追加
+                elif report_type == icmpv6.ALLOW_NEW_SOURCES:
+                    self.logger.debug("ALLOW_NEW_SOURCES")
+                    reply_type = self.ch_info.update_ch_info(
+                        mc_addr=address, serv_ip=src,
+                        datapathid=target_switch, port_no=in_port, cid=cid)
+                    self.logger.debug("reply_type : %s", reply_type)
+                    self.logger.debug("added self.ch_info : %s",
+                                      self.ch_info.get_channel_info())
+                    self.logger.debug("added user_info_list : %s",
+                                      self.ch_info.get_user_info_list())
+
+                # BLOCK_OLD_SOURCES：視聴情報から削除
+                elif report_type == icmpv6.BLOCK_OLD_SOURCES:
+                    self.logger.debug("BLOCK_OLD_SOURCES")
+                    reply_type = self.ch_info.remove_ch_info(
+                        mc_addr=address, serv_ip=src,
+                        datapathid=target_switch, port_no=in_port, cid=cid)
+
+                    if reply_type is not None:
+                        # 削除が行われた場合
+                        self.logger.debug("reply_type : %s", reply_type)
+                        self.logger.debug("removed self.ch_info : %s",
+                                          self.ch_info.get_channel_info())
+
+                        # SpecificQueryを生成し、エッジスイッチに送信
+                        mc_info = {"mc_addr": address, "serv_ip": src}
+                        send_thre = threading.Thread(
+                            target=self.send_mldquery,
+                            name="SendQueryThread", args=[[mc_info], ])
+                        send_thre.daemon = True
+                        send_thre.start()
+                    else:
+                        # 削除が行われなかった場合
+                        reply_type = const.CON_REPLY_NOTHING
+
+                # MODE_IS_INCLUDE：視聴情報に存在するか確認
+                elif report_type == icmpv6.MODE_IS_INCLUDE:
+                    self.logger.debug("MODE_IS_INCLUDE")
+
+                    # 視聴情報のタイマ更新
+                    reply_type = self.ch_info.update_ch_info(
+                        mc_addr=address, serv_ip=src,
+                        datapathid=target_switch, port_no=in_port, cid=cid)
+                    self.logger.debug("updated self.ch_info : %s",
+                                      self.ch_info.get_channel_info())
+                    self.logger.debug("updated user_info_list : %s",
+                                      self.ch_info.get_user_info_list())
 
             return reply_type
 

@@ -82,7 +82,7 @@ class test_mld_process():
         self.mld_proc.ch_info = channel_info(self.config)
         self.mld_proc.config = self.config
 
-    @attr(do=True)
+    @attr(do=False)
     def test_init(self):
         logger.debug("test_init")
 
@@ -316,10 +316,9 @@ class test_mld_process():
             target=self.mld_proc.send_mldquery_regularly)
         send_thre.start()
         # ループに入る分処理待ち
-        time.sleep(3)
+        time.sleep(2)
         # ループを抜ける
         self.mld_proc.SEND_LOOP = False
-        time.sleep(1)
         send_thre.join()
         self.mld_proc.SEND_LOOP = True
 
@@ -336,7 +335,7 @@ class test_mld_process():
             target=self.mld_proc.send_mldquery_regularly)
         send_thre.start()
         # ループに入る分処理待ち
-        time.sleep(5)
+        time.sleep(2)
         # ループを抜けさせる
         self.mld_proc.SEND_LOOP = False
         send_thre.join()
@@ -967,39 +966,6 @@ class test_mld_process():
         self.mocker.VerifyAll()
 
     @attr(do=False)
-    def test_manage_user_no_srcs(self):
-        # reportにsrcsが設定されていない場合はinfoログを出力する
-        mc_addr = "ff38::1:1"
-        types = [icmpv6.MODE_IS_EXCLUDE,
-                 icmpv6.CHANGE_TO_EXCLUDE_MODE,
-                 icmpv6.CHANGE_TO_INCLUDE_MODE]
-
-        record_list = []
-        for report_type in types:
-            record_list.append(icmpv6.mldv2_report_group(
-                type_=report_type, address=mc_addr, srcs=[]))
-
-        mld = icmpv6.mldv2_report(records=record_list)
-        data = icmpv6.icmpv6(
-            type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
-
-        datapathid = self.mld_proc.switches[1]["datapathid"]
-        in_port = 1
-        cid = 100
-        dispatch_ = dispatch(
-            const.CON_PACKET_IN, datapathid, in_port, cid, data)
-
-        # logger.infoの呼び出し確認
-        self.mocker.StubOutWithMock(self.mld_proc.logger, "info")
-        self.mld_proc.logger.info("input server ip when VLC started.")
-        self.mld_proc.logger.info("input server ip when VLC started.")
-        self.mld_proc.logger.info("input server ip when VLC started.")
-        self.mocker.ReplayAll()
-
-        self.mld_proc.manage_user(dispatch_)
-        self.mocker.VerifyAll()
-
-    @attr(do=False)
     def test_manage_user_reply(self):
         # update_user_infoがCON_REPLY_NOTHING以外を返却する場合はreply_to_ryuを呼び出す
         mc_addr = "ff38::1:1"
@@ -1033,6 +999,7 @@ class test_mld_process():
 
     @attr(do=False)
     def test_update_user_info_no_mcinfo(self):
+        # multicast_info.jsonに存在しないアドレスのペアを受信した場合
         mc_addr = "ff38::1:1"
         serv_ip = "2001::1:30"
         datapathid = self.mld_proc.switches[1]["datapathid"]
@@ -1126,6 +1093,26 @@ class test_mld_process():
         self.mocker.VerifyAll()
 
     @attr(do=False)
+    def test_update_user_info_exclude(self):
+        # CHANGE_TO_EXCLUDE_MODEの場合
+        mc_addr = "ff38::1:1"
+        serv_ip = ""
+        datapathid = self.mld_proc.switches[1]["datapathid"]
+        in_port = 1
+        cid = 100
+
+        # logger.infoの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc.logger, "info")
+        self.mld_proc.logger.info("input server ip when VLC started.")
+        self.mocker.ReplayAll()
+
+        actual = self.mld_proc.update_user_info(
+            mc_addr, serv_ip, datapathid, in_port, cid,
+            icmpv6.CHANGE_TO_EXCLUDE_MODE)
+        eq_(const.CON_REPLY_NOTHING, actual)
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
     def test_update_user_info_other(self):
         # 上記以外のtypeはCON_REPLY_NOTHINGを返却
         mc_addr = "ff38::1:1"
@@ -1134,8 +1121,7 @@ class test_mld_process():
         in_port = 1
         cid = 100
 
-        types = [icmpv6.CHANGE_TO_EXCLUDE_MODE,
-                 icmpv6.CHANGE_TO_INCLUDE_MODE,
+        types = [icmpv6.CHANGE_TO_INCLUDE_MODE,
                  icmpv6.MODE_IS_EXCLUDE]
 
         for type_ in types:
