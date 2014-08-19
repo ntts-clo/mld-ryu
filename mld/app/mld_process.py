@@ -9,7 +9,7 @@ from ryu.ofproto import ofproto_v1_3_parser as parser
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from scapy import sendrecv
 from scapy import packet as scapy_packet
-from scapy.layers import inet6
+from scapy.layers import inet6  # sendpの警告回避
 from multiprocessing import Process, Value
 import os
 import traceback
@@ -21,6 +21,8 @@ import sys
 import time
 import ctypes
 import threading
+import re
+import subprocess
 
 from user_manage import channel_info, channel_user_info
 from flowmod_gen import flow_mod_generator
@@ -81,6 +83,11 @@ class mld_process():
                 config.data, indent=4, sort_keys=True, ensure_ascii=False))
             self.config = config.data["settings"]
 
+            # IF情報取得
+            self.ifinfo = {}
+            self.ifinfo = self.get_interface_info(
+                self.config["mld_esw_ifname"])
+
             # QueryのQQIC設定
             self.QQIC = self.calculate_qqic(
                 self.config["reguraly_query_interval"])
@@ -91,17 +98,6 @@ class mld_process():
             zmq_url = self.config[MLD_ZMQ_URL]
             send_path = self.config[MLD_ZMQ_SEND]
             recv_path = self.config[MLD_ZMQ_RECV]
-
-            # アドレス情報読み込み
-            self.addressinfo = []
-            for line in open(COMMON_PATH + const.ADDRESS_INFO, "r"):
-                if line[0] == "#":
-                    continue
-                else:
-                    columns = list(line[:-1].split(","))
-                    for column in columns:
-                        self.addressinfo.append(column)
-            self.logger.info("%s:%s", const.ADDRESS_INFO, self.addressinfo)
 
             # スイッチ情報読み込み
             switches = read_json(COMMON_PATH + const.SWITCH_INFO)
@@ -148,6 +144,89 @@ class mld_process():
 
         except:
             self.logger.error("%s ", traceback.print_exc())
+            raise KeyboardInterrupt
+
+    # =========================================================================
+    # get_interface_info
+    # =========================================================================
+    def get_interface_info(self, iface):
+        self.logger.debug("")
+        self.logger.debug("iface : %s", iface)
+
+        # MACアドレスの正規表現
+        MAC_PATTERN = "([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}"
+        mac_pat = re.compile(MAC_PATTERN)
+        # IPv6リンクローカルアドレスの正規表現
+        IP6_PATTERN = "fe80:[0-9a-fA-F:]*/[0-9]{2}"
+        ip6_pat = re.compile(IP6_PATTERN)
+
+        ifconf = ""
+        ifname = ""
+        ifdict = {}
+
+        try:
+            # ifconfigの結果を取得する
+            ifconf = subprocess.check_output(["ifconfig", iface])
+        except subprocess.CalledProcessError:
+            # ifconfigの実行でエラーが発生した場合
+            self.logger.error(
+                "input exist network interface name where " +
+                const.CONF_FILE + " at 'mld_esw_ifname'.")
+            self.end_process()
+
+        for line in ifconf.split("\n"):
+            if not len(line) == 0:
+                if not line[0] == " ":
+                    # インターフェース名を取得
+                    for x in line:
+                        if not x == " ":
+                            ifname += x
+                        else:
+                            line = line[len(ifname):]
+                            break
+
+                    self.logger.debug("ifname : %s", ifname)
+                    # 入力されたインターフェース名と一致するかチェック
+                    if not ifname == iface:
+                        self.logger.error(
+                            "input exist network interface name where "
+                            + const.CONF_FILE + " at 'mld_esw_ifname'.")
+                        self.end_process()
+
+                if not ifdict.get("mac"):
+                    # MACアドレス検索
+                    mac = mac_pat.search(line)
+                    if mac:
+                        ifdict["mac"] = mac.group()
+                        self.logger.debug("mac : %s", ifdict["mac"])
+                        continue
+
+                if not ifdict.get("ip6"):
+                    # IPv6リンクローカルアドレス検索
+                    ip6 = ip6_pat.search(line)
+                    if ip6:
+                        ifdict["ip6"] = ip6.group()[:-3]  # "/64”を削除
+                        self.logger.debug("ip6 : %s", ifdict["ip6"])
+                        continue
+
+            # 改行のみの行でifdictを確定
+            else:
+                if not ifdict.get("mac"):
+                    # MACアドレスのないインターフェース（loなど）が入力された場合
+                    self.logger.error(
+                        "input network interface name with " +
+                        "mac address where " + const.CONF_FILE +
+                        " at 'mld_esw_ifname'.")
+                    self.end_process()
+                if not ifdict.get("ip6"):
+                    # IPv6リンクローカルアドレスのないインターフェースが入力された場合
+                    self.logger.error(
+                        "input network interface name with " +
+                        "ipv6 link local address where " + const.CONF_FILE +
+                        " at 'mld_esw_ifname'.")
+                    self.end_process()
+                break
+        return ifdict
 
     # =========================================================================
     # calculate_qqic
@@ -307,8 +386,7 @@ class mld_process():
                               mc_info["mc_addr"], mc_info["serv_ip"])
             mld = self.create_mldquery(
                 mc_info["mc_addr"], mc_info["serv_ip"])
-            sendpkt = self.create_packet(
-                self.addressinfo, vid, mld)
+            sendpkt = self.create_packet(vid, mld)
 
             # 信頼性変数QRV回送信する
             for i in range(self.QUERY_QRV):
@@ -354,7 +432,7 @@ class mld_process():
     # ==================================================================
     # create_packet
     # ==================================================================
-    def create_packet(self, addressinfo, vid, mld):
+    def create_packet(self, vid, mld):
         self.logger.debug("")
 
         # VLAN
@@ -370,11 +448,11 @@ class mld_process():
             # ETHER
             eth = ethernet.ethernet(
                 ethertype=ether.ETH_TYPE_8021Q,
-                src=addressinfo[0], dst=self.QUERY_DST)
+                src=self.ifinfo["mac"], dst=self.QUERY_DST)
 
             # IPV6 with ExtensionHeader
             ip6 = ipv6.ipv6(
-                src=addressinfo[1], dst=self.QUERY_DST_IP,
+                src=self.ifinfo["ip6"], dst=self.QUERY_DST_IP,
                 hop_limit=1, nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
 
             # MLD Query
@@ -386,11 +464,11 @@ class mld_process():
             # ETHER
             eth = ethernet.ethernet(
                 ethertype=ether.ETH_TYPE_8021Q,
-                src=addressinfo[0], dst=self.REPORT_DST)
+                src=self.ifinfo["mac"], dst=self.REPORT_DST)
 
             # IPV6 with ExtensionHeader
             ip6 = ipv6.ipv6(
-                src=addressinfo[1], dst=self.REPORT_DST_IP,
+                src=self.ifinfo["ip6"], dst=self.REPORT_DST_IP,
                 hop_limit=1, nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
 
             # MLD Report
@@ -619,7 +697,7 @@ class mld_process():
         mld = self.create_mldreport(
             mc_address=mc_addr, mc_serv_ip=serv_ip, report_types=report_type)
         # packetのsrcはMLD処理部のものを使用する
-        sendpkt = self.create_packet(self.addressinfo, vid, mld)
+        sendpkt = self.create_packet(vid, mld)
         # エッジスイッチにp-out
         pout = self.create_packetout(datapathid=datapathid, packet=sendpkt)
         packetout = dispatch(
@@ -872,8 +950,17 @@ class mld_process():
             recvpkt = self.recv_sock.recv()
             self.analyse_receive_packet(cPickle.loads(recvpkt))
 
+    # ==================================================================
+    # end_process
+    # ==================================================================
+    def end_process(self):
+        self.SEND_LOOP = False
+        self.RECV_LOOP = False
+        sys.exit()
+
 
 if __name__ == "__main__":
+    mld_proc = None
     try:
         mld_proc = mld_process()
         # Query定期送信スレッド
@@ -886,6 +973,5 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         # ctrl-cが入力されたら終了
-        mld_proc.SEND_LOOP = False
-        mld_proc.RECV_LOOP = False
-        sys.exit()
+        if mld_proc:
+            mld_proc.end_process()

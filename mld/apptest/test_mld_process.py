@@ -15,6 +15,7 @@ import unittest
 import time
 import ctypes
 import cPickle
+import zmq
 from mox import Mox, ExpectedMethodCallsError, IsA
 from nose.tools import ok_, eq_
 from nose.tools.nontrivial import raises
@@ -27,7 +28,8 @@ DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 APP_PATH = DIR_PATH + "/../app/"
 sys.path.append(APP_PATH)
 import mld_process
-from user_manage import channel_info
+import user_manage
+from user_manage import channel_info, database_accessor
 
 COMMON_PATH = DIR_PATH + "/../../common/"
 sys.path.append(COMMON_PATH)
@@ -44,6 +46,11 @@ logger = logging.getLogger(__name__)
 
 class test_mld_process():
 
+    # 実際に実行するマシンのIFに合わせた値を設定すること
+    IFNAME = "eth0"
+    MAC = "d4:3d:7e:4a:43:fd"
+    IP6 = "fe80::d63d:7eff:fe4a:43fd"
+
     # このクラスのテストケースを実行する前に１度だけ実行する
     @classmethod
     def setup_class(cls):
@@ -52,15 +59,6 @@ class test_mld_process():
         config = read_json(TEST_COMMON_PATH + const.CONF_FILE)
         cls.config = config.data["settings"]
 
-        cls.addressinfo = []
-        for line in open(TEST_COMMON_PATH + const.ADDRESS_INFO, "r"):
-            if line[0] == "#":
-                continue
-            else:
-                columns = list(line[:-1].split(","))
-                for column in columns:
-                    cls.addressinfo.append(column)
-
         mc_info = read_json(TEST_COMMON_PATH + const.MULTICAST_INFO)
         cls.mc_info_list = mc_info.data["mc_info"]
 
@@ -68,17 +66,14 @@ class test_mld_process():
         mld_process.COMMON_PATH = TEST_COMMON_PATH
         cls.mld_proc = mld_process.mld_process()
 
-    # このクラスのテストケースをすべて実行した後に１度だけ実行する
-    @classmethod
-    def teardown_class(cls):
-        logger.debug("teardown")
-
     def setup(self):
         self.mocker = Mox()
 
     def teardown(self):
         self.mocker.UnsetStubs()
         # 設定値の初期化
+        self.mld_proc.SEND_LOOP = True
+        self.mld_proc.RECV_LOOP = True
         self.mld_proc.ch_info = channel_info(self.config)
         self.mld_proc.config = self.config
 
@@ -96,7 +91,7 @@ class test_mld_process():
         eq_(self.mld_proc.config, self.config)
 
         # アドレス情報
-        eq_(self.mld_proc.addressinfo, self.addressinfo)
+        ok_(self.mld_proc.ifinfo)
 
         # スイッチ情報読み込み
         switches = read_json(TEST_COMMON_PATH + const.SWITCH_INFO)
@@ -117,6 +112,112 @@ class test_mld_process():
 
         # Flowmod生成用インスタンス
         ok_(self.mld_proc.flowmod_gen)
+
+    @attr(do=False)
+    def test_init_check_url_true(self):
+        logger.debug("")
+
+        # 読み込む設定ファイルを変更(check_urlがTrueを返却)
+        temp_conf = const.CONF_FILE
+        const.CONF_FILE = "config_ipc.json"
+
+        mld_process.mld_process()
+
+        # 変更した設定を元に戻す
+        const.CONF_FILE = temp_conf
+
+    @attr(do=False)
+    def test_init_check_url_exception(self):
+        # 読み込む設定ファイルを変更(check_urlがTrueを返却)
+        temp_conf = const.CONF_FILE
+        const.CONF_FILE = "config_other.json"
+
+        # errorの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
+        self.mld_proc.logger.error(IsA(str), mld_process.MLD_ZMQ_URL, "udp://")
+        self.mld_proc.logger.error(IsA(str), None)
+        self.mocker.ReplayAll()
+
+        try:
+            mld_process.mld_process()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.mocker.VerifyAll()
+            # 変更した設定を元に戻す
+            const.CONF_FILE = temp_conf
+
+    @attr(do=False)
+    def test_get_interface_info(self):
+        actual = self.mld_proc.get_interface_info(self.IFNAME)
+
+        eq_(self.MAC, actual["mac"])
+        eq_(self.IP6, actual["ip6"])
+
+    @attr(do=False)
+    @raises(SystemExit)
+    def test_get_interface_info_no_exist_if1(self):
+        # 引数に存在しないIF名を入力する
+        ifname = "eth100"
+
+        # error呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
+        self.mld_proc.logger.error(
+            "input exist network interface name where " +
+            const.CONF_FILE + " at 'mld_esw_ifname'.")
+        self.mocker.ReplayAll()
+
+        self.mld_proc.get_interface_info(ifname)
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
+    @raises(SystemExit)
+    def test_get_interface_info_no_exist_if2(self):
+        # 引数に"eth"を入力する
+        #   ifconfigの起動には成功するが存在しないIFを指定した場合の確認
+        ifname = "eth"
+
+        # error呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
+        self.mld_proc.logger.error(
+            "input exist network interface name where " +
+            const.CONF_FILE + " at 'mld_esw_ifname'.")
+
+        self.mld_proc.get_interface_info(ifname)
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
+    @raises(SystemExit)
+    def test_get_interface_info_no_mac(self):
+        # 引数にMACアドレスの存在しないIF（lo）を入力する
+        ifname = "lo"
+
+        # error呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
+        self.mld_proc.logger.error(
+            "input network interface name with mac address where "
+            + const.CONF_FILE + " at 'mld_esw_ifname'.")
+        self.mocker.ReplayAll()
+
+        self.mld_proc.get_interface_info(ifname)
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
+    @raises(SystemExit)
+    def test_get_interface_info_no_ip6(self):
+        # 引数にIPv6アドレスの存在しないIFを入力する
+        #   存在しない場合はこのケースごとコメントアウトすること
+        ifname = "virbr0"
+
+        # error呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
+        self.mld_proc.logger.error(
+            "input network interface name with ipv6 link local address where "
+            + const.CONF_FILE + " at 'mld_esw_ifname'.")
+        self.mocker.ReplayAll()
+
+        self.mld_proc.get_interface_info(ifname)
+        self.mocker.VerifyAll()
 
     @attr(do=False)
     def test_calculate_qqic_under128(self):
@@ -151,38 +252,6 @@ class test_mld_process():
         mant = (arg >> (exp + 3)) & 0xf
         expect = 0x80 | (exp << 4) | mant
         eq_(expect, actual)
-
-    @attr(do=False)
-    def test_init_check_url_true(self):
-        logger.debug("")
-
-        # 読み込む設定ファイルを変更(check_urlがTrueを返却)
-        temp_conf = const.CONF_FILE
-        const.CONF_FILE = "config_ipc.json"
-
-        mld_process.mld_process()
-
-        # 変更した設定を元に戻す
-        const.CONF_FILE = temp_conf
-
-    @attr(do=False)
-    def test_init_check_url_exception(self):
-        # 読み込む設定ファイルを変更(check_urlがTrueを返却)
-        temp_conf = const.CONF_FILE
-        const.CONF_FILE = "config_other.json"
-
-        # errorの呼び出し確認
-        self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
-        self.mld_proc.logger.error(IsA(str), mld_process.MLD_ZMQ_URL, "udp://")
-        self.mld_proc.logger.error(IsA(str), None)
-        self.mocker.ReplayAll()
-
-        mld_process.mld_process()
-
-        # 変更した設定を元に戻す
-        const.CONF_FILE = temp_conf
-
-        self.mocker.VerifyAll()
 
     @attr(do=False)
     def test_check_url_ipc(self):
@@ -363,8 +432,7 @@ class test_mld_process():
             self.mld_proc.create_mldquery(
                 mc_info["mc_addr"], mc_info["serv_ip"]).AndReturn("mld")
             self.mld_proc.create_packet(
-                self.addressinfo, self.config["c_tag_id"], "mld").AndReturn(
-                "sendpkt")
+                self.config["c_tag_id"], "mld").AndReturn("sendpkt")
             for i in range(qqrv):
                 self.mld_proc.send_packet_to_sw(
                     "sendpkt", mc_info["mc_addr"])
@@ -445,18 +513,17 @@ class test_mld_process():
         serv_ip = "2001:1::20"
         vid = self.config["c_tag_id"]
         query = self.mld_proc.create_mldquery(mc_addr, serv_ip)
-        actual = self.mld_proc.create_packet(
-            self.addressinfo, vid, query)
+        actual = self.mld_proc.create_packet(vid, query)
 
         eth = actual.get_protocol(ethernet.ethernet)
-        eq_(self.addressinfo[0], eth.src)
+        eq_(self.MAC, eth.src)
         eq_(self.mld_proc.QUERY_DST, eth.dst)
 
         vln = actual.get_protocol(vlan.vlan)
         eq_(vid, vln.vid)
 
         ip6 = actual.get_protocol(ipv6.ipv6)
-        eq_(self.addressinfo[1], ip6.src)
+        eq_(self.IP6, ip6.src)
         eq_(self.mld_proc.QUERY_DST_IP, ip6.dst)
         # 拡張ヘッダを持っていることを確認
         eq_(inet.IPPROTO_HOPOPTS, ip6.nxt)
@@ -483,11 +550,11 @@ class test_mld_process():
         # ETHER
         eth = ethernet.ethernet(
             ethertype=ether.ETH_TYPE_8021Q,
-            src=self.addressinfo[0], dst=self.mld_proc.QUERY_DST)
+            src=self.MAC, dst=self.mld_proc.QUERY_DST)
 
         # IPV6 with ExtensionHeader
         ip6 = ipv6.ipv6(
-            src=self.addressinfo[1], dst=self.mld_proc.QUERY_DST_IP,
+            src=self.IP6, dst=self.mld_proc.QUERY_DST_IP,
             nxt=inet.IPPROTO_ICMPV6)
 
         # MLD Query
@@ -529,18 +596,17 @@ class test_mld_process():
         vid = self.config["c_tag_id"]
         types = [icmpv6.ALLOW_NEW_SOURCES, icmpv6.CHANGE_TO_INCLUDE_MODE]
         report = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
-        actual = self.mld_proc.create_packet(
-            self.addressinfo, vid, report)
+        actual = self.mld_proc.create_packet(vid, report)
 
         eth = actual.get_protocol(ethernet.ethernet)
-        eq_(self.addressinfo[0], eth.src)
+        eq_(self.MAC, eth.src)
         eq_(self.mld_proc.REPORT_DST, eth.dst)
 
         vln = actual.get_protocol(vlan.vlan)
         eq_(vid, vln.vid)
 
         ip6 = actual.get_protocol(ipv6.ipv6)
-        eq_(self.addressinfo[1], ip6.src)
+        eq_(self.IP6, ip6.src)
         eq_(self.mld_proc.REPORT_DST_IP, ip6.dst)
         # 拡張ヘッダを持っていることを確認
         eq_(inet.IPPROTO_HOPOPTS, ip6.nxt)
@@ -904,7 +970,7 @@ class test_mld_process():
             mc_address=mc_addr1, mc_serv_ip=serv_ip, report_types=report_type)
 
         self.mocker.StubOutWithMock(self.mld_proc, "create_packet")
-        self.mld_proc.create_packet(IsA(list), IsA(int), None)
+        self.mld_proc.create_packet(IsA(int), None)
 
         self.mocker.StubOutWithMock(self.mld_proc, "create_packetout")
         self.mld_proc.create_packetout(
@@ -1100,7 +1166,7 @@ class test_mld_process():
 
         # logger.infoの呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc.logger, "info")
-        self.mld_proc.logger.info("input server ip when VLC started.")
+        self.mld_proc.logger.info("input server_ip when VLC started.")
         self.mocker.ReplayAll()
 
         actual = self.mld_proc.update_user_info(
@@ -1450,6 +1516,16 @@ class test_mld_process():
         time.sleep(1)
         self.mld_proc.RECV_LOOP = True
 
+    @attr(do=False)
+    @raises(SystemExit)
+    def test_end_process(self):
+        # 送受信のループフラグがFalseになっていること
+        # SYstemExitがはっせいすること
+        self.mld_proc.end_process()
+
+        eq_(self.mld_proc.SEND_LOOP, False)
+        eq_(self.mld_proc.RECV_LOOP, False)
+
 
 class test_user_manage():
 
@@ -1464,7 +1540,7 @@ class test_user_manage():
     # このクラスのテストケースを実行する前に１度だけ実行する
     @classmethod
     def setup_class(cls):
-        logger.debug("setup")
+        logger.debug("setup_class")
         config = read_json(TEST_COMMON_PATH + const.CONF_FILE)
         cls.config = config.data["settings"]
 
@@ -2561,66 +2637,6 @@ class test_user_manage():
         eq_(regist_time, ch_user_info.time)
 
         self.mld_proc.config["user_time_out"] = temp_timeout
-
-    @attr(do=False)
-    def test_no_db_regist(self):
-        # 視聴開始（初回ユーザ参加）を行うが、DB登録は行わない
-        #   database_accessor.clientがNoneのままであること
-
-        # 読み込む設定ファイルを変更(check_urlがTrueを返却)
-        temp_conf = const.CONF_FILE
-        const.CONF_FILE = "config_nodb.json"
-
-        mld_proc = mld_process.mld_process()
-
-        # 事前状態確認
-        eq_({}, mld_proc.ch_info.channel_info)
-        eq_([], mld_proc.ch_info.user_info_list)
-        eq_(None, mld_proc.ch_info.accessor.client)
-
-        cid = 1111
-        actual = mld_proc.update_user_info(
-            self.mc_addr1, self.serv_ip, self.datapathid1, self.in_port1,
-            cid, icmpv6.ALLOW_NEW_SOURCES)
-
-        # 返却値の確認
-        eq_(const.CON_REPLY_ADD_MC_GROUP, actual)
-
-        # clientはNoneのままであること
-        eq_(None, mld_proc.ch_info.accessor.client)
-
-        # 視聴情報の更新はされていること
-        # channel_info(mc_addr, serv_ip, datapathid)
-        eq_(1, len(mld_proc.ch_info.channel_info.keys()))
-        eq_((self.mc_addr1, self.serv_ip),
-            mld_proc.ch_info.channel_info.keys()[0])
-        sw_info = mld_proc.ch_info.channel_info[
-            self.mc_addr1, self.serv_ip]
-        eq_(1, len(sw_info.keys()))
-        eq_(self.datapathid1, sw_info.keys()[0])
-        ch_sw_info = sw_info[self.datapathid1]
-
-        # channel_switch_info(port_no, cid)
-        eq_(1, len(ch_sw_info.port_info.keys()))
-        eq_(self.in_port1, ch_sw_info.port_info.keys()[0])
-        user_info = ch_sw_info.port_info[self.in_port1]
-        eq_(1, len(user_info.keys()))
-        eq_(cid, user_info.keys()[0])
-        ch_user_info = user_info[cid]
-
-        # channel_user_info(cid)
-        eq_(cid, ch_user_info.cid)
-        regist_time = ch_user_info.time
-
-        # user_info_list
-        #   リストに追加されていること
-        eq_(1, len(mld_proc.ch_info.user_info_list))
-        ch_user_info = mld_proc.ch_info.user_info_list[-1]
-        eq_(cid, ch_user_info.cid)
-        eq_(regist_time, ch_user_info.time)
-
-        # 変更した設定を元に戻す
-        const.CONF_FILE = temp_conf
 
 
 class dummy_socket():

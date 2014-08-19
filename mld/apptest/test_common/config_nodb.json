@@ -4,7 +4,7 @@
         "check_vlan_flg": "True", 
         "db_connect_str": "",
         "mc_query_interval": 10, 
-        "mld_esw_ifname": "eth3", 
+        "mld_esw_ifname": "eth0", 
         "mld_zmq_recv": "192.168.5.10:7002", 
         "mld_zmq_send": "0.0.0.0:7002", 
         "mld_zmq_url": "tcp://", 

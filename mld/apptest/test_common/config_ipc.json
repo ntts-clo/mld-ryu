@@ -3,7 +3,7 @@
         "c_tag_id": 200, 
         "check_vlan_flg": "True", 
         "mc_query_interval": 10, 
-        "mld_esw_ifname": "h5-eth0", 
+        "mld_esw_ifname": "eth0", 
         "mld_zmq_recv": "/tmp/feeds/ryu-mld", 
         "mld_zmq_send": "/tmp/feeds/mld-ryu", 
         "mld_zmq_url": "ipc://", 
