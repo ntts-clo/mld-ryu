@@ -11,9 +11,10 @@
         "_ofc_zmq_recv(comment)": "OFC受信用のzmqソケットTempFilePath", 
         "_ofc_zmq_send(comment)": "OFC送信用のzmqソケットTempFilePath", 
         "_ofc_zmq_url(comment)": "OFC用のzmqソケットURL [IPC]:(ipc://) or [TCP]:(tcp://)", 
-        "_reguraly_query_interval(comment)": "定期送信クエリの送信間隔", 
+        "_reguraly_query_interval(comment)": "定期送信クエリの送信間隔[秒]", 
         "_reguraly_query_type(comment)": "定期送信クエリのタイプ [GeneralQuery]:(GQ) or [SpecificQuery]:(SQ)", 
-        "_user_time_out(comment)": "視聴ユーザーのタイムアウト時間"
+        "_user_time_out(comment)": "視聴ユーザーのタイムアウト時間[秒]",
+        "_zmq_poll_interval(comment)": "ZMQのPOLL間隔[秒]"
     }, 
     "_settings(development)": {
         "c_tag_id": 200, 
@@ -29,7 +30,8 @@
         "ofc_zmq_url": "ipc://", 
         "reguraly_query_interval": 125, 
         "reguraly_query_type": "SQ", 
-        "user_time_out": 250
+        "user_time_out": 250,
+        "zmq_poll_interval": 10
     }, 
     "settings": {
         "c_tag_id": 200, 
@@ -45,6 +47,7 @@
         "ofc_zmq_url": "tcp://", 
         "reguraly_query_interval": 125, 
         "reguraly_query_type": "SQ", 
-        "user_time_out": 250
+        "user_time_out": 250,
+        "zmq_poll_interval": 10
     }
 }

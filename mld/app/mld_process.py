@@ -69,6 +69,8 @@ class mld_process():
     SEND_LOOP = True
     RECV_LOOP = True
 
+    ZMQ_POLL_INTERVAL = 10
+
     def __init__(self):
         try:
             # ロガーの設定
@@ -869,8 +871,9 @@ class mld_process():
         while self.RECV_LOOP:
             self.logger.debug("waiting packet...")
             # receive of zeromq
-            recvpkt = self.recv_sock.recv()
-            self.analyse_receive_packet(cPickle.loads(recvpkt))
+            if self.recv_sock.poll(self.ZMQ_POLL_INTERVAL) != 0:
+                recvpkt = self.recv_sock.recv()
+                self.analyse_receive_packet(cPickle.loads(recvpkt))
 
 
 if __name__ == "__main__":
