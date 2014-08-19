@@ -2073,7 +2073,7 @@ class test_user_manage():
             const.CON_PACKET_IN, self.datapathid1, self.in_port1, cid, data)
 
         # 既存ユーザに対するMODE_IS_INCLUDE
-        actual = self.mld_proc.manage_user(dispatch_)
+        self.mld_proc.manage_user(dispatch_)
 
         # channel_info(mc_addr, serv_ip, datapathid)
         eq_(2, len(self.mld_proc.ch_info.channel_info.keys()))
@@ -2677,10 +2677,10 @@ class test_user_manage():
 
         # error呼び出し確認
         self.mocker.StubOutWithMock(user_manage.logger, "error")
-        user_manage.logger.error("%s ", None)
+        user_manage.logger.error("%s", None)
         self.mocker.ReplayAll()
 
-        channel_info(config={"db_connect_str": "not ip address"})
+        channel_info({"db_connect_str": "not ip address"})
         self.mocker.VerifyAll()
 
     @attr(do=False)
