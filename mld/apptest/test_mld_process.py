@@ -1512,6 +1512,7 @@ class test_mld_process():
         recv_thre = threading.Thread(target=self.mld_proc.receive_from_ryu)
         recv_thre.daemon = True
         recv_thre.start()
+        time.sleep(1)
         self.mld_proc.RECV_LOOP = False
         time.sleep(1)
         self.mld_proc.RECV_LOOP = True
@@ -2072,7 +2073,7 @@ class test_user_manage():
             const.CON_PACKET_IN, self.datapathid1, self.in_port1, cid, data)
 
         # 既存ユーザに対するMODE_IS_INCLUDE
-        actual = self.mld_proc.manage_user(dispatch_)
+        self.mld_proc.manage_user(dispatch_)
 
         # channel_info(mc_addr, serv_ip, datapathid)
         eq_(2, len(self.mld_proc.ch_info.channel_info.keys()))
@@ -2638,12 +2639,141 @@ class test_user_manage():
 
         self.mld_proc.config["user_time_out"] = temp_timeout
 
+    @attr(do=False)
+    def test_channel_info_init_no_config(self):
+        # config.db_connect_strが指定されなかった場合
+        ch_info = channel_info(config={"db_connect_str": ""})
+        eq_(ch_info.accessor.client, None)
+
+        # 事前状態確認
+        eq_({}, ch_info.channel_info)
+        eq_([], ch_info.user_info_list)
+
+        cid = 1111
+        ch_info.update_ch_info(
+            self.mc_addr1, self.serv_ip, self.datapathid1, self.in_port1, cid)
+
+        # 登録はできていることを確認
+
+        # channel_info(mc_addr, serv_ip, datapathid)
+        eq_(1, len(ch_info.channel_info.keys()))
+        eq_((self.mc_addr1, self.serv_ip), ch_info.channel_info.keys()[0])
+        sw_info = ch_info.channel_info[self.mc_addr1, self.serv_ip]
+        eq_(1, len(sw_info.keys()))
+        eq_(self.datapathid1, sw_info.keys()[0])
+        ch_sw_info = sw_info[self.datapathid1]
+
+        # channel_switch_info(port_no, cid)
+        eq_(1, len(ch_sw_info.port_info.keys()))
+        eq_(self.in_port1, ch_sw_info.port_info.keys()[0])
+        user_info = ch_sw_info.port_info[self.in_port1]
+        eq_(1, len(user_info.keys()))
+        eq_(cid, user_info.keys()[0])
+        ch_user_info = user_info[cid]
+
+    @attr(do=False)
+    def test_channel_info_init_exception(self):
+        # config.db_connect_strが不正な場合（DB接続に失敗）
+
+        # error呼び出し確認
+        self.mocker.StubOutWithMock(user_manage.logger, "error")
+        user_manage.logger.error("%s", None)
+        self.mocker.ReplayAll()
+
+        channel_info({"db_connect_str": "not ip address"})
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
+    def test_update_user_info_exception(self):
+        # accessor.upsert(VIEWR_DATA, self) で例外が発生
+        ch_info = channel_info(self.config)
+
+        # accessor.upsert(VIEWR_DATA, self)でExceptionを『返却
+        self.mocker.StubOutWithMock(ch_info.accessor, "upsert")
+        ch_info.accessor.upsert("viewerdata", ch_info).AndRaise(
+            Exception("test_update_user_info_exception"))
+
+        # error呼び出し確認
+        self.mocker.StubOutWithMock(user_manage.logger, "error")
+        user_manage.logger.error("%s ", None)
+        self.mocker.ReplayAll()
+
+        # 事前状態確認
+        eq_({}, ch_info.channel_info)
+        eq_([], ch_info.user_info_list)
+
+        cid = 1111
+        ch_info.update_ch_info(
+            self.mc_addr1, self.serv_ip, self.datapathid1, self.in_port1, cid)
+
+        # 登録はできていることを確認
+
+        # channel_info(mc_addr, serv_ip, datapathid)
+        eq_(1, len(ch_info.channel_info.keys()))
+        eq_((self.mc_addr1, self.serv_ip), ch_info.channel_info.keys()[0])
+        sw_info = ch_info.channel_info[self.mc_addr1, self.serv_ip]
+        eq_(1, len(sw_info.keys()))
+        eq_(self.datapathid1, sw_info.keys()[0])
+        ch_sw_info = sw_info[self.datapathid1]
+
+        # channel_switch_info(port_no, cid)
+        eq_(1, len(ch_sw_info.port_info.keys()))
+        eq_(self.in_port1, ch_sw_info.port_info.keys()[0])
+        user_info = ch_sw_info.port_info[self.in_port1]
+        eq_(1, len(user_info.keys()))
+        eq_(cid, user_info.keys()[0])
+        ch_user_info = user_info[cid]
+
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
+    def test_remove_user_info_exception(self):
+        # accessor.upsert(VIEWR_DATA, self) で例外が発生
+        ch_info = channel_info(self.config)
+
+        # ユーザ登録
+        cid = 1111
+        ch_info.update_ch_info(
+            self.mc_addr1, self.serv_ip, self.datapathid1, self.in_port1, cid)
+        eq_(1, len(ch_info.user_info_list))
+        eq_(cid, ch_info.user_info_list[0].cid)
+
+        # accessor.upsert(VIEWR_DATA, self)でExceptionを『返却
+        self.mocker.StubOutWithMock(ch_info.accessor, "upsert")
+        ch_info.accessor.upsert("viewerdata", ch_info).AndRaise(
+            Exception("test_remove_user_info_exception"))
+
+        # error呼び出し確認
+        self.mocker.StubOutWithMock(user_manage.logger, "error")
+        user_manage.logger.error("%s ", None)
+        self.mocker.ReplayAll()
+
+        cid = 1111
+        ch_info.remove_ch_info(
+            self.mc_addr1, self.serv_ip, self.datapathid1, self.in_port1, cid)
+
+        # 削除はできていることを確認
+
+        # channel_info(mc_addr, serv_ip, datapathid)
+        #   視聴情報が存在しないこと
+        eq_({}, self.mld_proc.ch_info.channel_info)
+
+        # user_info_list
+        #   ユーザが削除されていること
+        eq_([], self.mld_proc.ch_info.user_info_list)
+
+        self.mocker.VerifyAll()
+
 
 class dummy_socket():
     def recv(self):
         logger.debug("dummy recv...")
+        time.sleep(1)
         dummydata = dispatch(type_=0, datapathid=0, data="dummy")
         return cPickle.dumps(dummydata)
+
+    def poll(self, arg):
+        return 1
 
 
 if __name__ == '__main__':

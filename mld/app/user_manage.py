@@ -25,7 +25,7 @@ VIEWR_DATA = "viewerdata"
 
 
 class channel_info():
-    def __init__(self, config=None):
+    def __init__(self, config):
         try:
             logger.debug("")
             # ch視聴情報を保存する
@@ -40,7 +40,7 @@ class channel_info():
             connect_str = config.get(DB_CONNECT_STR)
             self.accessor = database_accessor(connect_str)
         except:
-            logger.error("%s ", traceback.print_exc())
+            logger.error("%s", traceback.print_exc())
 
     def dump_self(self):
         return cPickle.dumps(self.channel_info)
