@@ -36,14 +36,8 @@ from read_json import read_json
 import mld_const as const
 
 # Socketタイプ用定数
-CHECK_URL_IPC = "ipc://"
-CHECK_URL_TCP = "tcp://"
-# Socketタイプ用定数
-CHECK_URL_IPC = "ipc://"
-CHECK_URL_TCP = "tcp://"
-MLD_ZMQ_URL = "mld_zmq_url"
-MLD_ZMQ_SEND = "mld_zmq_send"
-MLD_ZMQ_RECV = "mld_zmq_recv"
+CHECK_ZMQ_TYPE_IPC = "ipc"
+CHECK_ZMQ_TYPE_TCP = "tcp"
 # ZMQ用定数
 URL_DELIMIT = "://"
 PORT_DELIMIT = ":"
@@ -51,9 +45,9 @@ SEND_IP = "0.0.0.0"
 
 # 設定ファイルの定義名
 SETTING = "settings"
+ZMQ_TYPE = "zmq_type"
 ZMQ_IPC = "zmq_ipc"
 ZMQ_TCP = "zmq_tcp"
-ZMQ_MODE = "zmq_mode"
 ZMQ_PUB = "ofc_zmq"
 ZMQ_SUB = "mld_zmq"
 MLD_SERVER_IP = "mld_server_ip"
@@ -114,7 +108,7 @@ class mld_process():
             # 視聴情報初期化
             self.ch_info = channel_info(self.config)
 
-            zmq_mode = self.config[ZMQ_MODE]
+            zmq_type = self.config[ZMQ_TYPE]
             self.zmq_pub = None
             self.zmq_sub = None
 
@@ -149,8 +143,7 @@ class mld_process():
                     bvid_variation["bvid"]
 
             # ZeroMQ送受信用設定
-            zmq_url = zmq_mode.lower() + URL_DELIMIT
-            if self.check_url(zmq_url):
+            if self.check_zmq_type(self.config[ZMQ_TYPE]):
                 # IPCによるSoket設定の読み込み
                 self.config_zmq_ipc = config.data[ZMQ_IPC]
                 self.zmq_pub = self.config_zmq_ipc[ZMQ_PUB]
@@ -164,8 +157,11 @@ class mld_process():
                 self.config_zmq_tcp = config.data[ZMQ_TCP]
                 self.zmq_sub = self.config_zmq_tcp[MLD_SERVER_IP]
                 self.zmq_sub_list = self.zmq_sub.split(PORT_DELIMIT)
+                # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
                 self.zmq_pub = SEND_IP + PORT_DELIMIT + self.zmq_sub_list[1]
 
+            # zmq_urlの設定
+            zmq_url = zmq_type.lower() + URL_DELIMIT
             # ZeroMQ送受信用ソケット生成
             self.create_socket(zmq_url + self.zmq_pub, zmq_url + self.zmq_sub)
 
@@ -277,20 +273,20 @@ class mld_process():
             return 0x80 | (exp << 4) | mant
 
     # =========================================================================
-    # check_url
+    # check_zmq_mode
     # =========================================================================
-    def check_url(self, zmq_url):
+    def check_zmq_type(self, zmq_type):
         self.logger.debug("")
 
-        if zmq_url == CHECK_URL_IPC:
+        if zmq_type.lower() == CHECK_ZMQ_TYPE_IPC:
             return True
 
-        elif zmq_url == CHECK_URL_TCP:
+        elif zmq_type.lower() == CHECK_ZMQ_TYPE_TCP:
             return False
 
         else:
-            self.logger.error("self.config[%s]:%s", MLD_ZMQ_URL, zmq_url)
-            raise Exception("self.config[%s]:%s" % (MLD_ZMQ_URL, zmq_url))
+            self.logger.error("self.config[%s]:%s", ZMQ_TYPE, zmq_type)
+            raise Exception.message("self.config[%s]:%s", ZMQ_TYPE, zmq_type)
 
     # ==================================================================
     # check_exists_tmp

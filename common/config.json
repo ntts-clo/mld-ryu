@@ -7,7 +7,7 @@
         "_reguraly_query_interval(comment)": "定期送信クエリの送信間隔[秒]", 
         "_reguraly_query_type(comment)": "定期送信クエリのタイプ [GeneralQuery]:(GQ) or [SpecificQuery]:(SQ)", 
         "_user_time_out(comment)": "視聴ユーザーのタイムアウト時間[秒]", 
-        "_zmq_mode(comment)": "ZMQのモード [TCP]:(tcp) or [IPC]:(ipc)"
+        "_zmq_type(comment)": "ZMQのプロトコルタイプ [TCP]:(tcp) or [IPC]:(ipc)"
     }, 
     "_zmq_ipc(comment)": {
         "_mld_zmq(comment)": "MLD_ZMQソケットのTempFilePath", 
@@ -25,7 +25,7 @@
         "reguraly_query_interval": 125, 
         "reguraly_query_type": "SQ", 
         "user_time_out": 250, 
-        "zmq_mode": "tcp"
+        "zmq_type": "tcp"
     }, 
     "zmq_ipc": {
         "mld_zmq": "/tmp/feeds/mld-ryu", 
