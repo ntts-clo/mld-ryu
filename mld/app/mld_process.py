@@ -35,11 +35,28 @@ from zmq_dispatch import dispatch, packet_out_data
 from read_json import read_json
 import mld_const as const
 
+# Socketタイプ用定数
+CHECK_URL_IPC = "ipc://"
+CHECK_URL_TCP = "tcp://"
+# Socketタイプ用定数
 CHECK_URL_IPC = "ipc://"
 CHECK_URL_TCP = "tcp://"
 MLD_ZMQ_URL = "mld_zmq_url"
 MLD_ZMQ_SEND = "mld_zmq_send"
 MLD_ZMQ_RECV = "mld_zmq_recv"
+# ZMQ用定数
+URL_DELIMIT = "://"
+PORT_DELIMIT = ":"
+SEND_IP = "0.0.0.0"
+
+# 設定ファイルの定義名
+SETTING = "settings"
+ZMQ_IPC = "zmq_ipc"
+ZMQ_TCP = "zmq_tcp"
+ZMQ_MODE = "zmq_mode"
+ZMQ_PUB = "ofc_zmq"
+ZMQ_SUB = "mld_zmq"
+MLD_SERVER_IP = "mld_server_ip"
 
 
 # ======================================================================
@@ -70,7 +87,7 @@ class mld_process():
     # 送受信のループフラグ
     SEND_LOOP = True
     RECV_LOOP = True
-
+    # ZMQ受信間隔
     ZMQ_POLL_INTERVAL = 10
 
     def __init__(self):
@@ -83,7 +100,7 @@ class mld_process():
             config = read_json(COMMON_PATH + const.CONF_FILE)
             self.logger.info("%s:%s", const.CONF_FILE, json.dumps(
                 config.data, indent=4, sort_keys=True, ensure_ascii=False))
-            self.config = config.data["settings"]
+            self.config = config.data[SETTING]
 
             # IF情報取得
             self.ifinfo = {}
@@ -97,9 +114,9 @@ class mld_process():
             # 視聴情報初期化
             self.ch_info = channel_info(self.config)
 
-            zmq_url = self.config[MLD_ZMQ_URL]
-            send_path = self.config[MLD_ZMQ_SEND]
-            recv_path = self.config[MLD_ZMQ_RECV]
+            zmq_mode = self.config[ZMQ_MODE]
+            self.zmq_pub = None
+            self.zmq_sub = None
 
             # スイッチ情報読み込み
             switches = read_json(COMMON_PATH + const.SWITCH_INFO)
@@ -132,14 +149,25 @@ class mld_process():
                     bvid_variation["bvid"]
 
             # ZeroMQ送受信用設定
+            zmq_url = zmq_mode.lower() + URL_DELIMIT
             if self.check_url(zmq_url):
+                # IPCによるSoket設定の読み込み
+                self.config_zmq_ipc = config.data[ZMQ_IPC]
+                self.zmq_pub = self.config_zmq_ipc[ZMQ_PUB]
+                self.zmq_sub = self.config_zmq_ipc[ZMQ_SUB]
                 # CHECK TMP FILE(SEND)
-                self.check_exists_tmp(send_path)
+                self.check_exists_tmp(self.zmq_pub)
                 # CHECK TMP FILE(RECV)
-                self.check_exists_tmp(recv_path)
+                self.check_exists_tmp(self.zmq_sub)
+            else:
+                # TCPによるSoket設定の読み込み
+                self.config_zmq_tcp = config.data[ZMQ_TCP]
+                self.zmq_sub = self.config_zmq_tcp[MLD_SERVER_IP]
+                self.zmq_sub_list = self.zmq_sub.split(PORT_DELIMIT)
+                self.zmq_pub = SEND_IP + PORT_DELIMIT + self.zmq_sub_list[1]
 
             # ZeroMQ送受信用ソケット生成
-            self.create_socket(zmq_url + send_path, zmq_url + recv_path)
+            self.create_socket(zmq_url + self.zmq_pub, zmq_url + self.zmq_sub)
 
             # Flowmod生成用インスタンス
             self.flowmod_gen = flow_mod_generator(self.switches)
@@ -271,8 +299,8 @@ class mld_process():
         self.logger.debug("")
 
         if os.path.exists(filename):
-            self.logger.info("[tmp filename]:%s", filename)
-            return
+            self.logger.debug("[tmp filename]:%s", filename)
+            return True
 
         else:
             dirpath = os.path.dirname(filename)

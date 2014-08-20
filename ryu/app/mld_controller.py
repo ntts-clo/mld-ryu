@@ -32,18 +32,26 @@ import json
 # =============================================================================
 # 定数定義
 # =============================================================================
-# OpenFlowのバージョン
+# OpenFlowのバージョン用定数
 OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
-# Socketタイプチェック用定数
+# Socketタイプ用定数
 CHECK_URL_IPC = "ipc://"
 CHECK_URL_TCP = "tcp://"
+# VLANチェックフラグ用定数
+CHECK_VLAN_FLG = True
+# ZMQ用定数
+URL_DELIMIT = "://"
+PORT_DELIMIT = ":"
+SEND_IP = "0.0.0.0"
 
 # 設定ファイルの定義名
 SETTING = "settings"
-CHECK_VLAN_FLG = "check_vlan_flg"
-OFC_ZMQ_URL = "ofc_zmq_url"
-OFC_ZMQ_SEND = "ofc_zmq_send"
-OFC_ZMQ_RECV = "ofc_zmq_recv"
+ZMQ_IPC = "zmq_ipc"
+ZMQ_TCP = "zmq_tcp"
+ZMQ_MODE = "zmq_mode"
+ZMQ_PUB = "mld_zmq"
+ZMQ_SUB = "ofc_zmq"
+OFC_SERVER_IP = "ofc_server_ip"
 
 
 # =============================================================================
@@ -75,25 +83,33 @@ class mld_controller(app_manager.RyuApp):
             self.config = config.data[SETTING]
 
             # zmq設定情報の読み込み
-            zmq_url = self.config[OFC_ZMQ_URL]
-            send_path = self.config[OFC_ZMQ_SEND]
-            recv_path = self.config[OFC_ZMQ_RECV]
-
-            # VLANチェックフラグの読み込み
-            self.check_vlan_flg = self.config[CHECK_VLAN_FLG]
+            zmq_mode = self.config[ZMQ_MODE]
+            self.zmq_pub = None
+            self.zmq_sub = None
 
             # ループフラグの設定
             self.loop_flg = True
 
             # CHECK zmq用URL
+            zmq_url = zmq_mode.lower() + URL_DELIMIT
             if self.check_url(zmq_url):
+                # IPCによるSoket設定の読み込み
+                self.config = config.data[ZMQ_IPC]
+                self.zmq_pub = self.config[ZMQ_PUB]
+                self.zmq_sub = self.config[ZMQ_SUB]
                 # CHECK TMP FILE(SEND)
-                self.check_exists_tmp(send_path)
+                self.check_exists_tmp(self.zmq_pub)
                 # CHECK TMP FILE(RECV)
-                self.check_exists_tmp(recv_path)
+                self.check_exists_tmp(self.zmq_sub)
+            else:
+                # TCPによるSoket設定の読み込み
+                self.config = config.data[ZMQ_TCP]
+                self.zmq_sub = self.config[OFC_SERVER_IP]
+                self.zmq_sub_list = self.zmq_sub.split(PORT_DELIMIT)
+                self.zmq_pub = SEND_IP + PORT_DELIMIT + self.zmq_sub_list[1]
 
             # ZeroMQ送受信用ソケット生成
-            self.create_socket(zmq_url + send_path, zmq_url + recv_path)
+            self.create_socket(zmq_url + self.zmq_pub, zmq_url + self.zmq_sub)
 
             # mldからの受信スレッドを開始
             hub.spawn(self.receive_from_mld)
@@ -145,7 +161,7 @@ class mld_controller(app_manager.RyuApp):
 
             # CHECK VLAN
             pkt_vlan = None
-            if self.check_vlan_flg in "True":
+            if CHECK_VLAN_FLG:
                 pkt_vlan = pkt.get_protocol(vlan.vlan)
                 if not pkt_vlan:
                     self.logger.debug("check vlan:None \n")
@@ -182,7 +198,7 @@ class mld_controller(app_manager.RyuApp):
                         self.logger.debug("check report_group.[type_]:%s \n",
                                           str(mldv2_report_group.type_))
 
-            # CHECK_VLAN_FLG
+            # CHECK_VLAN_ID
             vid = pkt_vlan.vid if pkt_vlan else 0
 
             # SET dispatch
@@ -432,7 +448,7 @@ class mld_controller(app_manager.RyuApp):
 
         # ファイルの存在チェック
         if os.path.exists(filename):
-            self.logger.info("[tmp filename]:%s", filename)
+            self.logger.debug("[tmp filename]:%s", filename)
             return True
 
         else:
