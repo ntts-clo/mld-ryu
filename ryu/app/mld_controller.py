@@ -10,7 +10,7 @@ import logging
 from ryu.base import app_manager
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet, icmpv6, vlan
-from ryu.controller import ofp_event
+from ryu.controller import dpset, ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from eventlet import patcher
@@ -26,7 +26,7 @@ from zmq_dispatch import flow_mod_data
 from read_json import read_json
 import mld_const
 import json
-#import pdb #[breakpoint]pdb.set_trace()
+# import pdb #[breakpoint]pdb.set_trace()
 
 
 # =============================================================================
@@ -51,7 +51,7 @@ ZMQ_IPC = "zmq_ipc"
 ZMQ_TCP = "zmq_tcp"
 ZMQ_PUB = "mld_zmq"
 ZMQ_SUB = "ofc_zmq"
-OFC_SERVER_IP = "ofc_server_ip"
+MLD_SERVER_IP = "mld_server_ip"
 
 
 # =============================================================================
@@ -59,8 +59,10 @@ OFC_SERVER_IP = "ofc_server_ip"
 # =============================================================================
 class mld_controller(app_manager.RyuApp):
 
-    # datapathidに紐付くmessageを保持する辞書定義
-    dict_msg = {}
+    # RyuAppのコンテキストにDPSetを登録
+    _CONTEXTS = {
+        'dpset': dpset.DPSet
+    }
 
     def __init__(self, *args, **kwargs):
         try:
@@ -71,6 +73,9 @@ class mld_controller(app_manager.RyuApp):
             self.logger.debug("")
 
             super(mld_controller, self).__init__(*args, **kwargs)
+
+            # コンテキストからDPSetの取得
+            self.dpset = kwargs['dpset']
 
             # システムモジュールのソケットに対しパッチを適用
             patcher.monkey_patch()
@@ -103,7 +108,7 @@ class mld_controller(app_manager.RyuApp):
             else:
                 # TCPによるSoket設定の読み込み
                 self.config_zmq_tcp = config.data[ZMQ_TCP]
-                self.zmq_sub = self.config_zmq_tcp[OFC_SERVER_IP]
+                self.zmq_sub = self.config_zmq_tcp[MLD_SERVER_IP]
                 self.zmq_sub_list = self.zmq_sub.split(PORT_DELIMIT)
                 # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
                 self.zmq_pub = SEND_IP + PORT_DELIMIT + self.zmq_sub_list[1]
@@ -130,10 +135,7 @@ class mld_controller(app_manager.RyuApp):
             msg = ev.msg
             datapath = ev.msg.datapath
             self.logger.info("OFPSwitchFeatures.[ver]:%s [dpid]:%s [xid]:%s ",
-                              msg.version, msg.datapath.id, msg.datapath.xid)
-
-            # set msg to Dictionary
-            self.dict_msg[datapath.id] = msg
+                              msg.version, msg.datapath.id, msg.xid)
 
             dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
                                     datapathid=datapath.id)
@@ -158,7 +160,7 @@ class mld_controller(app_manager.RyuApp):
             pkt = packet.Packet(msg.data)
 
             self.logger.info("OFPPacketIn.[ver]:%s [dpid]:%s [xid]:%s",
-                              msg.version, msg.datapath.id, msg.datapath.xid)
+                              msg.version, msg.datapath.id, msg.xid)
             self.logger.debug("OFPPacketIn.[data]:%s", str(pkt))
 
             # CHECK VLAN
@@ -229,7 +231,7 @@ class mld_controller(app_manager.RyuApp):
         try:
             msg = ev.msg
             self.logger.info("OFPBarrierReply.[ver]:%s [dpid]:%s [xid]:%s",
-                          msg.version, msg.datapath.id, msg.datapath.xid)
+                          msg.version, msg.datapath.id, msg.xid)
 
         except:
             self.logger.error("%s ", traceback.print_exc())
@@ -237,37 +239,37 @@ class mld_controller(app_manager.RyuApp):
     # =========================================================================
     # send_msg_to_flowmod
     # =========================================================================
-    def send_msg_to_flowmod(self, msgbase, flowmod):
+    def send_msg_to_flowmod(self, datapath, flowmod):
         self.logger.debug("")
 
-        msgbase.datapath.send_msg(flowmod)
+        datapath.send_msg(flowmod)
 
         self.logger.info("FlowMod.[dpid]:%s [xid]:%s",
-                         msgbase.datapath.id, msgbase.datapath.xid)
+                         datapath.id, datapath.xid)
 
     # =========================================================================
     # send_msg_to_barrier_request
     # =========================================================================
-    def send_msg_to_barrier_request(self, msgbase):
+    def send_msg_to_barrier_request(self, datapath):
         self.logger.debug("")
 
-        ofp_parser = msgbase.datapath.ofproto_parser
-        barrier = ofp_parser.OFPBarrierRequest(msgbase.datapath)
-        msgbase.datapath.send_msg(barrier)
+        ofp_parser = datapath.ofproto_parser
+        barrier = ofp_parser.OFPBarrierRequest(datapath)
+        datapath.send_msg(barrier)
 
         self.logger.info("BarrierRequest.[dpid]:%s [xid]:%s",
-                         msgbase.datapath.id, msgbase.datapath.xid)
+                         datapath.id, datapath.xid)
 
     # =========================================================================
     # send_msg_to_packetout
     # =========================================================================
-    def send_msg_to_packetout(self, msgbase, packetout):
+    def send_msg_to_packetout(self, datapath, packetout):
         self.logger.debug("")
 
-        msgbase.datapath.send_msg(packetout)
+        datapath.send_msg(packetout)
 
         self.logger.info("PacketOut.[dpid]:%s [xid]:%s",
-                         msgbase.datapath.id, msgbase.datapath.xid)
+                         datapath.id, datapath.xid)
 
     # ==================================================================
     # analyse_receive_packet
@@ -280,7 +282,7 @@ class mld_controller(app_manager.RyuApp):
             dispatch = recvpkt.dispatch
 
             self.logger.debug("ryu received dispatch:%s", str(dispatch))
-            self.logger.debug("dict_msg:%s", self.dict_msg.items())
+            self.logger.debug("dpset:%s", self.dpset.get_all())
 
             # CHECK dispatch[type_]
             if dispatch["type_"] == mld_const.CON_FLOW_MOD:
@@ -290,50 +292,55 @@ class mld_controller(app_manager.RyuApp):
                 for flowmoddata in flowmodlist:
                     self.logger.debug("[flowmoddata]:%s", flowmoddata)
 
-                    # CHECK dict_msg.datapathid=flowmoddata.datapathid
-                    if not flowmoddata.datapathid in self.dict_msg:
-                        self.logger.error("FlowMod dict_msg[dpid:%s] = None",
-                                         flowmoddata.datapathid)
+                    # flowmoddata.datapathidに紐付くdatapathを取得する
+                    datapath = None
+                    try:
+                        datapath = self.dpset.get(flowmoddata.datapathid)
+                    except KeyError:
+                        self.logger.error("FlowMod dpset[dpid:%s] = None",
+                                          flowmoddata.datapathid)
+                        return False
+                    if datapath is None:
+                        self.logger.error("FlowMod dpset[dpid:%s] = None",
+                                          flowmoddata.datapathid)
+                        return False
 
-                    else:
-                        # flowmoddata.datapathidに紐付くmsgbaseを取得する
-                        msgbase = self.dict_msg[flowmoddata.datapathid]
+                    # FLOW_MOD生成
+                    flowmod = self.create_flow_mod(datapath, flowmoddata)
 
-                        # FLOW_MOD生成
-                        flowmod = self.create_flow_mod(msgbase.datapath,
-                                                       flowmoddata)
+                    # FLOW_MOD送信
+                    self.send_msg_to_flowmod(datapath, flowmod)
 
-                        # FLOW_MOD送信
-                        self.send_msg_to_flowmod(msgbase, flowmod)
-
-                        # BARRIER_REQUEST送信
-                        self.send_msg_to_barrier_request(msgbase)
+                    # BARRIER_REQUEST送信
+                    self.send_msg_to_barrier_request(datapath)
 
             elif dispatch["type_"] == mld_const.CON_PACKET_OUT:
 
-                # CHECK dict_msg.datapathid=dispatch[datapathid]
-                if not dispatch["datapathid"] in self.dict_msg:
-                    self.logger.error("PacketOut dict_msg[dpid:%s] = None",
-                                     dispatch["datapathid"])
+                # dispatch[datapathid]に紐付くdatapathを取得する
+                datapath = None
+                try:
+                    datapath = self.dpset.get(dispatch["datapathid"])
+                except KeyError:
+                    self.logger.error("PacketOut dpset[dpid:%s] = None",
+                                      dispatch["datapathid"])
+                    return False
+                if datapath is None:
+                    self.logger.error("PacketOut dpset[dpid:%s] = None",
+                                      dispatch["datapathid"])
                     return False
 
-                else:
-                    # dispatch[datapathid]に紐付くmsgbaseを取得する
-                    datapathid = dispatch["datapathid"]
-                    msgbase = self.dict_msg[datapathid]
-                    recvpkt = dispatch["data"]
-                    self.logger.debug("PACKET_OUT[data]:%s \n", recvpkt.data)
+                recvpkt = dispatch["data"]
+                self.logger.debug("PACKET_OUT[data]:%s \n", recvpkt.data)
 
-                    # PACKET_OUT生成
-                    packetout = self.create_packet_out(msgbase.datapath,
-                                                       recvpkt)
+                # PACKET_OUT生成
+                packetout = self.create_packet_out(datapath, recvpkt)
 
-                    # PACKET_OUT送信
-                    self.send_msg_to_packetout(msgbase, packetout)
+                # PACKET_OUT送信
+                self.send_msg_to_packetout(datapath, packetout)
 
             else:
                 self.logger.error("dispatch[type_]:Not Exist(%s)",
-                                 dispatch["type_"])
+                                  dispatch["type_"])
                 return False
 
         except:

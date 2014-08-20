@@ -50,7 +50,7 @@ ZMQ_IPC = "zmq_ipc"
 ZMQ_TCP = "zmq_tcp"
 ZMQ_PUB = "ofc_zmq"
 ZMQ_SUB = "mld_zmq"
-MLD_SERVER_IP = "mld_server_ip"
+OFC_SERVER_IP = "ofc_server_ip"
 
 
 # ======================================================================
@@ -155,7 +155,7 @@ class mld_process():
             else:
                 # TCPによるSoket設定の読み込み
                 self.config_zmq_tcp = config.data[ZMQ_TCP]
-                self.zmq_sub = self.config_zmq_tcp[MLD_SERVER_IP]
+                self.zmq_sub = self.config_zmq_tcp[OFC_SERVER_IP]
                 self.zmq_sub_list = self.zmq_sub.split(PORT_DELIMIT)
                 # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
                 self.zmq_pub = SEND_IP + PORT_DELIMIT + self.zmq_sub_list[1]
@@ -971,11 +971,11 @@ class mld_process():
     def receive_from_ryu(self):
         self.logger.debug("")
         while self.RECV_LOOP:
-            self.logger.debug("waiting packet...")
             # receive of zeromq
             if self.recv_sock.poll(self.ZMQ_POLL_INTERVAL) != 0:
                 recvpkt = self.recv_sock.recv()
                 self.analyse_receive_packet(cPickle.loads(recvpkt))
+                self.logger.debug("waiting packet...")
 
     # ==================================================================
     # end_process
