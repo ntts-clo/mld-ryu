@@ -13,6 +13,15 @@
         "ofc_zmq_url": "ipc://", 
         "reguraly_query_interval": 125, 
         "reguraly_query_type": "SQ", 
-        "user_time_out": 250
+        "user_time_out": 250,
+        "zmq_type": "ipc"
+    },
+    "zmq_ipc": {
+        "mld_zmq": "/tmp/feeds/mld-ryu", 
+        "ofc_zmq": "/tmp/feeds/ryu-mld"
+    }, 
+    "zmq_tcp": {
+        "mld_server_ip": "192.168.5.11:7002", 
+        "ofc_server_ip": "192.168.5.10:7002"
     }
 }

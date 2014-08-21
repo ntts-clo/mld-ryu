@@ -48,8 +48,10 @@ class test_mld_process():
 
     # 実際に実行するマシンのIFに合わせた値を設定すること
     IFNAME = "eth0"
-    MAC = "d4:3d:7e:4a:43:fd"
-    IP6 = "fe80::d63d:7eff:fe4a:43fd"
+    #MAC = "d4:3d:7e:4a:43:fd"
+    MAC = "d4:3d:7e:4a:46:0c"
+    #IP6 = "fe80::d63d:7eff:fe4a:43fd"
+    IP6 = "fe80::d63d:7eff:fe4a:460c"
 
     # このクラスのテストケースを実行する前に１度だけ実行する
     @classmethod
@@ -114,10 +116,10 @@ class test_mld_process():
         ok_(self.mld_proc.flowmod_gen)
 
     @attr(do=False)
-    def test_init_check_url_true(self):
+    def test_init_check_zmq_type_true(self):
         logger.debug("")
 
-        # 読み込む設定ファイルを変更(check_urlがTrueを返却)
+        # 読み込む設定ファイルを変更(check_zmq_typeがTrueを返却)
         temp_conf = const.CONF_FILE
         const.CONF_FILE = "config_ipc.json"
 
@@ -127,14 +129,14 @@ class test_mld_process():
         const.CONF_FILE = temp_conf
 
     @attr(do=False)
-    def test_init_check_url_exception(self):
-        # 読み込む設定ファイルを変更(check_urlがTrueを返却)
+    def test_init_check_zmq_type_exception(self):
+        # 読み込む設定ファイルを変更(check_zmq_typeがTrueを返却)
         temp_conf = const.CONF_FILE
         const.CONF_FILE = "config_other.json"
 
         # errorの呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
-        self.mld_proc.logger.error(IsA(str), mld_process.MLD_ZMQ_URL, "udp://")
+        self.mld_proc.logger.error(IsA(str), mld_process.ZMQ_TYPE, "udp")
         self.mld_proc.logger.error(IsA(str), None)
         self.mocker.ReplayAll()
 
@@ -254,45 +256,45 @@ class test_mld_process():
         eq_(expect, actual)
 
     @attr(do=False)
-    def test_check_url_ipc(self):
-        logger.debug("test_check_url_Success001")
+    def test_check_zmq_type_ipc(self):
+        logger.debug("test_check_zmq_type_Success001")
         """
         概要：zmqで使用するurlの妥当性チェック
         条件：zmq_url=ipc://
         結果：resultがTrueであること
         """
         # 【前処理】
-        zmq_url = "ipc://"
+        zmq_url = "ipc"
 
         # 【実行】
-        result = self.mld_proc.check_url(zmq_url)
+        result = self.mld_proc.check_zmq_type(zmq_url)
 
         # 【結果】
-        logger.debug("test_check_url_Success001 [result] %s", str(result))
+        logger.debug("test_check_zmq_type_Success001 [result] %s", str(result))
         ok_(result)
 
     @attr(do=False)
-    def test_check_url_tcp(self):
-        logger.debug("test_check_url_Success002")
+    def test_check_zmq_type_tcp(self):
+        logger.debug("test_check_zmq_type_Success002")
         """
         概要：zmqで使用するurlの妥当性チェック
         条件：zmq_url=tcp://
         結果：resultがTrueであること
         """
         # 【前処理】
-        zmq_url = "tcp://"
+        zmq_url = "tcp"
 
         # 【実行】
-        result = self.mld_proc.check_url(zmq_url)
+        result = self.mld_proc.check_zmq_type(zmq_url)
 
         # 【結果】
-        logger.debug("test_check_url_Success002 [result] %s", str(result))
+        logger.debug("test_check_zmq_type_Success002 [result] %s", str(result))
         ok_(not result)
 
     @attr(do=False)
     @raises(Exception)
-    def test_check_url_other(self):
-        logger.debug("test_check_url_Failer001")
+    def test_check_zmq_type_other(self):
+        logger.debug("test_check_zmq_type_Failer001")
         """
         概要：zmqで使用するurlの妥当性チェック
         条件：zmq_url=ipf:///
@@ -301,9 +303,9 @@ class test_mld_process():
         # 【前処理】
         zmq_url = "ipf:///"
         # 【実行】
-        result = self.mld_proc.check_url(zmq_url)
+        result = self.mld_proc.check_zmq_type(zmq_url)
         # 【結果】
-        logger.debug("test_check_url_other [Exception] %s", e)
+        logger.debug("test_check_zmq_type_other [Exception] %s", e)
 
     @attr(do=False)
     def test_check_exists_tmp_exsist(self):
