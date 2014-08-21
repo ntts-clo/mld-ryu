@@ -47,7 +47,8 @@
             "datapathid": 276596903168, 
             "edge_switch_port": 50, 
             "olt_ports": [
-                1
+                1,
+                2
             ], 
             "sw_bmac": "02:40:66:75:cd:00", 
             "sw_name": "sw1", 
