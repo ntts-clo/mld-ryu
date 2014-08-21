@@ -46,7 +46,7 @@ from ryu.lib.packet.packet import Packet
 
 from ryu.lib.packet import ethernet, ipv6, icmpv6, vlan
 from ryu.ofproto import ether, inet
-from ryu.controller import ofp_event
+from ryu.controller import dpset, ofp_event
 from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
 from nose.plugins.attrib import attr
 from ryu.ofproto.ofproto_v1_3_parser import OFPPacketIn, OFPMatch
@@ -68,15 +68,33 @@ logger = logging.getLogger(__name__)
 # OpenFlowのバージョン
 OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 # Socketタイプチェック用定数
+CHECK_ZMQ_TYPE_IPC = "ipc"
+CHECK_ZMQ_TYPE_TCP = "tcp"
 CHECK_URL_IPC = "ipc://"
 CHECK_URL_TCP = "tcp://"
 
 # 設定ファイルの定義名
 SETTING = "settings"
 CHECK_VLAN_FLG = "check_vlan_flg"
-OFC_ZMQ_URL = "ofc_zmq_url"
-OFC_ZMQ_SEND = "ofc_zmq_send"
-OFC_ZMQ_RECV = "ofc_zmq_recv"
+#OFC_ZMQ_URL = "ofc_zmq_url"
+#OFC_ZMQ_SEND = "ofc_zmq_send"
+#OFC_ZMQ_RECV = "ofc_zmq_recv"
+ZMQ_TYPE = "zmq_type"
+ZMQ_IPC = "zmq_ipc"
+ZMQ_TCP = "zmq_tcp"
+ZMQ_PUB = "mld_zmq"
+ZMQ_SUB = "ofc_zmq"
+MLD_SERVER_IP = "mld_server_ip"
+
+# VLANチェックフラグ用定数
+CHECK_VLAN_FLG = True
+# ZMQ用定数
+URL_DELIMIT = "://"
+PORT_DELIMIT = ":"
+SEND_IP = "0.0.0.0"
+
+# 設定ファイルの定義名
+
 
 MC_ADDR1 = "ff38::1:1"
 SERVER_IP1 = "2001::1:20"
@@ -122,13 +140,9 @@ class test_mld_controller():
     BASEPATH = os.path.dirname(os.path.abspath(__file__))
     MULTICAST_SERVICE_INFO = os.path.normpath(
         os.path.join(BASEPATH, COMMON_PATH + "multicast_service_info.csv"))
-    ADDRESS_INFO = os.path.normpath(
-        os.path.join(BASEPATH, COMMON_PATH + "address_info.csv"))
-    addressinfo = []
 
     logger.debug(BASEPATH)
     logger.debug(MULTICAST_SERVICE_INFO)
-    logger.debug(ADDRESS_INFO)
 
     # このクラスのテストケースを実行する前に１度だけ実行する
     @classmethod
@@ -137,21 +151,17 @@ class test_mld_controller():
 
         config = read_json(COMMON_PATH + mld_const.CONF_FILE)
         cls.config = config.data["settings"]
-
-        cls.addressinfo = []
-        for line in open(COMMON_PATH + mld_const.ADDRESS_INFO, "r"):
-            if line[0] == "#":
-                continue
-            else:
-                columns = list(line[:-1].split(","))
-                for column in columns:
-                    cls.addressinfo.append(column)
+        cls.config_zmq_ipc = config.data[ZMQ_IPC]
+        cls.config_zmq_tcp = config.data[ZMQ_TCP]
 
         mc_info = read_json(COMMON_PATH + mld_const.MULTICAST_INFO)
         cls.mc_info_list = mc_info.data["mc_info"]
-
-        cls.mld_ctrl = mld_controller.mld_controller()
-
+        """
+        dpset_ins = dpset.DPSet()
+        kwargs = {}
+        kwargs['dpset'] = dpset_ins
+        cls.mld_ctrl = mld_controller.mld_controller(**kwargs)
+        """
     # このクラスのテストケースをすべて実行した後に１度だけ実行する
     @classmethod
     def teardown_class(clazz):
@@ -159,16 +169,34 @@ class test_mld_controller():
 
     def setup(self):
         self.mocker = Mox()
+
+        dpset_ins = dpset.DPSet()
+        kwargs = {}
+        kwargs['dpset'] = dpset_ins
+        self.mld_ctrl = mld_controller.mld_controller(**kwargs)
+
         # 設定値の初期化
         self.mld_ctrl.config = self.config
 
         # zmq設定情報の読み込み
-        send_path = self.config[OFC_ZMQ_SEND]
-        recv_path = self.config[OFC_ZMQ_RECV]
-        # CHECK TMP FILE(SEND)
-        self.mld_ctrl.check_exists_tmp(send_path)
-        # CHECK TMP FILE(RECV)
-        self.mld_ctrl.check_exists_tmp(recv_path)
+        self.zmq_pub = None
+        self.zmq_sub = None
+
+        # CHECK zmq用URL
+        if self.mld_ctrl.check_zmq_type(self.config[ZMQ_TYPE]):
+            # IPCによるSoket設定の読み込み
+            self.zmq_pub = self.config_zmq_ipc[ZMQ_PUB]
+            self.zmq_sub = self.config_zmq_ipc[ZMQ_SUB]
+            # CHECK TMP FILE(SEND)
+            self.mld_ctrl.check_exists_tmp(self.zmq_pub)
+            # CHECK TMP FILE(RECV)
+            self.mld_ctrl.check_exists_tmp(self.zmq_sub)
+        else:
+            # TCPによるSoket設定の読み込み
+            self.zmq_sub = self.config_zmq_tcp[MLD_SERVER_IP]
+            self.zmq_sub_list = self.zmq_sub.split(PORT_DELIMIT)
+            # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
+            self.zmq_pub = SEND_IP + PORT_DELIMIT + self.zmq_sub_list[1]
 
     def tearDown(self):
         # StubOutWithMoc()を呼んだ後に必要。常に呼んでおけば安心
@@ -245,8 +273,15 @@ class test_mld_controller():
         # dict_msgの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
-        self.mld_ctrl.dict_msg[datapath.id] = ev.msg
-
+        ev.msg.version=4
+#        self.mld_ctrl.dict_msg[datapath.id] = ev.msg
+        #dpset.set_ev_cls(ev, datapath)
+        """
+        dpset_ins = dpset.DPSet()
+        dpset_ins.switch_features_handler(ev)
+        """
+        #dpset.DPSet.send_request(ev)
+        #dpset.DPSet.register_handler(ev)
         # DummyPACKET_OUTのデータを作成
         # ETHER
         eth = ethernet.ethernet(
@@ -337,8 +372,12 @@ class test_mld_controller():
         # dict_msgの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
-        self.mld_ctrl.dict_msg[datapath.id] = ev.msg
-
+        #self.mld_ctrl.dict_msg[datapath.id] = ev.msg
+#        dpset.DPSet.switch_features_handler(ev)
+        """
+        dpset_ins = dpset.DPSet()
+        dpset_ins.switch_features_handler(ev)
+        """
         # DummyFLOW_MODのデータを作成
         flowmoddata = flow_mod_data(datapathid=datapath.id,
                                     table_id=0, priority=0, match=0,
@@ -399,8 +438,13 @@ class test_mld_controller():
         # dict_msgの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
-        self.mld_ctrl.dict_msg[datapath.id] = ev.msg
-
+        #self.mld_ctrl.dict_msg[datapath.id] = ev.msg
+#        dpset.set_ev_cls(ev, datapath)
+#        dpset.DPSet.switch_features_handler(ev)
+        """
+        dpset_ins = dpset.DPSet()
+        dpset_ins.switch_features_handler(ev)
+        """
         # DummyFLOW_MODのデータを作成
         flowmoddata = flow_mod_data(datapathid=datapath.id,
                                     table_id=0, priority=0, match=0,
@@ -490,7 +534,8 @@ class test_mld_controller():
         # dict_msgの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
-        self.mld_ctrl.dict_msg[2] = ev.msg
+        #self.mld_ctrl.dict_msg[2] = ev.msg
+        dpset.set_ev_cls(ev, datapath)
 
         # DummyPACKET_OUTのデータを作成
         # ETHER
@@ -561,7 +606,8 @@ class test_mld_controller():
             # dict_msgの作成
             featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
             ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
-            self.mld_ctrl.dict_msg[datapath.id] = ev.msg
+            #self.mld_ctrl.dict_msg[datapath.id] = ev.msg
+            dpset.set_ev_cls(ev, datapath)
 
             switches = read_json(COMMON_PATH + "switch_info.json")
             self.switch_mld_info = switches.data["switch_mld_info"]
@@ -662,7 +708,8 @@ class test_mld_controller():
         # dict_msgの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
-        self.mld_ctrl.dict_msg[datapath.id] = ev.msg
+        #self.mld_ctrl.dict_msg[datapath.id] = ev.msg
+        dpset.set_ev_cls(ev, datapath)
 
         # DummyPACKET_OUTのデータを作成
         # ETHER
@@ -773,10 +820,12 @@ class test_mld_controller():
 
         config = read_json(COMMON_PATH + mld_const.CONF_FILE)
         self.config = config.data["settings"]
+        self.config_zmq_ipc = config.data[ZMQ_IPC]
+        self.config_zmq_tcp = config.data[ZMQ_TCP]
 
         zmq_url = "ipc://"
-        send_mld_ryu_file_path = self.config["mld_zmq_send"]
-        recv_mld_ryu_file_path = self.config["mld_zmq_recv"]
+        send_mld_ryu_file_path = self.config_zmq_ipc[ZMQ_PUB]
+        recv_mld_ryu_file_path = self.config_zmq_ipc[ZMQ_SUB]
         # CHECK TMP FILE(SEND)
         self.mld_ctrl.check_exists_tmp(send_mld_ryu_file_path)
         self.mld_ctrl.check_exists_tmp(recv_mld_ryu_file_path)
@@ -852,10 +901,12 @@ class test_mld_controller():
 
         config = read_json(COMMON_PATH + mld_const.CONF_FILE)
         self.config = config.data["settings"]
+        self.config_zmq_ipc = config.data[ZMQ_IPC]
+        self.config_zmq_tcp = config.data[ZMQ_TCP]
 
         zmq_url = "ipc://"
-        send_mld_ryu_file_path = self.config["mld_zmq_send"]
-        recv_mld_ryu_file_path = self.config["mld_zmq_recv"]
+        send_mld_ryu_file_path = self.config_zmq_ipc[ZMQ_PUB]
+        recv_mld_ryu_file_path = self.config_zmq_ipc[ZMQ_SUB]
         # CHECK TMP FILE(SEND)
         self.mld_ctrl.check_exists_tmp(send_mld_ryu_file_path)
         self.mld_ctrl.check_exists_tmp(recv_mld_ryu_file_path)
@@ -948,7 +999,7 @@ class test_mld_controller():
         flowmod = self.mld_ctrl.create_flow_mod(datapath, flowmoddata)
 
         # 【実行】
-        result = self.mld_ctrl.send_msg_to_flowmod(ev.msg, flowmod)
+        result = self.mld_ctrl.send_msg_to_flowmod(ev.msg.datapath, flowmod)
 
         # 【結果】
         logger.debug("test_send_msg_to_flowmod_Success001 [result] %s",
@@ -975,7 +1026,7 @@ class test_mld_controller():
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
 
         # 【実行】
-        result = self.mld_ctrl.send_msg_to_barrier_request(ev.msg)
+        result = self.mld_ctrl.send_msg_to_barrier_request(ev.msg.datapath)
 
         # 【結果】
         logger.debug("test_send_msg_to_barrier_request_Success001 [result] %s",
@@ -1003,66 +1054,66 @@ class test_mld_controller():
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
 
         # 【実行】
-        result = self.mld_ctrl.send_msg_to_packetout(ev.msg, packetoutdata)
+        result = self.mld_ctrl.send_msg_to_packetout(ev.msg.datapath, packetoutdata)
 
         # 【結果】
         logger.debug("test_send_msg_to_packetout_Success001 [result] %s",
                      str(result))
         assert_equal(result, None)
 
-    def test_check_url_Success001(self):
-        # mld_controller.check_url(self, zmq_url)
-        logger.debug("test_check_url_Success001")
+    def test_check_zmq_type_Success001(self):
+        # mld_controller.check_zmq_type(self, zmq_type)
+        logger.debug("test_check_zmq_type_Success001")
         """
         概要：zmqで使用するurlの妥当性チェック
         条件：zmq_url=ipc://
         結果：resultがTrueであること
         """
         # 【前処理】
-        zmq_url = "ipc://"
+        zmq_type = "ipc"
 
         # 【実行】
-        result = self.mld_ctrl.check_url(zmq_url)
+        result = self.mld_ctrl.check_zmq_type(zmq_type)
 
         # 【結果】
-        logger.debug("test_check_url_Success001 [result] %s", str(result))
+        logger.debug("test_check_zmq_type_Success001 [result] %s", str(result))
         assert_equal(result, True)
 
-    def test_check_url_Success002(self):
-        # mld_controller.check_url(self, zmq_url)
-        logger.debug("test_check_url_Success002")
+    def test_check_zmq_type_Success002(self):
+        # mld_controller.check_zmq_type(self, zmq_type)
+        logger.debug("test_check_zmq_type_Success002")
         """
         概要：zmqで使用するurlの妥当性チェック
         条件：zmq_url=tcp://
         結果：resultがTrueであること
         """
         # 【前処理】
-        zmq_url = "tcp://"
+        zmq_type = "tcp"
 
         # 【実行】
-        result = self.mld_ctrl.check_url(zmq_url)
+        result = self.mld_ctrl.check_zmq_type(zmq_type)
 
         # 【結果】
-        logger.debug("test_check_url_Success002 [result] %s", str(result))
+        logger.debug("test_check_zmq_type_Success002 [result] %s", str(result))
         assert_equal(result, False)
 
-    def test_check_url_Failer001(self):
-        # mld_controller.check_url(self, zmq_url)
-        logger.debug("test_check_url_Failer001")
+    def test_check_zmq_type_Failer001(self):
+        # mld_controller.check_zmq_type(self, zmq_type)
+        logger.debug("test_check_zmq_type_Failer001")
         """
         概要：zmqで使用するurlの妥当性チェック
         条件：zmq_url=ipf:///
         結果：Exceptionが発生すること
         """
         # 【前処理】
-        zmq_url = "ipf:///"
+        zmq_type = "upd"
         try:
             # 【実行】
-            result = self.mld_ctrl.check_url(zmq_url)
-            logger.debug("test_check_url_Failer001 [result] %s", str(result))
+            result = self.mld_ctrl.check_zmq_type(zmq_type)
+            logger.debug("test_check_zmq_type_Failer001 [result] %s", str(result))
         except Exception as e:
             # 【結果】
-            logger.debug("test_check_url_Failer001 [Exception] %s", e)
+            logger.debug("test_check_zmq_type_Failer001 [Exception] %s", e)
             assert_raises(Exception, e)
         return
 
@@ -1158,7 +1209,7 @@ class test_mld_controller():
         logger.debug("test_switch_features_handler_Success001 [result] %s",
                      str(result))
         assert_equal(result, None)
-        assert_equal(self.mld_ctrl.dict_msg[datapath.id], ev.msg)
+        #assert_equal(self.mld_ctrl.dict_msg[datapath.id], ev.msg)
 
     def test_switch_features_handler_Failuer001(self):
         # mld_controller._switch_features_handler
@@ -1185,7 +1236,7 @@ class test_mld_controller():
 
         except Exception as e:
             # 【結果】
-            logger.debug("test_barrier_reply_handler_Failuer001[Exception] %s",
+            logger.debug("test_switch_features_handler_Failuer001[Exception] %s",
                          e)
             assert_raises(Exception, e)
         return
@@ -1878,32 +1929,44 @@ class test_mld_controller():
             # システムモジュールのソケットに対しパッチを適用
             patcher.monkey_patch()
 
+            # ループフラグの設定
+            self.loop_flg = True
+
             # 設定情報の読み込み
             config = read_json(COMMON_PATH + mld_const.CONF_FILE)
             self.logger.debug("config_info:%s", str(config.data))
             self.config = config.data[SETTING]
-            self.SOCKET_TIME_OUT = self.config[SOCKET_TIME_OUT]
 
             # zmq設定情報の読み込み
-            zmq_url = self.config[OFC_ZMQ_URL]
-            send_path = self.config[OFC_ZMQ_SEND]
-            recv_path = self.config[OFC_ZMQ_RECV]
-
-            # VLANチェックフラグの読み込み
-            self.check_vlan_flg = self.config[CHECK_VLAN_FLG]
-
-            # ループフラグの設定
-            self.loop_flg = True
+            zmq_type = self.config[ZMQ_TYPE]
+            self.zmq_pub = None
+            self.zmq_sub = None
 
             # CHECK zmq用URL
-            if self.check_url(zmq_url):
+            if self.check_zmq_type(self.config[ZMQ_TYPE]):
+                # IPCによるSoket設定の読み込み
+                self.config_zmq_ipc = config.data[ZMQ_IPC]
+                self.zmq_pub = self.config_zmq_ipc[ZMQ_PUB]
+                self.zmq_sub = self.config_zmq_ipc[ZMQ_SUB]
                 # CHECK TMP FILE(SEND)
-                self.check_exists_tmp(send_path)
+                self.check_exists_tmp(self.zmq_pub)
                 # CHECK TMP FILE(RECV)
-                self.check_exists_tmp(recv_path)
+                self.check_exists_tmp(self.zmq_sub)
+            else:
+                # TCPによるSoket設定の読み込み
+                self.config_zmq_tcp = config.data[ZMQ_TCP]
+                self.zmq_sub = self.config_zmq_tcp[MLD_SERVER_IP]
+                self.zmq_sub_list = self.zmq_sub.split(PORT_DELIMIT)
+                # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
+                self.zmq_pub = SEND_IP + PORT_DELIMIT + self.zmq_sub_list[1]
 
+            # zmq_urlの設定
+            zmq_url = zmq_type.lower() + URL_DELIMIT
             # ZeroMQ送受信用ソケット生成
-            self.create_socket(zmq_url + send_path, zmq_url + recv_path)
+            self.create_socket(zmq_url + self.zmq_pub, zmq_url + self.zmq_sub)
+
+            # VLANチェックフラグの読み込み
+#            self.check_vlan_flg = self.config[CHECK_VLAN_FLG]
 
         except Exception as e:
             # 【結果】
