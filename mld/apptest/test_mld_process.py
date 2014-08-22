@@ -216,8 +216,9 @@ class test_mld_process():
         # error呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
         self.mld_proc.logger.error(
-            "input exist network interface name where " +
-                const.CONF_FILE + " at 'mld_esw_ifname'.")
+            "input network interface name with " +
+                        "ipv6 link local address where " + const.CONF_FILE +
+                        " at 'mld_esw_ifname'.")
         self.mocker.ReplayAll()
 
         self.mld_proc.get_interface_info(ifname)
