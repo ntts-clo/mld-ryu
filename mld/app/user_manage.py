@@ -20,7 +20,6 @@ import mld_const
 logging.config.fileConfig(COMMON_PATH + mld_const.MLD_LOG_CONF)
 logger = logging.getLogger(__name__)
 
-DB_CONNECT_STR = "db_connect_str"
 VIEWR_DATA = "viewerdata"
 
 
@@ -37,7 +36,7 @@ class channel_info():
             self.user_info_list = []
 
             # DBアクセサクラスのインスタンス生成
-            connect_str = config.get(DB_CONNECT_STR)
+            connect_str = config.get(mld_const.DB_CONNECT_STR)
             self.accessor = database_accessor(connect_str)
         except:
             logger.error("%s", traceback.print_exc())

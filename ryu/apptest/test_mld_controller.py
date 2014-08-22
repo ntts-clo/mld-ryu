@@ -269,6 +269,7 @@ class test_mld_controller():
         # DummyDatapathidを設定
         datapath.id = 1
         datapath.xid = 999
+        datapath.ports = {}
 
         # dict_msgの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
@@ -280,6 +281,9 @@ class test_mld_controller():
         dpset_ins = dpset.DPSet()
         dpset_ins.switch_features_handler(ev)
         """
+        self.mld_ctrl.dpset = dpset.DPSet()
+        self.mld_ctrl.dpset._register(datapath)
+        
         #dpset.DPSet.send_request(ev)
         #dpset.DPSet.register_handler(ev)
         # DummyPACKET_OUTのデータを作成
@@ -368,6 +372,7 @@ class test_mld_controller():
         # DummyDatapathidを設定
         datapath.id = 1
         datapath.xid = 11111
+        datapath.ports = {}
 
         # dict_msgの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
@@ -378,6 +383,9 @@ class test_mld_controller():
         dpset_ins = dpset.DPSet()
         dpset_ins.switch_features_handler(ev)
         """
+        self.mld_ctrl.dpset = dpset.DPSet()
+        self.mld_ctrl.dpset._register(datapath)
+
         # DummyFLOW_MODのデータを作成
         flowmoddata = flow_mod_data(datapathid=datapath.id,
                                     table_id=0, priority=0, match=0,
@@ -434,6 +442,7 @@ class test_mld_controller():
         # DummyDatapathidを設定
         datapath.id = 1
         datapath.xid = 22222
+        datapath.ports = {}
 
         # dict_msgの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
@@ -445,6 +454,9 @@ class test_mld_controller():
         dpset_ins = dpset.DPSet()
         dpset_ins.switch_features_handler(ev)
         """
+        self.mld_ctrl.dpset = dpset.DPSet()
+        self.mld_ctrl.dpset._register(datapath)
+
         # DummyFLOW_MODのデータを作成
         flowmoddata = flow_mod_data(datapathid=datapath.id,
                                     table_id=0, priority=0, match=0,
@@ -789,7 +801,7 @@ class test_mld_controller():
         datapath.id = 1
         datapath.xid = 999
         # dispatch_の作成
-        dispatch_ = dispatch(type_=mld_const.CON_MAIN_DISPACHER,
+        dispatch_ = dispatch(type_=mld_const.CON_MAIN_DISPATCHER,
                                 datapathid=datapath.id)
 
         # 【実行】

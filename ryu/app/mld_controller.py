@@ -11,7 +11,7 @@ from ryu.base import app_manager
 from ryu.ofproto import ofproto_v1_3
 from ryu.lib.packet import packet, icmpv6, vlan
 from ryu.controller import dpset, ofp_event
-from ryu.controller.handler import MAIN_DISPATCHER, CONFIG_DISPATCHER
+from ryu.controller.handler import MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from eventlet import patcher
 from ryu.lib import hub
@@ -26,31 +26,13 @@ from zmq_dispatch import flow_mod_data
 from read_json import read_json
 import mld_const
 import json
-#import pdb #[breakpoint]pdb.set_trace()
-
+# import pdb #[breakpoint]pdb.set_trace()
 
 # =============================================================================
 # 定数定義
 # =============================================================================
-# Socketタイプ用定数
-CHECK_ZMQ_TYPE_IPC = "ipc"
-CHECK_ZMQ_TYPE_TCP = "tcp"
 # VLANチェックフラグ用定数
 CHECK_VLAN_FLG = True
-# ZMQ用定数
-URL_DELIMIT = "://"
-PORT_DELIMIT = ":"
-SEND_IP = "0.0.0.0"
-
-# 設定ファイルの定義名
-SETTING = "settings"
-ZMQ_TYPE = "zmq_type"
-ZMQ_IPC = "zmq_ipc"
-ZMQ_TCP = "zmq_tcp"
-ZMQ_PUB = "mld_zmq"
-ZMQ_SUB = "ofc_zmq"
-MLD_SERVER_IP = "mld_server_ip"
-
 
 # =============================================================================
 # Ryu MLDコントローラー
@@ -85,36 +67,37 @@ class mld_controller(app_manager.RyuApp):
             self.logger.info("%s:%s", mld_const.CONF_FILE,
                 json.dumps(config.data, indent=4,
                            sort_keys=True, ensure_ascii=False))
-            self.config = config.data[SETTING]
+            self.config = config.data[mld_const.SETTING]
 
             # ループフラグの設定
             self.loop_flg = True
 
             # zmq設定情報の読み込み
-            zmq_type = self.config[ZMQ_TYPE]
+            zmq_type = self.config[mld_const.ZMQ_TYPE]
             self.zmq_pub = None
             self.zmq_sub = None
 
             # CHECK zmq用URL
-            if self.check_zmq_type(self.config[ZMQ_TYPE]):
+            if self.check_zmq_type(zmq_type):
                 # IPCによるSoket設定の読み込み
-                self.config_zmq_ipc = config.data[ZMQ_IPC]
-                self.zmq_pub = self.config_zmq_ipc[ZMQ_PUB]
-                self.zmq_sub = self.config_zmq_ipc[ZMQ_SUB]
+                self.config_zmq_ipc = config.data[mld_const.ZMQ_IPC]
+                self.zmq_pub = self.config_zmq_ipc[mld_const.ZMQ_PUB]
+                self.zmq_sub = self.config_zmq_ipc[mld_const.ZMQ_SUB]
                 # CHECK TMP FILE(SEND)
                 self.check_exists_tmp(self.zmq_pub)
                 # CHECK TMP FILE(RECV)
                 self.check_exists_tmp(self.zmq_sub)
             else:
                 # TCPによるSoket設定の読み込み
-                self.config_zmq_tcp = config.data[ZMQ_TCP]
-                self.zmq_sub = self.config_zmq_tcp[MLD_SERVER_IP]
-                self.zmq_sub_list = self.zmq_sub.split(PORT_DELIMIT)
+                self.config_zmq_tcp = config.data[mld_const.ZMQ_TCP]
+                self.zmq_sub = self.config_zmq_tcp[mld_const.MLD_SERVER_IP]
+                self.zmq_sub_list = self.zmq_sub.split(mld_const.PORT_DELIMIT)
                 # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
-                self.zmq_pub = SEND_IP + PORT_DELIMIT + self.zmq_sub_list[1]
+                self.zmq_pub = mld_const.SEND_IP + mld_const.PORT_DELIMIT \
+                    + self.zmq_sub_list[1]
 
             # zmq_urlの設定
-            zmq_url = zmq_type.lower() + URL_DELIMIT
+            zmq_url = zmq_type.lower() + mld_const.URL_DELIMIT
             # ZeroMQ送受信用ソケット生成
             self.create_socket(zmq_url + self.zmq_pub, zmq_url + self.zmq_sub)
 
@@ -136,11 +119,11 @@ class mld_controller(app_manager.RyuApp):
             self.logger.info("OFPStateChange(MAIN).[ver]:%s [dpid]:%s ",
                              datapath.ofproto.OFP_VERSION, datapath.id)
 
-            dispatch_ = dispatch(type_=mld_const.CON_MAIN_DISPACHER,
+            dispatch_ = dispatch(type_=mld_const.CON_MAIN_DISPATCHER,
                                  datapathid=datapath.id)
 
             self.logger.debug("dispatch[type_]:%s",
-                              mld_const.CON_MAIN_DISPACHER)
+                              mld_const.CON_MAIN_DISPATCHER)
             self.logger.debug("dispatch[datapathid]:%s", datapath.id)
 
             self.send_to_mld(dispatch_)
@@ -438,15 +421,15 @@ class mld_controller(app_manager.RyuApp):
     def check_zmq_type(self, zmq_type):
         self.logger.debug("")
 
-        if zmq_type.lower() == CHECK_ZMQ_TYPE_IPC:
+        if zmq_type.lower() == mld_const.CHECK_ZMQ_TYPE_IPC:
             return True
 
-        elif zmq_type.lower() == CHECK_ZMQ_TYPE_TCP:
+        elif zmq_type.lower() == mld_const.CHECK_ZMQ_TYPE_TCP:
             return False
 
         else:
-            self.logger.error("self.config[%s]:%s", ZMQ_TYPE, zmq_type)
-            raise Exception.message("self.config[%s]:%s", ZMQ_TYPE, zmq_type)
+            self.logger.error("self.config[%s]:%s", mld_const.ZMQ_TYPE, zmq_type)
+            raise Exception.message("self.config[%s]:%s", mld_const.ZMQ_TYPE, zmq_type)
 
     # =========================================================================
     # check_exists_tmp

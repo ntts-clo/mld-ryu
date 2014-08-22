@@ -13,38 +13,13 @@ from ryu.ofproto.ofproto_v1_3_parser import OFPActionPopVlan, OFPActionPushPbb, 
 DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 COMMON_PATH = DIR_PATH + "/../../common/"
 sys.path.append(COMMON_PATH)
+import mld_const as const
 from zmq_dispatch import flow_mod_data
 
 # =============================================================================
 # フローテーブルのプライオリティ
 # =============================================================================
 PRIORITY_NORMAL = ofproto.OFP_DEFAULT_PRIORITY
-
-# =============================================================================
-# switch設定ファイルの定義名
-# =============================================================================
-# swtich_info common
-SW_TAG_DATAPATHID = "datapathid"
-SW_TAG_TYPE = "sw_type"
-SW_TYPE_12K = 12000
-SW_TYPE_26K = 26000
-SW_TAG_NAME = "sw_name"
-SW_NAME_ESW = "esw"
-SW_TAG_BMAC = "sw_bmac"
-# swtich_info edge
-# common
-SW_TAG_EDGE_ROUTER_PORT = "edge_router_port"
-# Apresia12000k
-SW_TAG_CONTEINER_PORTS = "container_sw_ports"
-# Apresia26000k
-SW_TAG_CONTEINER_PORT = "container_sw_port"
-SW_TAG_FCRP_PORT = "fcrp_port"
-SW_TAG_LAG = "lag"
-SW_TAG_FCRP = "fcrp"
-SW_TAG_PHYSICAL = "physical"
-# switch_info container
-SW_TAG_EDGE_SWITCH_PORT = "edge_switch_port"
-SW_TAG_OLT_PORTS = "olt_ports"
 
 
 # =============================================================================
@@ -60,20 +35,20 @@ class flow_mod_generator(object):
 
         for switch_info in switch_infos:
 
-            datapathid = switch_info[SW_TAG_DATAPATHID]
-            sw_type = switch_info[SW_TAG_TYPE]
+            datapathid = switch_info[const.SW_TAG_DATAPATHID]
+            sw_type = switch_info[const.SW_TAG_TYPE]
 
             flow_mod_gen_impl = None
-            if sw_type == SW_TYPE_12K:
+            if sw_type == const.SW_TYPE_12K:
                 flow_mod_gen_impl = apresia_12k(switch_info)
-            elif sw_type == SW_TYPE_26K:
+            elif sw_type == const.SW_TYPE_26K:
                 flow_mod_gen_impl = apresia_26k(switch_info)
             else:
                 raise flow_mod_gen_exception("Unsupported sw_type:" +
                                              str(sw_type) + ", datapathid=" +
                                              str(datapathid) + ".")
 
-            if switch_info[SW_TAG_NAME] == SW_NAME_ESW:
+            if switch_info[const.SW_TAG_NAME] == const.SW_NAME_ESW:
                 self.edge_switchs.append(flow_mod_gen_impl)
             else:
                 self.container_switches[datapathid] = flow_mod_gen_impl
@@ -301,7 +276,7 @@ class flow_mod_gen_impl(object):
                        OFPActionSetField(pbb_isid=pbb_isid),
                        OFPActionSetField(eth_dst="00:00:00:00:00:00"),
                        OFPActionSetField(eth_src=self.
-                                         switch_info[SW_TAG_BMAC]),
+                                         switch_info[const.SW_TAG_BMAC]),
                        OFPActionPushVlan(ethertype=ether.ETH_TYPE_8021AD),
                        OFPActionSetField(vlan_vid=bvid),
                        parser.OFPActionOutput(ofproto.OFPP_NORMAL)]
@@ -329,7 +304,7 @@ class flow_mod_gen_impl(object):
         match = parser.OFPMatch(in_port=in_port,
                                 eth_type=ether.ETH_TYPE_8021AH,
                                 pbb_isid=pbb_isid,
-                                eth_dst=self.switch_info[SW_TAG_BMAC])
+                                eth_dst=self.switch_info[const.SW_TAG_BMAC])
 
         inst = None
         out_port = 0
@@ -399,12 +374,12 @@ class apresia_12k(flow_mod_gen_impl):
 
     def initialize_flows(self, ivid, pbb_isid, bvid, flow_mod_datas):
 
-        datapathid = self.switch_info[SW_TAG_DATAPATHID]
+        datapathid = self.switch_info[const.SW_TAG_DATAPATHID]
 
-        if self.switch_info[SW_TAG_NAME] == SW_NAME_ESW:
+        if self.switch_info[const.SW_TAG_NAME] == const.SW_NAME_ESW:
 
-            edge_router_port = self.switch_info[SW_TAG_EDGE_ROUTER_PORT]
-            container_sw_ports = self.switch_info[SW_TAG_CONTEINER_PORTS]
+            edge_router_port = self.switch_info[const.SW_TAG_EDGE_ROUTER_PORT]
+            container_sw_ports = self.switch_info[const.SW_TAG_CONTEINER_PORTS]
 
             # MLD QueryのPacket-In
             in_port = self.logical_port_untag(edge_router_port)
@@ -426,8 +401,8 @@ class apresia_12k(flow_mod_gen_impl):
 
         else:
 
-            edge_switch_port = self.switch_info[SW_TAG_EDGE_SWITCH_PORT]
-            olt_ports = self.switch_info[SW_TAG_OLT_PORTS]
+            edge_switch_port = self.switch_info[const.SW_TAG_EDGE_SWITCH_PORT]
+            olt_ports = self.switch_info[const.SW_TAG_OLT_PORTS]
 
             # MLDv2 ReportのPacket-In
             for olt_port in olt_ports:
@@ -456,9 +431,9 @@ class apresia_12k(flow_mod_gen_impl):
     def start_mg_edge(self, multicast_address, datapathid, mc_ivid,
                       ivid, pbb_isid, bvid, flow_mod_datas):
 
-        mydpid = self.switch_info[SW_TAG_DATAPATHID]
-        edge_router_port = self.switch_info[SW_TAG_EDGE_ROUTER_PORT]
-        container_sw_ports = self.switch_info[SW_TAG_CONTEINER_PORTS]
+        mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
+        edge_router_port = self.switch_info[const.SW_TAG_EDGE_ROUTER_PORT]
+        container_sw_ports = self.switch_info[const.SW_TAG_CONTEINER_PORTS]
 
         # チャネル毎の内部VLANマッピング
         in_port = self.logical_port_untag(edge_router_port)
@@ -482,7 +457,7 @@ class apresia_12k(flow_mod_gen_impl):
     def add_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid,
                           bvid, flow_mod_datas):
 
-        mydpid = self.switch_info[SW_TAG_DATAPATHID]
+        mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
 
         # PBBカプセル化
         in_port = apresia_12k.TAG2PBB
@@ -494,9 +469,9 @@ class apresia_12k(flow_mod_gen_impl):
     def remove_mg_edge(self, multicast_address, datapathid, mc_ivid,
                        ivid, pbb_isid, bvid, flow_mod_datas):
 
-        mydpid = self.switch_info[SW_TAG_DATAPATHID]
-        edge_router_port = self.switch_info[SW_TAG_EDGE_ROUTER_PORT]
-        container_sw_ports = self.switch_info[SW_TAG_CONTEINER_PORTS]
+        mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
+        edge_router_port = self.switch_info[const.SW_TAG_EDGE_ROUTER_PORT]
+        container_sw_ports = self.switch_info[const.SW_TAG_CONTEINER_PORTS]
 
         # チャネル毎の内部VLANマッピング
         in_port = self.logical_port_untag(edge_router_port)
@@ -521,7 +496,7 @@ class apresia_12k(flow_mod_gen_impl):
     def remove_datapath_edge(self, multicast_address, datapathid, ivid,
                              pbb_isid, bvid, flow_mod_datas):
 
-        mydpid = self.switch_info[SW_TAG_DATAPATHID]
+        mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
 
         # PBBカプセル化
         in_port = apresia_12k.TAG2PBB
@@ -532,8 +507,8 @@ class apresia_12k(flow_mod_gen_impl):
     # bvidは使用しない
     def start_mg_container(self, portno, ivid, pbb_isid, bvid, flow_mod_datas):
 
-        mydpid = self.switch_info[SW_TAG_DATAPATHID]
-        edge_switch_port = self.switch_info[SW_TAG_EDGE_SWITCH_PORT]
+        mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
+        edge_switch_port = self.switch_info[const.SW_TAG_EDGE_SWITCH_PORT]
 
         # VLAN設定（PBB入力側)
         in_port = self.logical_port_pbb(edge_switch_port)
@@ -554,7 +529,7 @@ class apresia_12k(flow_mod_gen_impl):
     # pbb_isid, bvidは使用しない
     def add_port_container(self, portno, ivid, pbb_isid, bvid, flow_mod_datas):
 
-        mydpid = self.switch_info[SW_TAG_DATAPATHID]
+        mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
 
         # VLAN設定(OLT出力側）
         in_port = self.logical_port_untag(portno)
@@ -565,8 +540,8 @@ class apresia_12k(flow_mod_gen_impl):
     def remove_mg_container(self, portno, ivid, pbb_isid, bvid,
                             flow_mod_datas):
 
-        mydpid = self.switch_info[SW_TAG_DATAPATHID]
-        edge_switch_port = self.switch_info[SW_TAG_EDGE_SWITCH_PORT]
+        mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
+        edge_switch_port = self.switch_info[const.SW_TAG_EDGE_SWITCH_PORT]
 
         # VLAN設定（PBB入力側)
         in_port = self.logical_port_pbb(edge_switch_port)
@@ -588,7 +563,7 @@ class apresia_12k(flow_mod_gen_impl):
     def remove_port_container(self, portno, ivid, pbb_isid, bvid,
                               flow_mod_datas):
 
-        mydpid = self.switch_info[SW_TAG_DATAPATHID]
+        mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
 
         # VLAN設定(OLT出力側）
         in_port = self.logical_port_untag(portno)
@@ -616,13 +591,13 @@ class apresia_26k(flow_mod_gen_impl):
 
     def initialize_flows(self, ivid, pbb_isid, bvid, flow_mod_datas):
 
-        datapathid = self.switch_info[SW_TAG_DATAPATHID]
+        datapathid = self.switch_info[const.SW_TAG_DATAPATHID]
 
-        if self.switch_info[SW_TAG_NAME] == SW_NAME_ESW:
+        if self.switch_info[const.SW_TAG_NAME] == const.SW_NAME_ESW:
 
-            edge_router_port = self.switch_info[SW_TAG_EDGE_ROUTER_PORT]
-            fcrp_sw_port = self.switch_info[SW_TAG_FCRP_PORT]
-            container_sw_port = self.switch_info[SW_TAG_CONTEINER_PORT]
+            edge_router_port = self.switch_info[const.SW_TAG_EDGE_ROUTER_PORT]
+            fcrp_sw_port = self.switch_info[const.SW_TAG_FCRP_PORT]
+            container_sw_port = self.switch_info[const.SW_TAG_CONTEINER_PORT]
 
             # MLD QueryのPacket-In
             in_port = self.logical_port_untag(edge_router_port)
@@ -630,23 +605,24 @@ class apresia_26k(flow_mod_gen_impl):
                                                in_port, flow_mod_datas)
 
             # MLD QueryのPBBカプセル化
-            in_port = self.port_tag2pbb(fcrp_sw_port[SW_TAG_PHYSICAL])
+            in_port = self.port_tag2pbb(fcrp_sw_port[const.SW_TAG_PHYSICAL])
             self.make_flow_pbb_capsule(ofproto.OFPFC_ADD, datapathid,
                                        in_port, ivid, pbb_isid, bvid,
                                        flow_mod_datas)
 
-            in_port = self.port_tag2pbb(container_sw_port[SW_TAG_PHYSICAL])
+            in_port = self.port_tag2pbb(
+                container_sw_port[const.SW_TAG_PHYSICAL])
             self.make_flow_pbb_capsule(ofproto.OFPFC_ADD, datapathid,
                                        in_port, ivid, pbb_isid, bvid,
                                        flow_mod_datas)
 
             # MLD QueryのVLAN設定(PBB出力側)
-            in_port = self.fcrp_port_pbb(fcrp_sw_port[SW_TAG_FCRP])
+            in_port = self.fcrp_port_pbb(fcrp_sw_port[const.SW_TAG_FCRP])
             self.make_flow_vlan_setting(ofproto.OFPFC_ADD,
                                         datapathid, in_port, ivid,
                                         flow_mod_datas)
 
-            in_port = self.lag_port_pbb(container_sw_port[SW_TAG_LAG])
+            in_port = self.lag_port_pbb(container_sw_port[const.SW_TAG_LAG])
             self.make_flow_vlan_setting(ofproto.OFPFC_ADD,
                                         datapathid, in_port, ivid,
                                         flow_mod_datas)
@@ -657,10 +633,10 @@ class apresia_26k(flow_mod_gen_impl):
     def start_mg_edge(self, multicast_address, datapathid, mc_ivid,
                       ivid, pbb_isid, bvid, flow_mod_datas):
 
-        mydpid = self.switch_info[SW_TAG_DATAPATHID]
-        edge_router_port = self.switch_info[SW_TAG_EDGE_ROUTER_PORT]
-        fcrp_sw_port = self.switch_info[SW_TAG_FCRP_PORT]
-        container_sw_port = self.switch_info[SW_TAG_CONTEINER_PORT]
+        mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
+        edge_router_port = self.switch_info[const.SW_TAG_EDGE_ROUTER_PORT]
+        fcrp_sw_port = self.switch_info[const.SW_TAG_FCRP_PORT]
+        container_sw_port = self.switch_info[const.SW_TAG_CONTEINER_PORT]
 
         # チャネル毎の内部VLANマッピング
         in_port = self.logical_port_untag(edge_router_port)
@@ -669,23 +645,23 @@ class apresia_26k(flow_mod_gen_impl):
                                             mc_ivid, ivid, flow_mod_datas)
 
         # PBBカプセル化
-        in_port = self.port_tag2pbb(fcrp_sw_port[SW_TAG_PHYSICAL])
+        in_port = self.port_tag2pbb(fcrp_sw_port[const.SW_TAG_PHYSICAL])
         self.make_flow_pbb_capsule(ofproto.OFPFC_ADD,
                                    mydpid, in_port, ivid, pbb_isid, bvid,
                                    flow_mod_datas)
 
-        in_port = self.port_tag2pbb(container_sw_port[SW_TAG_PHYSICAL])
+        in_port = self.port_tag2pbb(container_sw_port[const.SW_TAG_PHYSICAL])
         self.make_flow_pbb_capsule(ofproto.OFPFC_ADD,
                                    mydpid, in_port, ivid, pbb_isid, bvid,
                                    flow_mod_datas)
 
         # VLAN設定(PBB出力側)
-        in_port = self.fcrp_port_pbb(fcrp_sw_port[SW_TAG_FCRP])
+        in_port = self.fcrp_port_pbb(fcrp_sw_port[const.SW_TAG_FCRP])
         self.make_flow_vlan_setting(ofproto.OFPFC_ADD,
                                     mydpid, in_port, ivid,
                                     flow_mod_datas)
 
-        in_port = self.lag_port_pbb(container_sw_port[SW_TAG_LAG])
+        in_port = self.lag_port_pbb(container_sw_port[const.SW_TAG_LAG])
         self.make_flow_vlan_setting(ofproto.OFPFC_ADD,
                                     mydpid, in_port, ivid,
                                     flow_mod_datas)
@@ -694,17 +670,17 @@ class apresia_26k(flow_mod_gen_impl):
     def add_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid,
                           bvid, flow_mod_datas):
 
-        mydpid = self.switch_info[SW_TAG_DATAPATHID]
-        fcrp_sw_port = self.switch_info[SW_TAG_FCRP_PORT]
-        container_sw_port = self.switch_info[SW_TAG_CONTEINER_PORT]
+        mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
+        fcrp_sw_port = self.switch_info[const.SW_TAG_FCRP_PORT]
+        container_sw_port = self.switch_info[const.SW_TAG_CONTEINER_PORT]
 
         # PBBカプセル化
-        in_port = self.port_tag2pbb(fcrp_sw_port[SW_TAG_PHYSICAL])
+        in_port = self.port_tag2pbb(fcrp_sw_port[const.SW_TAG_PHYSICAL])
         self.make_flow_pbb_capsule(ofproto.OFPFC_MODIFY_STRICT,
                                    mydpid, in_port, ivid, pbb_isid, bvid,
                                    flow_mod_datas)
 
-        in_port = self.port_tag2pbb(container_sw_port[SW_TAG_PHYSICAL])
+        in_port = self.port_tag2pbb(container_sw_port[const.SW_TAG_PHYSICAL])
         self.make_flow_pbb_capsule(ofproto.OFPFC_MODIFY_STRICT,
                                    mydpid, in_port, ivid, pbb_isid, bvid,
                                    flow_mod_datas)
@@ -713,10 +689,10 @@ class apresia_26k(flow_mod_gen_impl):
     def remove_mg_edge(self, multicast_address, datapathid, mc_ivid,
                        ivid, pbb_isid, bvid, flow_mod_datas):
 
-        mydpid = self.switch_info[SW_TAG_DATAPATHID]
-        edge_router_port = self.switch_info[SW_TAG_EDGE_ROUTER_PORT]
-        fcrp_sw_port = self.switch_info[SW_TAG_FCRP_PORT]
-        container_sw_port = self.switch_info[SW_TAG_CONTEINER_PORT]
+        mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
+        edge_router_port = self.switch_info[const.SW_TAG_EDGE_ROUTER_PORT]
+        fcrp_sw_port = self.switch_info[const.SW_TAG_FCRP_PORT]
+        container_sw_port = self.switch_info[const.SW_TAG_CONTEINER_PORT]
 
         # チャネル毎の内部VLANマッピング
         in_port = self.logical_port_untag(edge_router_port)
@@ -725,23 +701,23 @@ class apresia_26k(flow_mod_gen_impl):
                                             mc_ivid, ivid, flow_mod_datas)
 
         # PBBカプセル化
-        in_port = self.port_tag2pbb(fcrp_sw_port[SW_TAG_PHYSICAL])
+        in_port = self.port_tag2pbb(fcrp_sw_port[const.SW_TAG_PHYSICAL])
         self.make_flow_pbb_capsule(ofproto.OFPFC_DELETE_STRICT,
                                    mydpid, in_port, ivid, pbb_isid, bvid,
                                    flow_mod_datas)
 
-        in_port = self.port_tag2pbb(container_sw_port[SW_TAG_PHYSICAL])
+        in_port = self.port_tag2pbb(container_sw_port[const.SW_TAG_PHYSICAL])
         self.make_flow_pbb_capsule(ofproto.OFPFC_DELETE_STRICT,
                                    mydpid, in_port, ivid, pbb_isid, bvid,
                                    flow_mod_datas)
 
         # VLAN設定(PBB出力側)
-        in_port = self.fcrp_port_pbb(fcrp_sw_port[SW_TAG_FCRP])
+        in_port = self.fcrp_port_pbb(fcrp_sw_port[const.SW_TAG_FCRP])
         self.make_flow_vlan_setting(ofproto.OFPFC_DELETE_STRICT,
                                     mydpid, in_port, ivid,
                                     flow_mod_datas)
 
-        in_port = self.lag_port_pbb(container_sw_port[SW_TAG_LAG])
+        in_port = self.lag_port_pbb(container_sw_port[const.SW_TAG_LAG])
         self.make_flow_vlan_setting(ofproto.OFPFC_DELETE_STRICT,
                                     mydpid, in_port, ivid,
                                     flow_mod_datas)
@@ -750,17 +726,17 @@ class apresia_26k(flow_mod_gen_impl):
     def remove_datapath_edge(self, multicast_address, datapathid, ivid,
                              pbb_isid, bvid, flow_mod_datas):
 
-        mydpid = self.switch_info[SW_TAG_DATAPATHID]
-        fcrp_sw_port = self.switch_info[SW_TAG_FCRP_PORT]
-        container_sw_port = self.switch_info[SW_TAG_CONTEINER_PORT]
+        mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
+        fcrp_sw_port = self.switch_info[const.SW_TAG_FCRP_PORT]
+        container_sw_port = self.switch_info[const.SW_TAG_CONTEINER_PORT]
 
         # PBBカプセル化
-        in_port = self.port_tag2pbb(fcrp_sw_port[SW_TAG_PHYSICAL])
+        in_port = self.port_tag2pbb(fcrp_sw_port[const.SW_TAG_PHYSICAL])
         self.make_flow_pbb_capsule(ofproto.OFPFC_MODIFY_STRICT,
                                    mydpid, in_port, ivid, pbb_isid, bvid,
                                    flow_mod_datas)
 
-        in_port = self.port_tag2pbb(container_sw_port[SW_TAG_PHYSICAL])
+        in_port = self.port_tag2pbb(container_sw_port[const.SW_TAG_PHYSICAL])
         self.make_flow_pbb_capsule(ofproto.OFPFC_MODIFY_STRICT,
                                    mydpid, in_port, ivid, pbb_isid, bvid,
                                    flow_mod_datas)

@@ -48,10 +48,12 @@ class test_mld_process():
 
     # 実際に実行するマシンのIFに合わせた値を設定すること
     IFNAME = "eth0"
-    #MAC = "d4:3d:7e:4a:43:fd"
-    MAC = "d4:3d:7e:4a:46:0c"
-    #IP6 = "fe80::d63d:7eff:fe4a:43fd"
-    IP6 = "fe80::d63d:7eff:fe4a:460c"
+    MAC = "d4:3d:7e:4a:43:fd"
+    #MAC = "d4:3d:7e:4a:46:0c"
+    #MAC = "8c:89:a5:db:c4:19"
+    IP6 = "fe80::d63d:7eff:fe4a:43fd"
+    #IP6 = "fe80::d63d:7eff:fe4a:460c"
+    #IP6 = "fe80::8e89:a5ff:fedb:c419"
 
     # このクラスのテストケースを実行する前に１度だけ実行する
     @classmethod
@@ -136,7 +138,7 @@ class test_mld_process():
 
         # errorの呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
-        self.mld_proc.logger.error(IsA(str), mld_process.ZMQ_TYPE, "udp")
+        self.mld_proc.logger.error(IsA(str), const.ZMQ_TYPE, "udp")
         self.mld_proc.logger.error(IsA(str), None)
         self.mocker.ReplayAll()
 
@@ -214,8 +216,8 @@ class test_mld_process():
         # error呼び出し確認
         self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
         self.mld_proc.logger.error(
-            "input network interface name with ipv6 link local address where "
-            + const.CONF_FILE + " at 'mld_esw_ifname'.")
+            "input exist network interface name where " +
+                const.CONF_FILE + " at 'mld_esw_ifname'.")
         self.mocker.ReplayAll()
 
         self.mld_proc.get_interface_info(ifname)
@@ -414,7 +416,9 @@ class test_mld_process():
         # Falseで指定した引数がTrueに更新されていること
         next_interval = Value(ctypes.c_bool, False)
         self.mld_proc.config["reguraly_query_interval"] = 1
-        self.mld_proc.wait_query_interval(next_interval)
+        self.mld_proc.wait_query_interval(
+            next_interval,
+            self.mld_proc.config["reguraly_query_interval"])
         self.mld_proc.config["reguraly_query_interval"] = \
             self.config["reguraly_query_interval"]
         ok_(next_interval.value)
@@ -437,7 +441,8 @@ class test_mld_process():
                 self.config["c_tag_id"], "mld").AndReturn("sendpkt")
             for i in range(qqrv):
                 self.mld_proc.send_packet_to_sw(
-                    "sendpkt", mc_info["mc_addr"])
+                    "sendpkt", mc_info["mc_addr"],
+                    self.mld_proc.config["c_tag_id"])
         self.mocker.ReplayAll()
 
         self.mld_proc.send_mldquery(mc_info_list, wait_time)
@@ -629,7 +634,7 @@ class test_mld_process():
         packet.serialize()
 
         self.mld_proc.config["mld_esw_ifname"] = "eth0"
-        self.mld_proc.send_packet_to_sw(packet, "ff38::1:1")
+        self.mld_proc.send_packet_to_sw(packet, "ff38::1:1", 200)
 
     @attr(do=False)
     def test_send_packet_to_ryu(self):
@@ -646,7 +651,7 @@ class test_mld_process():
     @attr(do=False)
     def test_analyse_receive_packet_switch_feature(self):
         # switchとの初回接続時：set_switch_configを呼び出す
-        dispatch_ = dispatch(const.CON_SWITCH_FEATURE, 1)
+        dispatch_ = dispatch(const.CON_MAIN_DISPATCHER, 1)
 
         self.mocker.StubOutWithMock(self.mld_proc, "set_switch_config")
         self.mld_proc.set_switch_config(dispatch_.dispatch)
@@ -713,7 +718,7 @@ class test_mld_process():
     @attr(do=False)
     def test_analyse_receive_packet_exception(self):
         # 解析中に例外が発生した場合：エラーログを出力
-        dispatch_ = dispatch(const.CON_SWITCH_FEATURE, 1)
+        dispatch_ = dispatch(const.CON_MAIN_DISPATCHER, 1)
 
         # set_switch_configがExceptionを返却
         self.mocker.StubOutWithMock(self.mld_proc, "set_switch_config")
@@ -734,7 +739,7 @@ class test_mld_process():
     def test_set_switch_config(self):
 
         datapathid = self.mld_proc.switches[1]["datapathid"]
-        dispatch_ = dispatch(const.CON_SWITCH_FEATURE, datapathid)
+        dispatch_ = dispatch(const.CON_MAIN_DISPATCHER, datapathid)
 
         # flowmod_gen.initialize_flowsのスタブ化
         self.mocker.StubOutWithMock(
@@ -759,7 +764,9 @@ class test_mld_process():
         datapathid = self.mld_proc.edge_switch["datapathid"]
         packet = ipv6.ipv6()
 
-        actual = self.mld_proc.create_packetout(datapathid, packet)
+        actual = self.mld_proc.create_packetout(datapathid, 
+                                                self.mld_proc.edge_switch["edge_router_port"], 
+                                                packet)
 
         ok_(type(actual) is packet_out_data)
         eq_(datapathid, actual.datapathid)
@@ -976,7 +983,9 @@ class test_mld_process():
 
         self.mocker.StubOutWithMock(self.mld_proc, "create_packetout")
         self.mld_proc.create_packetout(
-            datapathid=self.mld_proc.edge_switch["datapathid"], packet=None)
+            datapathid=self.mld_proc.edge_switch["datapathid"],
+            port=self.mld_proc.edge_switch["edge_router_port"],
+            packet=None)
 
         self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
         self.mld_proc.send_packet_to_ryu(IsA(dispatch))

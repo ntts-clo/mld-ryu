@@ -15,7 +15,7 @@
         "reguraly_query_type": "SQ", 
         "socket_time_out": 1000, 
         "user_time_out": 250,
-        "zmq_type": "tcp"
+        "zmq_type": "udp"
     },
     "zmq_ipc": {
         "mld_zmq": "/tmp/feeds/mld-ryu", 
