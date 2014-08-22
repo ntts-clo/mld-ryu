@@ -544,7 +544,7 @@ class mld_process():
             self.logger.debug("received [data]: %s", str(dispatch_["data"]))
             receive_type = dispatch_["type_"]
 
-            if receive_type == const.CON_SWITCH_FEATURE:
+            if receive_type == const.CON_MAIN_DISPACHER:
                 self.set_switch_config(dispatch_)
 
             elif receive_type == const.CON_PACKET_IN:

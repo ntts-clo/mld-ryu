@@ -26,14 +26,12 @@ from zmq_dispatch import flow_mod_data
 from read_json import read_json
 import mld_const
 import json
-# import pdb #[breakpoint]pdb.set_trace()
+#import pdb #[breakpoint]pdb.set_trace()
 
 
 # =============================================================================
 # 定数定義
 # =============================================================================
-# OpenFlowのバージョン用定数
-OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 # Socketタイプ用定数
 CHECK_ZMQ_TYPE_IPC = "ipc"
 CHECK_ZMQ_TYPE_TCP = "tcp"
@@ -58,6 +56,8 @@ MLD_SERVER_IP = "mld_server_ip"
 # Ryu MLDコントローラー
 # =============================================================================
 class mld_controller(app_manager.RyuApp):
+    # OpenFlowのバージョン用定数
+    OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 
     # RyuAppのコンテキストにDPSetを登録
     _CONTEXTS = {
@@ -125,23 +125,22 @@ class mld_controller(app_manager.RyuApp):
             self.logger.error("%s ", traceback.print_exc())
 
     # =========================================================================
-    # _switch_features_handler
+    # _main_dispacher_handler
     # =========================================================================
-    @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
-    def _switch_features_handler(self, ev):
+    @set_ev_cls(ofp_event.EventOFPStateChange, MAIN_DISPATCHER)
+    def _main_dispacher_handler(self, ev):
         self.logger.debug("")
 
         try:
-            msg = ev.msg
-            datapath = ev.msg.datapath
-            self.logger.info("OFPSwitchFeatures.[ver]:%s [dpid]:%s [xid]:%s ",
-                              msg.version, msg.datapath.id, msg.xid)
+            datapath = ev.datapath
+            self.logger.info("OFPStateChange(MAIN).[ver]:%s [dpid]:%s ",
+                             datapath.ofproto.OFP_VERSION, datapath.id)
 
-            dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
-                                    datapathid=datapath.id)
+            dispatch_ = dispatch(type_=mld_const.CON_MAIN_DISPACHER,
+                                 datapathid=datapath.id)
 
             self.logger.debug("dispatch[type_]:%s",
-                              mld_const.CON_SWITCH_FEATURE)
+                              mld_const.CON_MAIN_DISPACHER)
             self.logger.debug("dispatch[datapathid]:%s", datapath.id)
 
             self.send_to_mld(dispatch_)

@@ -349,7 +349,7 @@ class test_mld_controller():
         result = self.mld_ctrl.analyse_receive_packet(packet)
 
         # 【結果】
-        #self.mocker.VerifyAll()
+        self.mocker.VerifyAll()
         logger.debug("test_analyse_receive_packet_Success001 [result] %s",
                      str(result))
         assert_not_equal(result, False)
@@ -789,7 +789,7 @@ class test_mld_controller():
         datapath.id = 1
         datapath.xid = 999
         # dispatch_の作成
-        dispatch_ = dispatch(type_=mld_const.CON_SWITCH_FEATURE,
+        dispatch_ = dispatch(type_=mld_const.CON_MAIN_DISPACHER,
                                 datapathid=datapath.id)
 
         # 【実行】
@@ -1182,11 +1182,11 @@ class test_mld_controller():
         os.remove(send_file_path)
         os.rmdir(SEND_FILE_PATH)
 
-    def test_switch_features_handler_Success001(self):
-        # mld_controller._switch_features_handler
-        logger.debug("test_switch_features_handler_Success001")
+    def test_main_dispacher_handler_Success001(self):
+        # mld_controller._main_dispacher_handler
+        logger.debug("test_main_dispacher_handler_Success001")
         """
-        概要：SwitchFeaturesイベント発生時の処理
+        概要：MainDispacherイベント発生時の処理
         条件：dict_msgに存在しないdatapath.idを設定し、実行する
         結果：resultがNoneであること
               dict_msgのdatapath.idに設定している値とhandlerに渡したev.msgが
@@ -1203,19 +1203,20 @@ class test_mld_controller():
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
 
         #【実行】
-        result = self.mld_ctrl._switch_features_handler(ev)
+        #result = self.mld_ctrl._switch_features_handler(ev)
+        result = self.mld_ctrl._main_dispacher_handler(ev)
 
         # 【結果】
-        logger.debug("test_switch_features_handler_Success001 [result] %s",
+        logger.debug("test_main_dispacher_handler_Success001 [result] %s",
                      str(result))
         assert_equal(result, None)
         #assert_equal(self.mld_ctrl.dict_msg[datapath.id], ev.msg)
 
-    def test_switch_features_handler_Failuer001(self):
-        # mld_controller._switch_features_handler
-        logger.debug("test_switch_features_handler_Failuer001")
+    def test_main_dispacher_handler_Failuer001(self):
+        # mld_controller._main_dispacher_handler
+        logger.debug("test_main_dispacher_handler_Failuer001")
         """
-        概要：SwitchFeaturesイベント発生時の処理
+        概要：MainDispacherイベント発生時の処理
         条件：例外が発生する様ev.msgにNoneを設定し、実行する
         結果：Exceptionが発生すること
         """
@@ -1232,11 +1233,12 @@ class test_mld_controller():
             ev.msg = None
 
             #【実行】
-            self.mld_ctrl._switch_features_handler(ev)
+            #self.mld_ctrl._switch_features_handler(ev)
+            self.mld_ctrl._main_dispacher_handler(ev)
 
         except Exception as e:
             # 【結果】
-            logger.debug("test_switch_features_handler_Failuer001[Exception] %s",
+            logger.debug("test_main_dispacher_handler_Failuer001[Exception] %s",
                          e)
             assert_raises(Exception, e)
         return

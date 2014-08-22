@@ -1,7 +1,7 @@
 # coding: utf-8
 
 # ryu -> mld
-CON_SWITCH_FEATURE = 11
+CON_MAIN_DISPACHER = 11
 CON_PACKET_IN = 12
 
 # mld -> ryu
