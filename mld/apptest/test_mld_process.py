@@ -48,11 +48,11 @@ class test_mld_process():
 
     # 実際に実行するマシンのIFに合わせた値を設定すること
     IFNAME = "eth0"
-    MAC = "d4:3d:7e:4a:43:fd"
-    #MAC = "d4:3d:7e:4a:46:0c"
+    #MAC = "d4:3d:7e:4a:43:fd"
+    MAC = "d4:3d:7e:4a:46:0c"
     #MAC = "8c:89:a5:db:c4:19"
-    IP6 = "fe80::d63d:7eff:fe4a:43fd"
-    #IP6 = "fe80::d63d:7eff:fe4a:460c"
+    #IP6 = "fe80::d63d:7eff:fe4a:43fd"
+    IP6 = "fe80::d63d:7eff:fe4a:460c"
     #IP6 = "fe80::8e89:a5ff:fedb:c419"
 
     # このクラスのテストケースを実行する前に１度だけ実行する

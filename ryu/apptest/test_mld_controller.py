@@ -114,8 +114,7 @@ HOST_MACADDR2 = "00:00:00:00:00:02"
 
 SEND_FILE_PATH = "/tmp/feeds/test/ut"
 RECV_FILE_PATH = "/tmp/feeds/test/ut"
-SEND_IP = "0.0.0.0:7002"
-RECV_IP = "192.168.5.11:7002"
+RECV_IP = "192.168.5.11"
 
 
 class _Datapath(object):
@@ -183,20 +182,13 @@ class test_mld_controller():
         self.zmq_sub = None
 
         # CHECK zmq用URL
-        if self.mld_ctrl.check_zmq_type(self.config[ZMQ_TYPE]):
-            # IPCによるSoket設定の読み込み
-            self.zmq_pub = self.config_zmq_ipc[ZMQ_PUB]
-            self.zmq_sub = self.config_zmq_ipc[ZMQ_SUB]
-            # CHECK TMP FILE(SEND)
-            self.mld_ctrl.check_exists_tmp(self.zmq_pub)
-            # CHECK TMP FILE(RECV)
-            self.mld_ctrl.check_exists_tmp(self.zmq_sub)
-        else:
-            # TCPによるSoket設定の読み込み
-            self.zmq_sub = self.config_zmq_tcp[MLD_SERVER_IP]
-            self.zmq_sub_list = self.zmq_sub.split(PORT_DELIMIT)
-            # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
-            self.zmq_pub = SEND_IP + PORT_DELIMIT + self.zmq_sub_list[1]
+        # IPCによるSoket設定の読み込み
+        self.zmq_pub = self.config_zmq_ipc[ZMQ_PUB]
+        self.zmq_sub = self.config_zmq_ipc[ZMQ_SUB]
+        # CHECK TMP FILE(SEND)
+        self.mld_ctrl.check_exists_tmp(self.zmq_pub)
+        # CHECK TMP FILE(RECV)
+        self.mld_ctrl.check_exists_tmp(self.zmq_sub)
 
     def tearDown(self):
         # StubOutWithMoc()を呼んだ後に必要。常に呼んでおけば安心
@@ -242,14 +234,11 @@ class test_mld_controller():
         """
         #【前処理】
         zmq_url = "tcp://"
-        send_ip_path = SEND_IP
-        recv_ip_path = RECV_IP
-
-        send_path = zmq_url + send_ip_path
-        recv_path = zmq_url + recv_ip_path
+        send_ip_path = zmq_url + SEND_IP + PORT_DELIMIT + "7003"
+        recv_ip_path = zmq_url + RECV_IP + PORT_DELIMIT + "7003"
 
         #【実行】
-        self.mld_ctrl.create_socket(send_path, recv_path)
+        self.mld_ctrl.create_socket(send_ip_path, recv_ip_path)
 
         #【結果】
         ok_(self.mld_ctrl.send_sock)
