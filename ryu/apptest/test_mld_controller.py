@@ -60,9 +60,11 @@ from read_json import read_json
 from ryu.lib import hub
 hub.patch()
 
-import mld_const
+import mld_const as const
 
-logging.config.fileConfig(COMMON_PATH + mld_const.RYU_LOG_CONF)
+TEST_COMMON_PATH = DIR_PATH + "/test_common/"
+
+logging.config.fileConfig(COMMON_PATH + const.RYU_LOG_CONF)
 logger = logging.getLogger(__name__)
 
 # OpenFlowのバージョン
@@ -148,19 +150,18 @@ class test_mld_controller():
     def setup_class(cls):
         logger.debug("setup_class")
 
-        config = read_json(COMMON_PATH + mld_const.CONF_FILE)
-        cls.config = config.data["settings"]
+        config = read_json(TEST_COMMON_PATH + const.CONF_FILE)
+        cls.config = config.data[const.SETTING]
         cls.config_zmq_ipc = config.data[ZMQ_IPC]
         cls.config_zmq_tcp = config.data[ZMQ_TCP]
 
-        mc_info = read_json(COMMON_PATH + mld_const.MULTICAST_INFO)
-        cls.mc_info_list = mc_info.data["mc_info"]
-        """
+        mc_info = read_json(COMMON_PATH + const.MULTICAST_INFO)
+        cls.mc_info_list = mc_info.data[const.MC_TAG_MC_INFO]
         dpset_ins = dpset.DPSet()
         kwargs = {}
         kwargs['dpset'] = dpset_ins
         cls.mld_ctrl = mld_controller.mld_controller(**kwargs)
-        """
+
     # このクラスのテストケースをすべて実行した後に１度だけ実行する
     @classmethod
     def teardown_class(clazz):
@@ -260,33 +261,23 @@ class test_mld_controller():
         datapath.xid = 999
         datapath.ports = {}
 
-        # dict_msgの作成
+        # Eventの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
-        ev.msg.version=4
-#        self.mld_ctrl.dict_msg[datapath.id] = ev.msg
-        #dpset.set_ev_cls(ev, datapath)
-        """
-        dpset_ins = dpset.DPSet()
-        dpset_ins.switch_features_handler(ev)
-        """
+        ev.msg.version = 4
+        #dpsetにdatapathを設定
         self.mld_ctrl.dpset = dpset.DPSet()
         self.mld_ctrl.dpset._register(datapath)
-        
-        #dpset.DPSet.send_request(ev)
-        #dpset.DPSet.register_handler(ev)
-        # DummyPACKET_OUTのデータを作成
-        # ETHER
+
+        # ETHERの設定
         eth = ethernet.ethernet(
             ethertype=ether.ETH_TYPE_8021Q,
             src=SRC_MC_ADDR, dst=DST_MC_ADDR)
 
-        # VLAN
+        # VLANの設定
         vln = vlan.vlan(vid=100, ethertype=ether.ETH_TYPE_IPV6)
-        #vln = vlan.vlan(vid=self.config["c_tag_id"],
-        #ethertype=ether.ETH_TYPE_IPV6)
 
-        # IPV6 with Hop-By-Hop
+        # IPV6 with Hop-By-Hopの設定
         ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6, data=[
             ipv6.option(type_=5, len_=2, data="\x00\x00"),
             ipv6.option(type_=1, len_=0)])]
@@ -314,14 +305,14 @@ class test_mld_controller():
         sendpkt.serialize()
         packetoutdata = sendpkt
 
-        switches = read_json(COMMON_PATH + "switch_info.json")
-        self.switch_mld_info = switches.data["switch_mld_info"]
-        self.switch_mc_info = switches.data["switch_mc_info"]
-        self.switches = switches.data["switches"]
+        switches = read_json(COMMON_PATH + const.SWITCH_INFO)
+        self.switch_mld_info = switches.data[const.SW_TAG_MLD_INFO]
+        self.switch_mc_info = switches.data[const.SW_TAG_MC_INFO]
+        self.switches = switches.data[const.SW_TAG_SWITCHES]
         self.edge_switch = self.switches[0]
 
         actions = [ofproto_v1_3_parser.OFPActionOutput(
-            port=self.edge_switch["edge_router_port"])]
+            port=self.edge_switch[const.SW_TAG_EDGE_ROUTER_PORT])]
 
         packetdata = packet_out_data(datapathid=datapath.id,
                                 in_port=ofproto_v1_3.OFPP_CONTROLLER,
@@ -329,7 +320,7 @@ class test_mld_controller():
                                 actions=actions,
                                 data=packetoutdata)
 
-        packet = dispatch(type_=mld_const.CON_PACKET_OUT,
+        packet = dispatch(type_=const.CON_PACKET_OUT,
                                 datapathid=datapath.id,
                                 data=packetdata)
 
@@ -363,15 +354,10 @@ class test_mld_controller():
         datapath.xid = 11111
         datapath.ports = {}
 
-        # dict_msgの作成
+        # Eventの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
-        #self.mld_ctrl.dict_msg[datapath.id] = ev.msg
-#        dpset.DPSet.switch_features_handler(ev)
-        """
-        dpset_ins = dpset.DPSet()
-        dpset_ins.switch_features_handler(ev)
-        """
+        #dpsetにdatapathを設定
         self.mld_ctrl.dpset = dpset.DPSet()
         self.mld_ctrl.dpset._register(datapath)
 
@@ -395,7 +381,7 @@ class test_mld_controller():
         flowmoddatalist.append(flowmoddata)
 
         # dispatchにFLOW_MODのTYPEを指定し、DummyFLOW_MODのデータを設定
-        packet = dispatch(type_=mld_const.CON_FLOW_MOD,
+        packet = dispatch(type_=const.CON_FLOW_MOD,
                                 datapathid=datapath.id,
                                 data=flowmoddatalist)
 
@@ -433,16 +419,10 @@ class test_mld_controller():
         datapath.xid = 22222
         datapath.ports = {}
 
-        # dict_msgの作成
+        # Eventの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
-        #self.mld_ctrl.dict_msg[datapath.id] = ev.msg
-#        dpset.set_ev_cls(ev, datapath)
-#        dpset.DPSet.switch_features_handler(ev)
-        """
-        dpset_ins = dpset.DPSet()
-        dpset_ins.switch_features_handler(ev)
-        """
+        #dpsetにdatapathを設定
         self.mld_ctrl.dpset = dpset.DPSet()
         self.mld_ctrl.dpset._register(datapath)
 
@@ -472,7 +452,7 @@ class test_mld_controller():
         flowmoddatalist.append(flowmoddata2)
 
         # dispatchにFLOW_MODのTYPEを指定し、DummyFLOW_MODのデータを設定
-        packet = dispatch(type_=mld_const.CON_FLOW_MOD,
+        packet = dispatch(type_=const.CON_FLOW_MOD,
                                 datapathid=datapath.id,
                                 data=flowmoddatalist)
 
@@ -532,7 +512,8 @@ class test_mld_controller():
         # DummyDatapathidの設定
         datapath.id = 1
         datapath.xid = 999
-        # dict_msgの作成
+
+        # Eventの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
         #self.mld_ctrl.dict_msg[2] = ev.msg
@@ -546,8 +527,6 @@ class test_mld_controller():
 
         # VLAN
         vln = vlan.vlan(vid=100, ethertype=ether.ETH_TYPE_IPV6)
-        #vln = vlan.vlan(vid=self.config["c_tag_id"],
-        #ethertype=ether.ETH_TYPE_IPV6)
 
         # IPV6 with Hop-By-Hop
         ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6, data=[
@@ -577,7 +556,7 @@ class test_mld_controller():
         sendpkt.serialize()
         packetoutdata = sendpkt
 
-        packet = dispatch(type_=mld_const.CON_PACKET_OUT,
+        packet = dispatch(type_=const.CON_PACKET_OUT,
                                 datapathid=datapath.id, data=packetoutdata)
 
         #【実行】
@@ -610,10 +589,10 @@ class test_mld_controller():
             #self.mld_ctrl.dict_msg[datapath.id] = ev.msg
             dpset.set_ev_cls(ev, datapath)
 
-            switches = read_json(COMMON_PATH + "switch_info.json")
-            self.switch_mld_info = switches.data["switch_mld_info"]
-            self.switch_mc_info = switches.data["switch_mc_info"]
-            self.switches = switches.data["switches"]
+            switches = read_json(COMMON_PATH + const.SWITCH_INFO)
+            self.switch_mld_info = switches.data[const.SW_TAG_MLD_INFO]
+            self.switch_mc_info = switches.data[const.SW_TAG_MC_INFO]
+            self.switches = switches.data[const.SW_TAG_SWITCHES]
             self.edge_switch = self.switches[0]
 
             packet = None
@@ -720,8 +699,6 @@ class test_mld_controller():
 
         # VLAN
         vln = vlan.vlan(vid=100, ethertype=ether.ETH_TYPE_IPV6)
-        #vln = vlan.vlan(vid=self.config["c_tag_id"],
-        #ethertype=ether.ETH_TYPE_IPV6)
 
         # IPV6 with Hop-By-Hop
         ext_headers = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6, data=[
@@ -751,14 +728,14 @@ class test_mld_controller():
         sendpkt.serialize()
         packetoutdata = sendpkt
 
-        switches = read_json(COMMON_PATH + "switch_info.json")
-        self.switch_mld_info = switches.data["switch_mld_info"]
-        self.switch_mc_info = switches.data["switch_mc_info"]
-        self.switches = switches.data["switches"]
+        switches = read_json(COMMON_PATH + const.SWITCH_INFO)
+        self.switch_mld_info = switches.data[const.SW_TAG_MLD_INFO]
+        self.switch_mc_info = switches.data[const.SW_TAG_MC_INFO]
+        self.switches = switches.data[const.SW_TAG_SWITCHES]
         self.edge_switch = self.switches[0]
 
         actions = [ofproto_v1_3_parser.OFPActionOutput(
-            port=self.edge_switch["edge_router_port"])]
+            port=self.edge_switch[const.SW_TAG_EDGE_ROUTER_PORT])]
 
         packetdata = packet_out_data(datapathid=datapath.id,
                                 buffer_id=ofproto_v1_3.OFP_NO_BUFFER,
@@ -790,7 +767,7 @@ class test_mld_controller():
         datapath.id = 1
         datapath.xid = 999
         # dispatch_の作成
-        dispatch_ = dispatch(type_=mld_const.CON_MAIN_DISPATCHER,
+        dispatch_ = dispatch(type_=const.CON_MAIN_DISPATCHER,
                                 datapathid=datapath.id)
 
         # 【実行】
@@ -819,8 +796,8 @@ class test_mld_controller():
         datapath.xid = 999
         self.mld_ctrl.loop_flg = True
 
-        config = read_json(COMMON_PATH + mld_const.CONF_FILE)
-        self.config = config.data["settings"]
+        config = read_json(COMMON_PATH + const.CONF_FILE)
+        self.config = config.data[const.SETTING]
         self.config_zmq_ipc = config.data[ZMQ_IPC]
         self.config_zmq_tcp = config.data[ZMQ_TCP]
 
@@ -900,8 +877,8 @@ class test_mld_controller():
         datapath.xid = 999
         self.mld_ctrl.loop_flg = True
 
-        config = read_json(COMMON_PATH + mld_const.CONF_FILE)
-        self.config = config.data["settings"]
+        config = read_json(COMMON_PATH + const.CONF_FILE)
+        self.config = config.data[const.SETTING]
         self.config_zmq_ipc = config.data[ZMQ_IPC]
         self.config_zmq_tcp = config.data[ZMQ_TCP]
 
@@ -1062,45 +1039,45 @@ class test_mld_controller():
                      str(result))
         assert_equal(result, None)
 
-    def test_check_zmq_type_Success001(self):
-        # mld_controller.check_zmq_type(self, zmq_type)
-        logger.debug("test_check_zmq_type_Success001")
+    def test_get_zmq_connect_Success001(self):
+        # mld_controller.get_zmq_connect(self, configfile)
+        logger.debug("test_get_zmq_connect_Success001")
         """
         概要：zmqで使用するurlの妥当性チェック
         条件：zmq_url=ipc://
         結果：resultがTrueであること
         """
         # 【前処理】
-        zmq_type = "ipc"
-
+        config = read_json(TEST_COMMON_PATH + "config_ipc.json")
         # 【実行】
-        result = self.mld_ctrl.check_zmq_type(zmq_type)
+        result = self.mld_ctrl.get_zmq_connect(config)
 
         # 【結果】
-        logger.debug("test_check_zmq_type_Success001 [result] %s", str(result))
-        assert_equal(result, True)
+        logger.debug("test_get_zmq_connect_Success001 [result] %s", str(result))
+        assert_equal(result, ["ipc:///tmp/feeds/ryu-mld",
+                              "ipc:///tmp/feeds/mld-ryu"])
 
-    def test_check_zmq_type_Success002(self):
-        # mld_controller.check_zmq_type(self, zmq_type)
-        logger.debug("test_check_zmq_type_Success002")
+    def test_get_zmq_connect_Success002(self):
+        # mld_controller.get_zmq_connect(self, zmq_type)
+        logger.debug("test_get_zmq_connect_Success002")
         """
         概要：zmqで使用するurlの妥当性チェック
         条件：zmq_url=tcp://
         結果：resultがTrueであること
         """
         # 【前処理】
-        zmq_type = "tcp"
+        config = read_json(TEST_COMMON_PATH + "config_tcp.json")
 
         # 【実行】
-        result = self.mld_ctrl.check_zmq_type(zmq_type)
+        result = self.mld_ctrl.get_zmq_connect(config)
 
         # 【結果】
-        logger.debug("test_check_zmq_type_Success002 [result] %s", str(result))
-        assert_equal(result, False)
+        logger.debug("test_get_zmq_connect_Success002 [result] %s", str(result))
+        assert_equal(result, ["tcp://0.0.0.0:7002", "tcp://192.168.5.11:7002"])
 
-    def test_check_zmq_type_Failer001(self):
-        # mld_controller.check_zmq_type(self, zmq_type)
-        logger.debug("test_check_zmq_type_Failer001")
+    def test_get_zmq_connect_Failer001(self):
+        # mld_controller.get_zmq_connect(self, zmq_type)
+        logger.debug("test_get_zmq_connect_Failer001")
         """
         概要：zmqで使用するurlの妥当性チェック
         条件：zmq_url=ipf:///
@@ -1110,11 +1087,11 @@ class test_mld_controller():
         zmq_type = "upd"
         try:
             # 【実行】
-            result = self.mld_ctrl.check_zmq_type(zmq_type)
-            logger.debug("test_check_zmq_type_Failer001 [result] %s", str(result))
+            result = self.mld_ctrl.get_zmq_connect(zmq_type)
+            logger.debug("test_get_zmq_connect_Failer001 [result] %s", str(result))
         except Exception as e:
             # 【結果】
-            logger.debug("test_check_zmq_type_Failer001 [Exception] %s", e)
+            logger.debug("test_get_zmq_connect_Failer001 [Exception] %s", e)
             assert_raises(Exception, e)
         return
 
@@ -1202,6 +1179,7 @@ class test_mld_controller():
         # FeaturesRequestEventの作成
         featuresRequest = ofproto_v1_3_parser.OFPFeaturesRequest(datapath)
         ev = ofp_event.EventOFPFeaturesRequest(featuresRequest)
+        ev.datapath = datapath
 
         #【実行】
         #result = self.mld_ctrl._switch_features_handler(ev)
@@ -1936,40 +1914,16 @@ class test_mld_controller():
             self.loop_flg = True
 
             # 設定情報の読み込み
-            config = read_json(COMMON_PATH + mld_const.CONF_FILE)
+            config = read_json(COMMON_PATH + const.CONF_FILE)
             self.logger.debug("config_info:%s", str(config.data))
             self.config = config.data[SETTING]
 
-            # zmq設定情報の読み込み
-            zmq_type = self.config[ZMQ_TYPE]
-            self.zmq_pub = None
-            self.zmq_sub = None
+            zmq_conn = self.get_zmq_connect(config)
+            self.zmq_pub = zmq_conn[0]
+            self.zmq_sub = zmq_conn[1]
 
-            # CHECK zmq用URL
-            if self.check_zmq_type(self.config[ZMQ_TYPE]):
-                # IPCによるSoket設定の読み込み
-                self.config_zmq_ipc = config.data[ZMQ_IPC]
-                self.zmq_pub = self.config_zmq_ipc[ZMQ_PUB]
-                self.zmq_sub = self.config_zmq_ipc[ZMQ_SUB]
-                # CHECK TMP FILE(SEND)
-                self.check_exists_tmp(self.zmq_pub)
-                # CHECK TMP FILE(RECV)
-                self.check_exists_tmp(self.zmq_sub)
-            else:
-                # TCPによるSoket設定の読み込み
-                self.config_zmq_tcp = config.data[ZMQ_TCP]
-                self.zmq_sub = self.config_zmq_tcp[MLD_SERVER_IP]
-                self.zmq_sub_list = self.zmq_sub.split(PORT_DELIMIT)
-                # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
-                self.zmq_pub = SEND_IP + PORT_DELIMIT + self.zmq_sub_list[1]
-
-            # zmq_urlの設定
-            zmq_url = zmq_type.lower() + URL_DELIMIT
-            # ZeroMQ送受信用ソケット生成
-            self.create_socket(zmq_url + self.zmq_pub, zmq_url + self.zmq_sub)
-
-            # VLANチェックフラグの読み込み
-#            self.check_vlan_flg = self.config[CHECK_VLAN_FLG]
+            # ZMQ送受信用ソケット生成
+            self.create_socket(self.zmq_pub, self.zmq_sub)
 
         except Exception as e:
             # 【結果】
