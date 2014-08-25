@@ -48,11 +48,13 @@ class test_mld_process():
 
     # 実際に実行するマシンのIFに合わせた値を設定すること
     IFNAME = "eth0"
-    #MAC = "d4:3d:7e:4a:43:fd"
     MAC = "d4:3d:7e:4a:46:0c"
-    #MAC = "8c:89:a5:db:c4:19"
-    #IP6 = "fe80::d63d:7eff:fe4a:43fd"
     IP6 = "fe80::d63d:7eff:fe4a:460c"
+
+    #MAC = "d4:3d:7e:4a:43:fd"
+    #IP6 = "fe80::d63d:7eff:fe4a:43fd"
+
+    #MAC = "8c:89:a5:db:c4:19"
     #IP6 = "fe80::8e89:a5ff:fedb:c419"
 
     # このクラスのテストケースを実行する前に１度だけ実行する
@@ -62,6 +64,8 @@ class test_mld_process():
 
         config = read_json(TEST_COMMON_PATH + const.CONF_FILE)
         cls.config = config.data["settings"]
+        cls.config_zmq_ipc = config.data[const.ZMQ_IPC]
+        cls.config_zmq_tcp = config.data[const.ZMQ_TCP]
 
         mc_info = read_json(TEST_COMMON_PATH + const.MULTICAST_INFO)
         cls.mc_info_list = mc_info.data["mc_info"]
@@ -81,7 +85,7 @@ class test_mld_process():
         self.mld_proc.ch_info = channel_info(self.config)
         self.mld_proc.config = self.config
 
-    @attr(do=False)
+    @attr(do="False")
     def test_init(self):
         logger.debug("test_init")
 
@@ -111,26 +115,48 @@ class test_mld_process():
         ok_(self.mld_proc.bvid_variation)
 
         # ZeroMQ送受信用設定
+        eq_(self.mld_proc.config_zmq_ipc, self.config_zmq_ipc)
+        eq_(self.mld_proc.zmq_pub, self.config_zmq_ipc[const.ZMQ_PUB])
+        eq_(self.mld_proc.zmq_sub, self.config_zmq_ipc[const.ZMQ_SUB])
+
+        # ZeroMQ送受信用設定
         ok_(self.mld_proc.send_sock)
         ok_(self.mld_proc.recv_sock)
 
         # Flowmod生成用インスタンス
         ok_(self.mld_proc.flowmod_gen)
 
-    @attr(do=False)
-    def test_init_check_zmq_type_true(self):
+    @attr(do="False")
+    def test_init_check_zmq_type_false(self):
         logger.debug("")
 
         # 読み込む設定ファイルを変更(check_zmq_typeがTrueを返却)
         temp_conf = const.CONF_FILE
-        const.CONF_FILE = "config_ipc.json"
+        const.CONF_FILE = "config_tcp.json"
+        temp_sock = None
 
-        mld_process.mld_process()
+        # bind状態のzmqを開放
+        ctx = zmq.Context()
+        self.mld_proc.send_sock.close()
+
+        mld = mld_process.mld_process()
+
+        # ZeroMQ送受信用設定
+        eq_(mld.config_zmq_tcp, self.config_zmq_tcp)
+        eq_(mld.zmq_sub, self.config_zmq_tcp[const.OFC_SERVER_IP])
+        eq_(mld.zmq_sub_list, mld.zmq_sub.split(const.PORT_DELIMIT))
+        eq_(mld.zmq_pub,
+            const.SEND_IP + const.PORT_DELIMIT + mld.zmq_sub_list[1] )
 
         # 変更した設定を元に戻す
         const.CONF_FILE = temp_conf
 
-    @attr(do=False)
+        # zmqを再度bind状態に
+        zmq_url = self.config[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
+        self.mld_proc.send_sock = ctx.socket(zmq.PUB)
+        self.mld_proc.send_sock.bind(zmq_url + self.mld_proc.zmq_pub)
+
+    @attr(do="False")
     def test_init_check_zmq_type_exception(self):
         # 読み込む設定ファイルを変更(check_zmq_typeがTrueを返却)
         temp_conf = const.CONF_FILE
@@ -765,8 +791,8 @@ class test_mld_process():
         datapathid = self.mld_proc.edge_switch["datapathid"]
         packet = ipv6.ipv6()
 
-        actual = self.mld_proc.create_packetout(datapathid, 
-                                                self.mld_proc.edge_switch["edge_router_port"], 
+        actual = self.mld_proc.create_packetout(datapathid,
+                                                self.mld_proc.edge_switch["edge_router_port"],
                                                 packet)
 
         ok_(type(actual) is packet_out_data)

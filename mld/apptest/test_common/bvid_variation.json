@@ -1,10 +1,7 @@
 {
-    "_bvid_variation(comment)": "中継SWによる収容SWへの振り分けを行うためのバリエーション設定ファイル", 
     "bvid_variation": [
         {
             "__comment": "配信先が収容SW1,2両方", 
-            "_bvid(comment)": "中継SWに設定した対応するbvidを指定", 
-            "_key(comment)": "配信先の収容SWのデータパスIDを10進数で小さい値のものからコロン区切りで指定", 
             "bvid": 4000, 
             "key": "276596902016:276596903168"
         }, 

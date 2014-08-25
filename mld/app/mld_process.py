@@ -273,8 +273,7 @@ class mld_process():
 
         else:
             self.logger.error("self.config[%s]:%s", const.ZMQ_TYPE, zmq_type)
-            raise Exception.message("self.config[%s]:%s",
-                                    const.ZMQ_TYPE, zmq_type)
+            raise Exception("self.config[%s]:%s" % (const.ZMQ_TYPE, zmq_type))
 
     # ==================================================================
     # check_exists_tmp
@@ -407,8 +406,8 @@ class mld_process():
 
             # 信頼性変数QRV回送信する
             for i in range(self.QUERY_QRV):
-                self.send_packet_to_sw(sendpkt, 
-                                       mc_info[const.MC_TAG_MC_ADDR], vid)
+                self.send_packet_to_sw(
+                    sendpkt, mc_info[const.MC_TAG_MC_ADDR], vid)
                 time.sleep(1)
 
             # 最後のmcアドレス情報以外は送信待ちする
