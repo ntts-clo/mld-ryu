@@ -1,0 +1,19 @@
+{
+    "settings": {
+        "c_tag_id": 200, 
+        "check_vlan_flg": "True", 
+        "db_connect_str": "",
+        "mc_query_interval": 10, 
+        "mld_esw_ifname": "eth0", 
+        "mld_zmq_recv": "192.168.5.10:7002", 
+        "mld_zmq_send": "0.0.0.0:7002", 
+        "mld_zmq_url": "tcp://", 
+        "ofc_zmq_recv": "192.168.5.11:7002", 
+        "ofc_zmq_send": "0.0.0.0:7002", 
+        "ofc_zmq_url": "tcp://", 
+        "reguraly_query_interval": 125, 
+        "reguraly_query_type": "SQ", 
+        "socket_time_out": 1000, 
+        "user_time_out": 250
+    }
+}

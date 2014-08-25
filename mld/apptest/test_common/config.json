@@ -1,0 +1,38 @@
+{
+    "_settings(comment)": {
+        "_c_tag_id(comment)": "MLD処理部で定期Query、代理応答のReport生成時に使用するカスタマータグのID", 
+        "_db_connect_str(comment)": "MongoDBの接続先IP", 
+        "_mc_query_interval(comment)": "マルチキャストアドレス毎の送信待ち間隔（reguraly_query_interval以下であること）", 
+        "_mld_esw_ifname(comment)": "MLD処理部のエッジSWとの接続インターフェース名", 
+        "_reguraly_query_interval(comment)": "定期送信クエリの送信間隔[秒]", 
+        "_reguraly_query_type(comment)": "定期送信クエリのタイプ [GeneralQuery]:(GQ) or [SpecificQuery]:(SQ)", 
+        "_user_time_out(comment)": "視聴ユーザーのタイムアウト時間[秒]", 
+        "_zmq_type(comment)": "ZMQのプロトコルタイプ [TCP]:(tcp) or [IPC]:(ipc)"
+    }, 
+    "_zmq_ipc(comment)": {
+        "_mld_zmq(comment)": "MLD_ZMQソケットのTempFilePath", 
+        "_ofc_zmq(comment)": "OFC_ZMQソケットのTempFilePath"
+    }, 
+    "_zmq_tcp(comment)": {
+        "_mld_server_ip(comment)": "MLDServer_ZMQソケットのアドレス:ポート", 
+        "_ofc_server_ip(comment)": "OFCServer_ZMQソケットのIPアドレス:ポート"
+    }, 
+    "settings": {
+        "c_tag_id": 200, 
+        "db_connect_str": "mongodb://localhost:27017",
+        "mc_query_interval": 10, 
+        "mld_esw_ifname": "eth0", 
+        "reguraly_query_interval": 125, 
+        "reguraly_query_type": "SQ", 
+        "user_time_out": 250, 
+        "zmq_type": "ipc"
+    }, 
+    "zmq_ipc": {
+        "mld_zmq": "/tmp/feeds/mld-ryu", 
+        "ofc_zmq": "/tmp/feeds/ryu-mld"
+    }, 
+    "zmq_tcp": {
+        "mld_server_ip": "192.168.5.11:7002", 
+        "ofc_server_ip": "192.168.5.10:7002"
+    }
+}
