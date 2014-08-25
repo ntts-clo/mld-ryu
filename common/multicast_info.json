@@ -19,6 +19,13 @@
             "pbb_isid": 10021, 
             "serv_ip": "2001:1::20", 
             "type": "BE"
+        },
+        {
+            "ivid": 2021, 
+            "mc_addr": "ff38::1:2", 
+            "pbb_isid": 10021, 
+            "serv_ip": "fe80::d63d:7eff:fe4a:460c", 
+            "type": "BE"
         }
     ]
 }
