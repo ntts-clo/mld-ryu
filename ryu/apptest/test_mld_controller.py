@@ -151,7 +151,7 @@ class test_mld_controller():
         logger.debug("setup_class")
 
         config = read_json(TEST_COMMON_PATH + const.CONF_FILE)
-        cls.config = config.data[const.SETTING]
+        cls.config = config
         cls.config_zmq_ipc = config.data[ZMQ_IPC]
         cls.config_zmq_tcp = config.data[ZMQ_TCP]
 
@@ -161,6 +161,10 @@ class test_mld_controller():
         kwargs = {}
         kwargs['dpset'] = dpset_ins
         cls.mld_ctrl = mld_controller.mld_controller(**kwargs)
+
+        # bind状態のzmqを開放
+        cls.mld_ctrl.send_sock.close()
+        cls.mld_ctrl.recv_sock.close()
 
     # このクラスのテストケースをすべて実行した後に１度だけ実行する
     @classmethod
@@ -181,11 +185,11 @@ class test_mld_controller():
         # zmq設定情報の読み込み
         self.zmq_pub = None
         self.zmq_sub = None
-
+        result = self.mld_ctrl.get_zmq_connect(self.config)
         # CHECK zmq用URL
         # IPCによるSoket設定の読み込み
-        self.zmq_pub = self.config_zmq_ipc[ZMQ_PUB]
-        self.zmq_sub = self.config_zmq_ipc[ZMQ_SUB]
+        self.zmq_pub = result[0]
+        self.zmq_sub = result[1]
         # CHECK TMP FILE(SEND)
         self.mld_ctrl.check_exists_tmp(self.zmq_pub)
         # CHECK TMP FILE(RECV)
@@ -1043,17 +1047,18 @@ class test_mld_controller():
         # mld_controller.get_zmq_connect(self, configfile)
         logger.debug("test_get_zmq_connect_Success001")
         """
-        概要：zmqで使用するurlの妥当性チェック
-        条件：zmq_url=ipc://
-        結果：resultがTrueであること
+        概要：zmqで接続文字列を取得する
+        条件：設定ファイル=test_common/config.json
+        結果：resultがipc設定用のzmq_pubとzmq_subであること
         """
         # 【前処理】
-        config = read_json(TEST_COMMON_PATH + "config_ipc.json")
+        config = read_json(TEST_COMMON_PATH + "config.json")
         # 【実行】
         result = self.mld_ctrl.get_zmq_connect(config)
 
         # 【結果】
-        logger.debug("test_get_zmq_connect_Success001 [result] %s", str(result))
+        logger.debug("test_get_zmq_connect_Success001 [result] %s",
+                     str(result))
         assert_equal(result, ["ipc:///tmp/feeds/ryu-mld",
                               "ipc:///tmp/feeds/mld-ryu"])
 
@@ -1061,9 +1066,9 @@ class test_mld_controller():
         # mld_controller.get_zmq_connect(self, zmq_type)
         logger.debug("test_get_zmq_connect_Success002")
         """
-        概要：zmqで使用するurlの妥当性チェック
-        条件：zmq_url=tcp://
-        結果：resultがTrueであること
+        概要：zmqで接続文字列を取得する
+        条件：設定ファイル=test_common/config_tcp.json
+        結果：resultがtcp設定用のmld_server_ipとofc_server_ipであること
         """
         # 【前処理】
         config = read_json(TEST_COMMON_PATH + "config_tcp.json")
@@ -1072,23 +1077,26 @@ class test_mld_controller():
         result = self.mld_ctrl.get_zmq_connect(config)
 
         # 【結果】
-        logger.debug("test_get_zmq_connect_Success002 [result] %s", str(result))
+        logger.debug("test_get_zmq_connect_Success002 [result] %s",
+                     str(result))
         assert_equal(result, ["tcp://0.0.0.0:7002", "tcp://192.168.5.11:7002"])
 
     def test_get_zmq_connect_Failer001(self):
         # mld_controller.get_zmq_connect(self, zmq_type)
         logger.debug("test_get_zmq_connect_Failer001")
         """
-        概要：zmqで使用するurlの妥当性チェック
-        条件：zmq_url=ipf:///
+        概要：zmqで接続文字列を取得する
+        条件：設定ファイル=test_common/config_other.json
         結果：Exceptionが発生すること
         """
         # 【前処理】
-        zmq_type = "upd"
+        config = read_json(TEST_COMMON_PATH + "config_other.json")
+
         try:
             # 【実行】
-            result = self.mld_ctrl.get_zmq_connect(zmq_type)
-            logger.debug("test_get_zmq_connect_Failer001 [result] %s", str(result))
+            result = self.mld_ctrl.get_zmq_connect(config)
+            logger.debug("test_get_zmq_connect_Failer001 [result] %s",
+                         str(result))
         except Exception as e:
             # 【結果】
             logger.debug("test_get_zmq_connect_Failer001 [Exception] %s", e)

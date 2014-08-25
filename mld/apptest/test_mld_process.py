@@ -115,9 +115,9 @@ class test_mld_process():
         ok_(self.mld_proc.bvid_variation)
 
         # ZeroMQ送受信用設定
-        eq_(self.mld_proc.config_zmq_ipc, self.config_zmq_ipc)
-        eq_(self.mld_proc.zmq_pub, self.config_zmq_ipc[const.ZMQ_PUB])
-        eq_(self.mld_proc.zmq_sub, self.config_zmq_ipc[const.ZMQ_SUB])
+        zmq_url = self.config[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
+        eq_(self.mld_proc.zmq_pub, zmq_url + self.config_zmq_ipc[const.ZMQ_PUB])
+        eq_(self.mld_proc.zmq_sub, zmq_url + self.config_zmq_ipc[const.ZMQ_SUB])
 
         # ZeroMQ送受信用設定
         ok_(self.mld_proc.send_sock)
@@ -127,36 +127,7 @@ class test_mld_process():
         ok_(self.mld_proc.flowmod_gen)
 
     @attr(do="False")
-    def test_init_check_zmq_type_false(self):
-        logger.debug("")
-
-        # 読み込む設定ファイルを変更(check_zmq_typeがTrueを返却)
-        temp_conf = const.CONF_FILE
-        const.CONF_FILE = "config_tcp.json"
-
-        # bind状態のzmqを開放
-        self.mld_proc.send_sock.close()
-
-        mld = mld_process.mld_process()
-
-        # ZeroMQ送受信用設定
-        eq_(mld.config_zmq_tcp, self.config_zmq_tcp)
-        eq_(mld.zmq_sub, self.config_zmq_tcp[const.OFC_SERVER_IP])
-        eq_(mld.zmq_sub_list, mld.zmq_sub.split(const.PORT_DELIMIT))
-        eq_(mld.zmq_pub,
-            const.SEND_IP + const.PORT_DELIMIT + mld.zmq_sub_list[1] )
-
-        # 変更した設定を元に戻す
-        const.CONF_FILE = temp_conf
-
-        # zmqを再度bind状態に
-        ctx = zmq.Context()
-        self.mld_proc.send_sock = ctx.socket(zmq.PUB)
-        zmq_url = self.config[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
-        self.mld_proc.send_sock.bind(zmq_url + self.mld_proc.zmq_pub)
-
-    @attr(do="False")
-    def test_init_check_zmq_type_exception(self):
+    def test_init_get_zmq_connect_exception(self):
         # 読み込む設定ファイルを変更(check_zmq_typeがTrueを返却)
         temp_conf = const.CONF_FILE
         const.CONF_FILE = "config_other.json"
@@ -284,56 +255,61 @@ class test_mld_process():
         eq_(expect, actual)
 
     @attr(do=False)
-    def test_check_zmq_type_ipc(self):
-        logger.debug("test_check_zmq_type_Success001")
+    def test_get_zmq_connect_ipc(self):
+        # mld_controller.get_zmq_connect(self, configfile)
+        logger.debug("test_get_zmq_connect_ipc")
         """
-        概要：zmqで使用するurlの妥当性チェック
-        条件：zmq_url=ipc://
-        結果：resultがTrueであること
+        概要：zmqで接続文字列を取得する
+        条件：設定ファイル=test_common/config.json
+        結果：resultがipc設定用のzmq_pubとzmq_subであること
         """
         # 【前処理】
-        zmq_url = "ipc"
-
+        config = read_json(TEST_COMMON_PATH + "config.json")
         # 【実行】
-        result = self.mld_proc.check_zmq_type(zmq_url)
+        result = self.mld_proc.get_zmq_connect(config)
 
         # 【結果】
-        logger.debug("test_check_zmq_type_Success001 [result] %s", str(result))
-        ok_(result)
+        logger.debug("test_get_zmq_connect_ipc [result] %s",
+                     str(result))
+        eq_(result, ["ipc:///tmp/feeds/ryu-mld",
+                     "ipc:///tmp/feeds/mld-ryu"])
 
     @attr(do=False)
-    def test_check_zmq_type_tcp(self):
-        logger.debug("test_check_zmq_type_Success002")
+    def test_get_zmq_connect_tcp(self):
+        logger.debug("test_get_zmq_connect_tcp")
         """
-        概要：zmqで使用するurlの妥当性チェック
-        条件：zmq_url=tcp://
-        結果：resultがTrueであること
+        概要：zmqで接続文字列を取得する
+        条件：設定ファイル=test_common/config_tcp.json
+        結果：resultがtcp設定用のmld_server_ipとofc_server_ipであること
         """
         # 【前処理】
-        zmq_url = "tcp"
+        config = read_json(TEST_COMMON_PATH + "config_tcp.json")
 
         # 【実行】
-        result = self.mld_proc.check_zmq_type(zmq_url)
+        result = self.mld_proc.get_zmq_connect(config)
 
         # 【結果】
-        logger.debug("test_check_zmq_type_Success002 [result] %s", str(result))
-        ok_(not result)
+        logger.debug("test_get_zmq_connect_tcp [result] %s",
+                     str(result))
+        eq_(result, ["tcp://0.0.0.0:7002", "tcp://192.168.5.11:7002"])
 
     @attr(do=False)
     @raises(Exception)
-    def test_check_zmq_type_other(self):
-        logger.debug("test_check_zmq_type_Failer001")
+    def test_get_zmq_connect_other(self):
+        logger.debug("test_get_zmq_connect_other")
         """
-        概要：zmqで使用するurlの妥当性チェック
-        条件：zmq_url=ipf:///
+        概要：zmqで接続文字列を取得する
+        条件：設定ファイル=test_common/config_other.json
         結果：Exceptionが発生すること
         """
         # 【前処理】
-        zmq_url = "ipf:///"
+        config = read_json(TEST_COMMON_PATH + "config_other.json")
+
         # 【実行】
-        result = self.mld_proc.check_zmq_type(zmq_url)
+        self.mld_proc.get_zmq_connect(config)
+
         # 【結果】
-        logger.debug("test_check_zmq_type_other [Exception] %s", e)
+        logger.debug("test_get_zmq_connect_other [Exception] %s", e)
 
     @attr(do=False)
     def test_check_exists_tmp_exsist(self):
@@ -375,9 +351,6 @@ class test_mld_process():
         # CHECK TMP FILE(RECV)
         self.mld_proc.check_exists_tmp(recv_file_path)
 
-        # bind状態のzmqを開放
-        self.mld_proc.send_sock.close()
-
         self.mld_proc.create_socket(send_path, recv_path)
 
         ok_(self.mld_proc.send_sock)
@@ -386,12 +359,6 @@ class test_mld_process():
         os.remove(send_file_path)
         os.remove(recv_file_path)
         os.rmdir("/tmp/feeds/ut/")
-
-        # zmqを再度bind状態に
-        ctx = zmq.Context()
-        self.mld_proc.send_sock = ctx.socket(zmq.PUB)
-        zmq_url = self.config[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
-        self.mld_proc.send_sock.bind(zmq_url + self.mld_proc.zmq_pub)
 
 #    @attr(do=False)
 #    def test_create_socket002(self):

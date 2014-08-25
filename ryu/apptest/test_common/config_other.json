@@ -19,13 +19,12 @@
     }, 
     "settings": {
         "c_tag_id": 200, 
-        "db_connect_str": "mongodb://localhost:27017", 
         "mc_query_interval": 10, 
-        "mld_esw_ifname": "h1-eth0", 
+        "mld_esw_ifname": "eth0", 
         "reguraly_query_interval": 125, 
         "reguraly_query_type": "SQ", 
         "user_time_out": 250, 
-        "zmq_type": "ipc"
+        "zmq_type": "udp"
     }, 
     "zmq_ipc": {
         "mld_zmq": "/tmp/feeds/mld-ryu", 

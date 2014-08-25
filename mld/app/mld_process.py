@@ -125,33 +125,13 @@ class mld_process():
                 self.bvid_variation[bvid_variation[const.BV_TAG_KEY]] = \
                     bvid_variation[const.BV_TAG_BVID]
 
-            # ZeroMQ送受信用設定
-            zmq_type = self.config[const.ZMQ_TYPE]
-            self.zmq_pub = None
-            self.zmq_sub = None
-            if self.check_zmq_type(zmq_type):
-                # IPCによるSoket設定の読み込み
-                self.config_zmq_ipc = config.data[const.ZMQ_IPC]
-                self.zmq_pub = self.config_zmq_ipc[const.ZMQ_PUB]
-                self.zmq_sub = self.config_zmq_ipc[const.ZMQ_SUB]
-                # CHECK TMP FILE(SEND)
-                self.check_exists_tmp(self.zmq_pub)
-                # CHECK TMP FILE(RECV)
-                self.check_exists_tmp(self.zmq_sub)
-            else:
-                # TCPによるSoket設定の読み込み
-                self.config_zmq_tcp = config.data[const.ZMQ_TCP]
-                self.zmq_sub = self.config_zmq_tcp[const.OFC_SERVER_IP]
-                self.zmq_sub_list = self.zmq_sub.split(const.PORT_DELIMIT)
-                # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
-                self.zmq_pub = const.SEND_IP + const.PORT_DELIMIT \
-                    + self.zmq_sub_list[1]
+            # ZMQの接続文字列を取得
+            zmq_conn = self.get_zmq_connect(config)
+            self.zmq_pub = zmq_conn[0]
+            self.zmq_sub = zmq_conn[1]
 
-            # zmq_urlの設定
-            zmq_url = zmq_type.lower() + const.URL_DELIMIT
-            # ZeroMQ送受信用ソケット生成
-            self.create_socket(zmq_url + self.zmq_pub, zmq_url + self.zmq_sub)
-
+            # ZMQ送受信用ソケット生成
+            self.create_socket(self.zmq_pub, self.zmq_sub)
             # Flowmod生成用インスタンス
             self.flowmod_gen = flow_mod_generator(self.switches)
 
@@ -260,20 +240,49 @@ class mld_process():
             return 0x80 | (exp << 4) | mant
 
     # =========================================================================
-    # check_zmq_mode
+    # get_zmq_connect
     # =========================================================================
-    def check_zmq_type(self, zmq_type):
+    def get_zmq_connect(self, configfile):
         self.logger.debug("")
 
+        # 変数の初期化
+        zmq_pub = None
+        zmq_sub = None
+
+        # ZMQタイプの読み込み
+        settings = configfile.data[const.SETTING]
+        zmq_type = settings[const.ZMQ_TYPE]
+
+        # zmq_urlの設定
+        zmq_url = zmq_type.lower() + const.URL_DELIMIT
+
         if zmq_type.lower() == const.CHECK_ZMQ_TYPE_IPC:
-            return True
+            # IPCによるSoket設定の読み込み
+            config_zmq_ipc = configfile.data[const.ZMQ_IPC]
+            zmq_pub = config_zmq_ipc[const.ZMQ_PUB]
+            zmq_sub = config_zmq_ipc[const.ZMQ_SUB]
+            # CHECK TMP FILE(SEND)
+            self.check_exists_tmp(zmq_pub)
+            # CHECK TMP FILE(RECV)
+            self.check_exists_tmp(zmq_sub)
+            # zmq_urlを設定し、返却
+            return [zmq_url + zmq_pub, zmq_url + zmq_sub]
 
         elif zmq_type.lower() == const.CHECK_ZMQ_TYPE_TCP:
-            return False
+            # TCPによるSoket設定の読み込み
+            config_zmq_tcp = configfile.data[const.ZMQ_TCP]
+            zmq_sub = config_zmq_tcp[const.MLD_SERVER_IP]
+            zmq_sub_list = zmq_sub.split(const.PORT_DELIMIT)
+            # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
+            zmq_pub = const.SEND_IP + const.PORT_DELIMIT \
+                + zmq_sub_list[1]
+            # zmq_urlを設定し、返却
+            return [zmq_url + zmq_pub, zmq_url + zmq_sub]
 
         else:
             self.logger.error("self.config[%s]:%s", const.ZMQ_TYPE, zmq_type)
-            raise Exception("self.config[%s]:%s" % (const.ZMQ_TYPE, zmq_type))
+            raise Exception.message("self.config[%s]:%s",
+                                    const.ZMQ_TYPE, zmq_type)
 
     # ==================================================================
     # check_exists_tmp
