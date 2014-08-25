@@ -133,10 +133,8 @@ class test_mld_process():
         # 読み込む設定ファイルを変更(check_zmq_typeがTrueを返却)
         temp_conf = const.CONF_FILE
         const.CONF_FILE = "config_tcp.json"
-        temp_sock = None
 
         # bind状態のzmqを開放
-        ctx = zmq.Context()
         self.mld_proc.send_sock.close()
 
         mld = mld_process.mld_process()
@@ -152,8 +150,9 @@ class test_mld_process():
         const.CONF_FILE = temp_conf
 
         # zmqを再度bind状態に
-        zmq_url = self.config[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
+        ctx = zmq.Context()
         self.mld_proc.send_sock = ctx.socket(zmq.PUB)
+        zmq_url = self.config[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
         self.mld_proc.send_sock.bind(zmq_url + self.mld_proc.zmq_pub)
 
     @attr(do="False")
@@ -243,8 +242,8 @@ class test_mld_process():
         self.mocker.StubOutWithMock(self.mld_proc.logger, "error")
         self.mld_proc.logger.error(
             "input network interface name with " +
-                        "ipv6 link local address where " + const.CONF_FILE +
-                        " at 'mld_esw_ifname'.")
+            "ipv6 link local address where " + const.CONF_FILE +
+            " at 'mld_esw_ifname'.")
         self.mocker.ReplayAll()
 
         self.mld_proc.get_interface_info(ifname)
@@ -376,6 +375,9 @@ class test_mld_process():
         # CHECK TMP FILE(RECV)
         self.mld_proc.check_exists_tmp(recv_file_path)
 
+        # bind状態のzmqを開放
+        self.mld_proc.send_sock.close()
+
         self.mld_proc.create_socket(send_path, recv_path)
 
         ok_(self.mld_proc.send_sock)
@@ -385,16 +387,31 @@ class test_mld_process():
         os.remove(recv_file_path)
         os.rmdir("/tmp/feeds/ut/")
 
+        # zmqを再度bind状態に
+        ctx = zmq.Context()
+        self.mld_proc.send_sock = ctx.socket(zmq.PUB)
+        zmq_url = self.config[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
+        self.mld_proc.send_sock.bind(zmq_url + self.mld_proc.zmq_pub)
+
     @attr(do=False)
     def test_create_socket002(self):
         zmq_url = "tcp://"
         send_path = zmq_url + "127.0.0.1:7002"
         recv_path = zmq_url + "0.0.0.0:7002"
 
+        # bind状態のzmqを開放
+        self.mld_proc.send_sock.close()
+
         self.mld_proc.create_socket(send_path, recv_path)
 
         ok_(self.mld_proc.send_sock)
         ok_(self.mld_proc.recv_sock)
+
+        # zmqを再度bind状態に
+        ctx = zmq.Context()
+        self.mld_proc.send_sock = ctx.socket(zmq.PUB)
+        zmq_url = self.config[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
+        self.mld_proc.send_sock.bind(zmq_url + self.mld_proc.zmq_pub)
 
     @attr(do=False)
     def test_send_mldquey_regularly_gq(self):
