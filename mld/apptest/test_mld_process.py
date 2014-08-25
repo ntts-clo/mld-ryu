@@ -393,25 +393,25 @@ class test_mld_process():
         zmq_url = self.config[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
         self.mld_proc.send_sock.bind(zmq_url + self.mld_proc.zmq_pub)
 
-    @attr(do=False)
-    def test_create_socket002(self):
-        zmq_url = "tcp://"
-        send_path = zmq_url + "127.0.0.1:7002"
-        recv_path = zmq_url + "0.0.0.0:7002"
-
-        # bind状態のzmqを開放
-        self.mld_proc.send_sock.close()
-
-        self.mld_proc.create_socket(send_path, recv_path)
-
-        ok_(self.mld_proc.send_sock)
-        ok_(self.mld_proc.recv_sock)
-
-        # zmqを再度bind状態に
-        ctx = zmq.Context()
-        self.mld_proc.send_sock = ctx.socket(zmq.PUB)
-        zmq_url = self.config[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
-        self.mld_proc.send_sock.bind(zmq_url + self.mld_proc.zmq_pub)
+#    @attr(do=False)
+#    def test_create_socket002(self):
+#        zmq_url = "tcp://"
+#        send_path = zmq_url + "127.0.0.1:7002"
+#        recv_path = zmq_url + "0.0.0.0:7002"
+#
+#        # bind状態のzmqを開放
+#        self.mld_proc.send_sock.close()
+#
+#        self.mld_proc.create_socket(send_path, recv_path)
+#
+#        ok_(self.mld_proc.send_sock)
+#        ok_(self.mld_proc.recv_sock)
+#
+#        # zmqを再度bind状態に
+#        ctx = zmq.Context()
+#        self.mld_proc.send_sock = ctx.socket(zmq.PUB)
+#        zmq_url = self.config[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
+#        self.mld_proc.send_sock.bind(zmq_url + self.mld_proc.zmq_pub)
 
     @attr(do=False)
     def test_send_mldquey_regularly_gq(self):
