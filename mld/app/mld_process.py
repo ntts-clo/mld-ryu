@@ -61,9 +61,14 @@ class mld_process():
     QUERY_DST_IP = "ff02::1"
     REPORT_DST_IP = "ff02::16"
 
+    # ネットワークインターフェースの情報のKEY
+    IF_KEY_MAC = "mac"
+    IF_KEY_IP6 = "ip6"
+
     # 送受信のループフラグ
     SEND_LOOP = True
     RECV_LOOP = True
+
     # ZMQ受信間隔
     ZMQ_POLL_INTERVAL = 10
 
@@ -137,7 +142,7 @@ class mld_process():
 
         except:
             self.logger.error("%s ", traceback.print_exc())
-            raise KeyboardInterrupt
+            self.end_process()
 
     # =========================================================================
     # get_interface_info
@@ -186,32 +191,32 @@ class mld_process():
                             + const.CONF_FILE + " at 'mld_esw_ifname'.")
                         self.end_process()
 
-                if not ifdict.get("mac"):
+                if not ifdict.get(self.IF_KEY_MAC):
                     # MACアドレス検索
                     mac = mac_pat.search(line)
                     if mac:
-                        ifdict["mac"] = mac.group()
-                        self.logger.debug("mac : %s", ifdict["mac"])
+                        ifdict[self.IF_KEY_MAC] = mac.group()
+                        self.logger.debug("mac : %s", ifdict[self.IF_KEY_MAC])
                         continue
 
-                if not ifdict.get("ip6"):
+                if not ifdict.get(self.IF_KEY_IP6):
                     # IPv6リンクローカルアドレス検索
                     ip6 = ip6_pat.search(line)
                     if ip6:
-                        ifdict["ip6"] = ip6.group()[:-3]  # "/64”を削除
-                        self.logger.debug("ip6 : %s", ifdict["ip6"])
+                        ifdict[self.IF_KEY_IP6] = ip6.group()[:-3]  # "/64”を削除
+                        self.logger.debug("ip6 : %s", ifdict[self.IF_KEY_IP6])
                         continue
 
             # 改行のみの行でifdictを確定
             else:
-                if not ifdict.get("mac"):
+                if not ifdict.get(self.IF_KEY_MAC):
                     # MACアドレスのないインターフェース（loなど）が入力された場合
                     self.logger.error(
                         "input network interface name with " +
                         "mac address where " + const.CONF_FILE +
                         " at 'mld_esw_ifname'.")
                     self.end_process()
-                if not ifdict.get("ip6"):
+                if not ifdict.get(self.IF_KEY_IP6):
                     # IPv6リンクローカルアドレスのないインターフェースが入力された場合
                     self.logger.error(
                         "input network interface name with " +
@@ -474,11 +479,11 @@ class mld_process():
             # ETHER
             eth = ethernet.ethernet(
                 ethertype=ether.ETH_TYPE_8021Q,
-                src=self.ifinfo["mac"], dst=self.QUERY_DST)
+                src=self.ifinfo[self.IF_KEY_MAC], dst=self.QUERY_DST)
 
             # IPV6 with ExtensionHeader
             ip6 = ipv6.ipv6(
-                src=self.ifinfo["ip6"], dst=self.QUERY_DST_IP,
+                src=self.ifinfo[self.IF_KEY_IP6], dst=self.QUERY_DST_IP,
                 hop_limit=1, nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
 
             # MLD Query
@@ -490,11 +495,11 @@ class mld_process():
             # ETHER
             eth = ethernet.ethernet(
                 ethertype=ether.ETH_TYPE_8021Q,
-                src=self.ifinfo["mac"], dst=self.REPORT_DST)
+                src=self.ifinfo[self.IF_KEY_MAC], dst=self.REPORT_DST)
 
             # IPV6 with ExtensionHeader
             ip6 = ipv6.ipv6(
-                src=self.ifinfo["ip6"], dst=self.REPORT_DST_IP,
+                src=self.ifinfo[self.IF_KEY_IP6], dst=self.REPORT_DST_IP,
                 hop_limit=1, nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
 
             # MLD Report
@@ -866,9 +871,9 @@ class mld_process():
 
         # マルチキャストアドレスに対応するpbb_isidとividを抽出
         mc_info = self.mc_info_dict[address, src]
-        pbb_isid = mc_info["pbb_isid"]
-        ivid = mc_info["ivid"]
-        mc_info_type = mc_info["type"]
+        pbb_isid = mc_info[const.MC_TAG_MC_PBB_ISID]
+        ivid = mc_info[const.MC_TAG_MC_IVID]
+        mc_info_type = mc_info[const.MC_TAG_MC_TYPE]
 
         # 視聴情報からbvidを特定する
         bvid = None

@@ -261,6 +261,7 @@ class channel_switch_info():
             for cid in user_info.keys():
                 ch_user_info = user_info[cid]
                 info += ch_user_info.get_user_info()
+            info += "      ]\n"
         info += "    ]\n"
         return info
 

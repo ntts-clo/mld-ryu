@@ -60,6 +60,9 @@ MULTICAST_INFO = "multicast_info.json"
 MC_TAG_MC_INFO = "mc_info"
 MC_TAG_SERV_IP = "serv_ip"
 MC_TAG_MC_ADDR = "mc_addr"
+MC_TAG_MC_IVID = "ivid"
+MC_TAG_MC_TYPE = "type"
+MC_TAG_MC_PBB_ISID = "pbb_isid"
 
 # =============================================================================
 # bvid_variation.jsonの定義
