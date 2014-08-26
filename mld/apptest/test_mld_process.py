@@ -48,7 +48,7 @@ class test_mld_process():
     # 実際に実行するマシンのIFに合わせた値を設定すること
     IFNAME = "eth0"
     MAC = "6c:3b:e5:51:1e:e4"
-    IP6 = "ffe80::6e3b:e5ff:fe51:1ee4"
+    IP6 = "fe80::6e3b:e5ff:fe51:1ee4"
 
     #MAC = "d4:3d:7e:4a:43:fd"
     #IP6 = "fe80::d63d:7eff:fe4a:43fd"
