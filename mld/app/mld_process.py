@@ -142,7 +142,7 @@ class mld_process():
 
         except:
             self.logger.error("%s ", traceback.print_exc())
-            raise KeyboardInterrupt
+            self.end_process()
 
     # =========================================================================
     # get_interface_info

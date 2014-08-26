@@ -141,10 +141,9 @@ class test_mld_process():
 
         try:
             mld_process.mld_process()
-        except KeyboardInterrupt:
-            pass
-        finally:
+        except SystemExit:
             self.mocker.VerifyAll()
+        finally:
             # 変更した設定を元に戻す
             const.CONF_FILE = temp_conf
 
