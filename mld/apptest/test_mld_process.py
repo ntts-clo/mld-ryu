@@ -1242,7 +1242,8 @@ class test_mld_process():
         reply_type = const.CON_REPLY_ADD_MC_GROUP
 
         # ベストエフォートサービス
-        self.mld_proc.mc_info_list[0]["type"] = self.mld_proc.BEST_EFFORT
+        self.mld_proc.mc_info_list[0][const.MC_TAG_MC_TYPE] = \
+            self.mld_proc.BEST_EFFORT
         self.mld_proc.ch_info.update_ch_info(
             mc_addr, serv_ip, datapathid, in_port, cid)
 
@@ -1276,7 +1277,8 @@ class test_mld_process():
             mc_addr, serv_ip, datapathid, in_port, reply_type)
         self.mocker.VerifyAll()
 
-        self.mld_proc.mc_info_list[0]["type"] = self.mc_info_list[0]["type"]
+        self.mld_proc.mc_info_list[0][const.MC_TAG_MC_TYPE] = \
+            self.mc_info_list[0][const.MC_TAG_MC_TYPE]
 
     @attr(do=False)
     @raises(ExpectedMethodCallsError)
@@ -1290,7 +1292,8 @@ class test_mld_process():
         reply_type = const.CON_REPLY_ADD_MC_GROUP
 
         # 品質保証サービス
-        self.mld_proc.mc_info_list[0]["type"] = self.mld_proc.QUALITY_ASSURANCE
+        self.mld_proc.mc_info_list[0][const.MC_TAG_MC_TYPE] = \
+            self.mld_proc.QUALITY_ASSURANCE
         self.mld_proc.ch_info.update_ch_info(
             mc_addr, serv_ip, datapathid, in_port, cid)
 
@@ -1317,7 +1320,8 @@ class test_mld_process():
             mc_addr, serv_ip, datapathid, in_port, reply_type)
         self.mocker.VerifyAll()
 
-        self.mld_proc.mc_info_list[0]["type"] = self.mc_info_list[0]["type"]
+        self.mld_proc.mc_info_list[0][const.MC_TAG_MC_TYPE] = \
+            self.mc_info_list[0][const.MC_TAG_MC_TYPE]
 
     @attr(do=False)
     def test_reply_to_ryu_add_sw(self):
@@ -1383,7 +1387,8 @@ class test_mld_process():
         reply_type = const.CON_REPLY_DEL_MC_GROUP
 
         # ベストエフォートサービス
-        self.mld_proc.mc_info_list[0]["type"] = self.mld_proc.BEST_EFFORT
+        self.mld_proc.mc_info_list[0][const.MC_TAG_MC_TYPE] = \
+            self.mld_proc.BEST_EFFORT
         self.mld_proc.ch_info.update_ch_info(
             mc_addr, serv_ip, datapathid, in_port, cid)
 
@@ -1418,7 +1423,8 @@ class test_mld_process():
             mc_addr, serv_ip, datapathid, in_port, reply_type)
         self.mocker.VerifyAll()
 
-        self.mld_proc.mc_info_list[0]["type"] = self.mc_info_list[0]["type"]
+        self.mld_proc.mc_info_list[0][const.MC_TAG_MC_TYPE] = \
+            self.mc_info_list[0][const.MC_TAG_MC_TYPE]
 
     @attr(do=False)
     @raises(ExpectedMethodCallsError)
@@ -1431,7 +1437,8 @@ class test_mld_process():
         reply_type = const.CON_REPLY_DEL_MC_GROUP
 
         # 品質保証サービス
-        self.mld_proc.mc_info_list[0]["type"] = self.mld_proc.QUALITY_ASSURANCE
+        self.mld_proc.mc_info_list[0][const.MC_TAG_MC_TYPE] = \
+            self.mld_proc.QUALITY_ASSURANCE
         self.mld_proc.ch_info.update_ch_info(
             mc_addr, serv_ip, datapathid, in_port, cid)
 
@@ -1458,7 +1465,8 @@ class test_mld_process():
             mc_addr, serv_ip, datapathid, in_port, reply_type)
         self.mocker.VerifyAll()
 
-        self.mld_proc.mc_info_list[0]["type"] = self.mc_info_list[0]["type"]
+        self.mld_proc.mc_info_list[0][const.MC_TAG_MC_TYPE] = \
+            self.mc_info_list[0][const.MC_TAG_MC_TYPE]
 
     @attr(do=False)
     def test_reply_to_ryu_del_sw(self):

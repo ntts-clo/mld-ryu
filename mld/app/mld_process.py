@@ -871,9 +871,9 @@ class mld_process():
 
         # マルチキャストアドレスに対応するpbb_isidとividを抽出
         mc_info = self.mc_info_dict[address, src]
-        pbb_isid = mc_info["pbb_isid"]
-        ivid = mc_info["ivid"]
-        mc_info_type = mc_info["type"]
+        pbb_isid = mc_info[const.MC_TAG_MC_PBB_ISID]
+        ivid = mc_info[const.MC_TAG_MC_IVID]
+        mc_info_type = mc_info[const.MC_TAG_MC_TYPE]
 
         # 視聴情報からbvidを特定する
         bvid = None
