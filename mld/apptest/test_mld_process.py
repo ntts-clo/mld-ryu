@@ -15,7 +15,6 @@ import unittest
 import time
 import ctypes
 import cPickle
-import zmq
 from mox import Mox, ExpectedMethodCallsError, IsA
 from nose.tools import ok_, eq_
 from nose.tools.nontrivial import raises
@@ -29,7 +28,7 @@ APP_PATH = DIR_PATH + "/../app/"
 sys.path.append(APP_PATH)
 import mld_process
 import user_manage
-from user_manage import channel_info, database_accessor
+from user_manage import channel_info
 
 COMMON_PATH = DIR_PATH + "/../../common/"
 sys.path.append(COMMON_PATH)
@@ -1540,14 +1539,14 @@ class test_mld_process():
         self.mld_proc.RECV_LOOP = True
 
     @attr(do=False)
-    @raises(SystemExit)
     def test_end_process(self):
         # 送受信のループフラグがFalseになっていること
-        # SYstemExitがはっせいすること
-        self.mld_proc.end_process()
-
-        eq_(self.mld_proc.SEND_LOOP, False)
-        eq_(self.mld_proc.RECV_LOOP, False)
+        # SYstemExitが発生すること
+        try:
+            self.mld_proc.end_process()
+        except SystemExit:
+            eq_(self.mld_proc.SEND_LOOP, False)
+            eq_(self.mld_proc.RECV_LOOP, False)
 
 
 class test_user_manage():
