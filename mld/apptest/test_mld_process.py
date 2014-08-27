@@ -73,6 +73,14 @@ class test_mld_process():
         mld_process.COMMON_PATH = TEST_COMMON_PATH
         cls.mld_proc = mld_process.mld_process()
 
+    # このクラスのテストケースをすべて実行した後に１度だけ実行する
+    @classmethod
+    def teardown_class(cls):
+        logger.debug("teardown_class")
+        # bind状態のzmqを解放
+        cls.mld_proc.send_sock.close()
+        cls.mld_proc.recv_sock.close()
+
     def setup(self):
         self.mocker = Mox()
 
@@ -1571,7 +1579,10 @@ class test_user_manage():
     # このクラスのテストケースをすべて実行した後に１度だけ実行する
     @classmethod
     def teardown_class(cls):
-        logger.debug("teardown")
+        logger.debug("teardown_class")
+        # bind状態のzmqを解放
+        cls.mld_proc.send_sock.close()
+        cls.mld_proc.recv_sock.close()
 
     def setup(self):
         self.mocker = Mox()
@@ -2798,6 +2809,9 @@ class dummy_socket():
 
     def poll(self, arg):
         return 1
+
+    def close(self):
+        return
 
 
 if __name__ == '__main__':
