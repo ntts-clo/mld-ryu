@@ -139,11 +139,6 @@ class test_mld_controller():
 
     # 各設定ファイルの読み込み
     BASEPATH = os.path.dirname(os.path.abspath(__file__))
-    MULTICAST_SERVICE_INFO = os.path.normpath(
-        os.path.join(BASEPATH, COMMON_PATH + "multicast_service_info.csv"))
-
-    logger.debug(BASEPATH)
-    logger.debug(MULTICAST_SERVICE_INFO)
 
     # このクラスのテストケースを実行する前に１度だけ実行する
     @classmethod
@@ -155,16 +150,10 @@ class test_mld_controller():
         cls.config_zmq_ipc = config.data[ZMQ_IPC]
         cls.config_zmq_tcp = config.data[ZMQ_TCP]
 
-        mc_info = read_json(COMMON_PATH + const.MULTICAST_INFO)
-        cls.mc_info_list = mc_info.data[const.MC_TAG_MC_INFO]
         dpset_ins = dpset.DPSet()
         kwargs = {}
         kwargs['dpset'] = dpset_ins
         cls.mld_ctrl = mld_controller.mld_controller(**kwargs)
-
-        # bind状態のzmqを開放
-        cls.mld_ctrl.send_sock.close()
-        cls.mld_ctrl.recv_sock.close()
 
     # このクラスのテストケースをすべて実行した後に１度だけ実行する
     @classmethod
@@ -199,8 +188,44 @@ class test_mld_controller():
         # StubOutWithMoc()を呼んだ後に必要。常に呼んでおけば安心
         self.mocker.UnsetStubs()
 
+    def test_init_Success001(self):
+        # mld_controller.__init__(self, *args, **kwargs)
+        logger.debug("test_init_Success001")
+
+        # ロガーの設定
+        ok_(self.mld_ctrl.logger)
+
+        # 設定情報読み込み
+        eq_(self.mld_ctrl.config, self.config)
+
+        # ZeroMQ送受信用設定
+        configdata = self.config.data[const.SETTING]
+        zmq_url = configdata[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
+        eq_(self.mld_ctrl.zmq_pub,
+            zmq_url + self.config_zmq_ipc[const.ZMQ_PUB])
+        eq_(self.mld_ctrl.zmq_sub,
+            zmq_url + self.config_zmq_ipc[const.ZMQ_SUB])
+
+        # ZeroMQ送受信用設定
+        ok_(self.mld_ctrl.send_sock)
+        ok_(self.mld_ctrl.recv_sock)
+
+    @attr(do=False)
+    def test_init_exception(self):
+        # 読み込む設定ファイルを変更(check_zmq_typeがTrueを返却)
+        temp_conf = const.CONF_FILE
+        const.CONF_FILE = "config_other.json"
+
+        try:
+            mld_controller.mld_controller()
+            pass
+        finally:
+            # 変更した設定を元に戻す
+            const.CONF_FILE = temp_conf
+
     def test_create_socket_Success001(self):
         logger.debug("test_create_socket_Success001")
+        # mld_controller.create_socket(self, sendpath, recvpath)
         """
         概要：zmqの送受信で使用するsocketを生成
         条件：SEND用・RECV用のipcのtmpファイルパスを指定する
@@ -785,8 +810,6 @@ class test_mld_controller():
         # mld_controller.receive_from_mld
         logger.debug("test_receive_from_mld_Success001")
         """
-        試験方法自体を検討する必要あり、
-        まず、無限ループを止められる実装を行う必要があり。
         概要：MLD_Process受信処理
         条件：正常に動作するであろうデータを設定し、実行する
         結果：resultがNoneであること
@@ -800,7 +823,7 @@ class test_mld_controller():
         datapath.xid = 999
         self.mld_ctrl.loop_flg = True
 
-        config = read_json(COMMON_PATH + const.CONF_FILE)
+        config = read_json(TEST_COMMON_PATH + const.CONF_FILE)
         self.config = config.data[const.SETTING]
         self.config_zmq_ipc = config.data[ZMQ_IPC]
         self.config_zmq_tcp = config.data[ZMQ_TCP]
@@ -866,8 +889,6 @@ class test_mld_controller():
         # mld_controller.receive_from_mld
         logger.debug("test_receive_from_mld_Failuer001")
         """
-        試験方法自体を検討する必要あり、
-        まず、無限ループを止められる実装を行う必要があり。
         概要：MLD_Process受信処理
         条件：正常に動作するであろうデータを設定し、実行する
         結果：resultがNoneであること
@@ -881,7 +902,7 @@ class test_mld_controller():
         datapath.xid = 999
         self.mld_ctrl.loop_flg = True
 
-        config = read_json(COMMON_PATH + const.CONF_FILE)
+        config = read_json(TEST_COMMON_PATH + const.CONF_FILE)
         self.config = config.data[const.SETTING]
         self.config_zmq_ipc = config.data[ZMQ_IPC]
         self.config_zmq_tcp = config.data[ZMQ_TCP]
@@ -1908,34 +1929,6 @@ class test_mld_controller():
 
         except Exception as e:
             # 【結果】
-            logger.debug("test_packet_in_handler_Failure008 [Exception] %s", e)
-            assert_raises(Exception, e)
-        return
-
-    def test_init_Success001(self):
-        # mld_controller.__init__(self, *args, **kwargs)
-        try:
-            # システムモジュールのソケットに対しパッチを適用
-            patcher.monkey_patch()
-
-            # ループフラグの設定
-            self.loop_flg = True
-
-            # 設定情報の読み込み
-            config = read_json(COMMON_PATH + const.CONF_FILE)
-            self.logger.debug("config_info:%s", str(config.data))
-            self.config = config.data[SETTING]
-
-            zmq_conn = self.get_zmq_connect(config)
-            self.zmq_pub = zmq_conn[0]
-            self.zmq_sub = zmq_conn[1]
-
-            # ZMQ送受信用ソケット生成
-            self.create_socket(self.zmq_pub, self.zmq_sub)
-
-        except Exception as e:
-            # 【結果】
-            logger.debug("test_init_Success001")
             logger.debug("test_packet_in_handler_Failure008 [Exception] %s", e)
             assert_raises(Exception, e)
         return
