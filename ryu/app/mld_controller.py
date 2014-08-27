@@ -436,8 +436,7 @@ class mld_controller(app_manager.RyuApp):
 
         else:
             self.logger.error("self.config[%s]:%s", const.ZMQ_TYPE, zmq_type)
-            raise Exception.message("self.config[%s]:%s",
-                                    const.ZMQ_TYPE, zmq_type)
+            raise Exception("self.config[%s]:%s" % (const.ZMQ_TYPE, zmq_type))
 
     # =========================================================================
     # check_exists_tmp
@@ -473,14 +472,13 @@ class mld_controller(app_manager.RyuApp):
         self.logger.debug("")
 
         ctx = zmq.Context()
-
+        self.logger.info("[SendSocket]:%s", sendpath)
         # SEND SOCKET CREATE
         self.send_sock = ctx.socket(zmq.PUB)
         self.send_sock.bind(sendpath)
-        self.logger.info("[SendSocket]:%s", sendpath)
 
+        self.logger.info("[RecvSocket]:%s", recvpath)
         # RECV SOCKET CREATE
         self.recv_sock = ctx.socket(zmq.SUB)
         self.recv_sock.connect(recvpath)
         self.recv_sock.setsockopt(zmq.SUBSCRIBE, "")
-        self.logger.info("[RecvSocket]:%s", recvpath)
