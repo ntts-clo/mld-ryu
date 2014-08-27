@@ -1,0 +1,51 @@
+{
+    "switch_mc_info": {
+        "_ivid(comment)": "一時内部VID", 
+        "ivid": 1001
+    }, 
+    "switch_mld_info": {
+        "_bvid(comment)": "BVID", 
+        "_ivid(comment)": "内部VID", 
+        "_pbb_isid(comment)": "PBB_ISID", 
+        "bvid": 4000, 
+        "ivid": 2001, 
+        "pbb_isid": 10001
+    }, 
+    "switches": [
+        {
+            "__comment": "エッジスイッチ", 
+            "container_sw_ports": [
+                49, 
+                50
+            ], 
+            "datapathid": 276595101184, 
+            "edge_router_port": 2, 
+            "mld_port": 1, 
+            "sw_bmac": "00:40:66:5a:4e:00", 
+            "sw_name": "esw", 
+            "sw_type": 12000
+        }, 
+        {
+            "__comment": "収容スイッチ1", 
+            "datapathid": 276596903168, 
+            "edge_switch_port": 50, 
+            "olt_ports": [
+                1
+            ], 
+            "sw_bmac": "02:40:66:75:cd:00", 
+            "sw_name": "sw1", 
+            "sw_type": 12000
+        }, 
+        {
+            "__comment": "収容スイッチ2", 
+            "datapathid": 276596902016, 
+            "edge_switch_port": 50, 
+            "olt_ports": [
+                1
+            ], 
+            "sw_bmac": "02:40:66:75:c8:80", 
+            "sw_name": "sw2", 
+            "sw_type": 12000
+        }
+    ]
+}
