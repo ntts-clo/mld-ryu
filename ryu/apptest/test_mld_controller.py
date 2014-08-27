@@ -64,7 +64,7 @@ import mld_const as const
 
 TEST_COMMON_PATH = DIR_PATH + "/test_common/"
 
-logging.config.fileConfig(COMMON_PATH + const.RYU_LOG_CONF)
+logging.config.fileConfig(TEST_COMMON_PATH + const.RYU_LOG_CONF)
 logger = logging.getLogger(__name__)
 
 # OpenFlowのバージョン
@@ -153,23 +153,30 @@ class test_mld_controller():
         dpset_ins = dpset.DPSet()
         kwargs = {}
         kwargs['dpset'] = dpset_ins
+        # テスト用の設定ファイルを読み込ませる
+        mld_controller.COMMON_PATH = TEST_COMMON_PATH
         cls.mld_ctrl = mld_controller.mld_controller(**kwargs)
 
     # このクラスのテストケースをすべて実行した後に１度だけ実行する
     @classmethod
-    def teardown_class(clazz):
-        logger.debug("teardown")
+    def teardown_class(cls):
+        logger.debug("teardown_class")
+        # bind状態のzmqを解放
+        cls.mld_ctrl.send_sock.close()
+        cls.mld_ctrl.recv_sock.close()
 
     def setup(self):
         self.mocker = Mox()
-
+        """
         dpset_ins = dpset.DPSet()
         kwargs = {}
         kwargs['dpset'] = dpset_ins
+        # テスト用の設定ファイルを読み込ませる
+        mld_controller.COMMON_PATH = TEST_COMMON_PATH
         self.mld_ctrl = mld_controller.mld_controller(**kwargs)
 
         # 設定値の初期化
-        self.mld_ctrl.config = self.config
+#      self.mld_ctrl.config = self.config
 
         # zmq設定情報の読み込み
         self.zmq_pub = None
@@ -183,6 +190,7 @@ class test_mld_controller():
         self.mld_ctrl.check_exists_tmp(self.zmq_pub)
         # CHECK TMP FILE(RECV)
         self.mld_ctrl.check_exists_tmp(self.zmq_sub)
+        """
 
     def tearDown(self):
         # StubOutWithMoc()を呼んだ後に必要。常に呼んでおけば安心
@@ -196,7 +204,7 @@ class test_mld_controller():
         ok_(self.mld_ctrl.logger)
 
         # 設定情報読み込み
-        eq_(self.mld_ctrl.config, self.config)
+        eq_(self.mld_ctrl.config, self.config.data[const.SETTING])
 
         # ZeroMQ送受信用設定
         configdata = self.config.data[const.SETTING]
