@@ -167,38 +167,14 @@ class test_mld_controller():
 
     def setup(self):
         self.mocker = Mox()
-        """
-        dpset_ins = dpset.DPSet()
-        kwargs = {}
-        kwargs['dpset'] = dpset_ins
-        # テスト用の設定ファイルを読み込ませる
-        mld_controller.COMMON_PATH = TEST_COMMON_PATH
-        self.mld_ctrl = mld_controller.mld_controller(**kwargs)
-
-        # 設定値の初期化
-#      self.mld_ctrl.config = self.config
-
-        # zmq設定情報の読み込み
-        self.zmq_pub = None
-        self.zmq_sub = None
-        result = self.mld_ctrl.get_zmq_connect(self.config)
-        # CHECK zmq用URL
-        # IPCによるSoket設定の読み込み
-        self.zmq_pub = result[0]
-        self.zmq_sub = result[1]
-        # CHECK TMP FILE(SEND)
-        self.mld_ctrl.check_exists_tmp(self.zmq_pub)
-        # CHECK TMP FILE(RECV)
-        self.mld_ctrl.check_exists_tmp(self.zmq_sub)
-        """
 
     def tearDown(self):
         # StubOutWithMoc()を呼んだ後に必要。常に呼んでおけば安心
         self.mocker.UnsetStubs()
 
     def test_init_Success001(self):
-        # mld_controller.__init__(self, *args, **kwargs)
         logger.debug("test_init_Success001")
+        # mld_controller.__init__(self, *args, **kwargs)
 
         # ロガーの設定
         ok_(self.mld_ctrl.logger)
@@ -220,13 +196,17 @@ class test_mld_controller():
 
     @attr(do=False)
     def test_init_exception(self):
+        logger.debug("test_init_exception")
         # 読み込む設定ファイルを変更(check_zmq_typeがTrueを返却)
         temp_conf = const.CONF_FILE
         const.CONF_FILE = "config_other.json"
 
         try:
             mld_controller.mld_controller()
-            pass
+        except Exception as e:
+            # 【結果】
+            logger.debug("test_init_exception[Exception]%s", e)
+            assert_raises(Exception, e)
         finally:
             # 変更した設定を元に戻す
             const.CONF_FILE = temp_conf
@@ -288,6 +268,7 @@ class test_mld_controller():
         """
         概要：zmqにてmld_plocessより受信したpacketを検証し処理を振り分ける
         条件：正常に動作するであろうDummyのPACKET_OUTデータを設定し、実行する
+              create_packet_outの確認
         結果：戻り値にFALSEが設定されていないこと
         """
         #【前処理】
@@ -342,7 +323,7 @@ class test_mld_controller():
         sendpkt.serialize()
         packetoutdata = sendpkt
 
-        switches = read_json(COMMON_PATH + const.SWITCH_INFO)
+        switches = read_json(TEST_COMMON_PATH + const.SWITCH_INFO)
         self.switch_mld_info = switches.data[const.SW_TAG_MLD_INFO]
         self.switch_mc_info = switches.data[const.SW_TAG_MC_INFO]
         self.switches = switches.data[const.SW_TAG_SWITCHES]
@@ -362,8 +343,8 @@ class test_mld_controller():
                                 data=packetdata)
 
         # モック作成
-        self.mocker.StubOutWithMock(self.mld_ctrl, "send_msg_to_packetout")
-        self.mld_ctrl.send_msg_to_packetout(ev.msg, packet).AndReturn(0)
+        self.mocker.StubOutWithMock(self.mld_ctrl, "create_packet_out")
+        self.mld_ctrl.create_packet_out(datapath, packetdata).AndReturn(0)
 
         #【実行】
         self.mocker.ReplayAll()
@@ -373,7 +354,6 @@ class test_mld_controller():
         self.mocker.VerifyAll()
         logger.debug("test_analyse_receive_packet_Success001 [result] %s",
                      str(result))
-        assert_not_equal(result, False)
 
     def test_analyse_receive_packet_Success002(self):
         logger.debug("test_analyse_receive_packet_Success002")
@@ -381,6 +361,7 @@ class test_mld_controller():
         """
         概要：zmqにてmld_plocessより受信したpacketを検証し処理を振り分ける
         条件：正常に動作するであろうDummyのFLOW_MODデータを設定し、実行する
+              send_msg_to_barrier_requestの確認
         結果：戻り値にFALSEが設定されていないこと
         """
         #【前処理】
@@ -425,7 +406,7 @@ class test_mld_controller():
         # モック作成
         self.mocker.StubOutWithMock(self.mld_ctrl,
                                     "send_msg_to_barrier_request")
-        self.mld_ctrl.send_msg_to_barrier_request(ev.msg).AndReturn(0)
+        self.mld_ctrl.send_msg_to_barrier_request(datapath).AndReturn(0)
 
         #【実行】
         self.mocker.ReplayAll()
@@ -435,7 +416,6 @@ class test_mld_controller():
         self.mocker.VerifyAll()
         logger.debug("test_analyse_receive_packet_Success002 [result] %s",
                      str(result))
-        assert_not_equal(result, False)
 
     def test_analyse_receive_packet_Success003(self):
         # mld_controller.analyse_receive_packet(self, recvpkt):
@@ -446,6 +426,7 @@ class test_mld_controller():
               データを設定し、実行する
               1レコード目=正常データ
               1レコード目=dict_msgに対象のdatapathidが存在しない
+              send_msg_to_barrier_requestの確認
         結果：戻り値にFALSEが設定されていないこと
         """
         #【前処理】
@@ -496,7 +477,7 @@ class test_mld_controller():
         # モック作成
         self.mocker.StubOutWithMock(self.mld_ctrl,
                                     "send_msg_to_barrier_request")
-        self.mld_ctrl.send_msg_to_barrier_request(ev.msg).AndReturn(0)
+        self.mld_ctrl.send_msg_to_barrier_request(datapath).AndReturn(0)
 
         #【実行】
         self.mocker.ReplayAll()
@@ -506,7 +487,6 @@ class test_mld_controller():
         self.mocker.VerifyAll()
         logger.debug("test_analyse_receive_packet_Success003 [result] %s",
                      str(result))
-        assert_not_equal(result, False)
 
     def test_analyse_receive_packet_Failure001(self):
         logger.debug("test_analyse_receive_packet_Failure001")
@@ -626,7 +606,7 @@ class test_mld_controller():
             #self.mld_ctrl.dict_msg[datapath.id] = ev.msg
             dpset.set_ev_cls(ev, datapath)
 
-            switches = read_json(COMMON_PATH + const.SWITCH_INFO)
+            switches = read_json(TEST_COMMON_PATH + const.SWITCH_INFO)
             self.switch_mld_info = switches.data[const.SW_TAG_MLD_INFO]
             self.switch_mc_info = switches.data[const.SW_TAG_MC_INFO]
             self.switches = switches.data[const.SW_TAG_SWITCHES]
@@ -765,7 +745,7 @@ class test_mld_controller():
         sendpkt.serialize()
         packetoutdata = sendpkt
 
-        switches = read_json(COMMON_PATH + const.SWITCH_INFO)
+        switches = read_json(TEST_COMMON_PATH + const.SWITCH_INFO)
         self.switch_mld_info = switches.data[const.SW_TAG_MLD_INFO]
         self.switch_mc_info = switches.data[const.SW_TAG_MC_INFO]
         self.switches = switches.data[const.SW_TAG_SWITCHES]
