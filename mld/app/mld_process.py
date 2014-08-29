@@ -344,6 +344,9 @@ class mld_process():
         reguraly_query_interval = self.config[const.REGURALY_QUERY_INTERVAL]
         mc_query_interval = self.config[const.MC_QUERY_INTERVAL]
 
+        # 初回送信前に定期送信クエリの送信間隔の1/4秒待つ
+        time.sleep(reguraly_query_interval / 4)
+
         # General Query
         if requraly_query_type == self.GENERAL_QUERY:
             self.logger.debug("create general query")

@@ -4,7 +4,7 @@
         "db_connect_str": "mongodb://localhost:27017",
         "mc_query_interval": 10, 
         "mld_esw_ifname": "eth0", 
-        "reguraly_query_interval": 125, 
+        "reguraly_query_interval": 3, 
         "reguraly_query_type": "SQ", 
         "user_time_out": 250, 
         "zmq_type": "ipc"

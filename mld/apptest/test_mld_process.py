@@ -50,11 +50,11 @@ class test_mld_process():
     MAC = "6c:3b:e5:51:1e:e4"
     IP6 = "fe80::6e3b:e5ff:fe51:1ee4"
 
-    #MAC = "d4:3d:7e:4a:43:fd"
-    #IP6 = "fe80::d63d:7eff:fe4a:43fd"
+#    MAC = "d4:3d:7e:4a:43:fd"
+#    IP6 = "fe80::d63d:7eff:fe4a:43fd"
 
-    #MAC = "8c:89:a5:db:c4:19"
-    #IP6 = "fe80::8e89:a5ff:fedb:c419"
+#    MAC = "8c:89:a5:db:c4:19"
+#    IP6 = "fe80::8e89:a5ff:fedb:c419"
 
     # このクラスのテストケースを実行する前に１度だけ実行する
     @classmethod
