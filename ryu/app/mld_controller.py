@@ -414,8 +414,8 @@ class mld_controller(app_manager.RyuApp):
         if zmq_type.lower() == const.CHECK_ZMQ_TYPE_IPC:
             # IPCによるSoket設定の読み込み
             config_zmq_ipc = configfile.data[const.ZMQ_IPC]
-            zmq_pub = config_zmq_ipc[const.ZMQ_PUB]
-            zmq_sub = config_zmq_ipc[const.ZMQ_SUB]
+            zmq_pub = config_zmq_ipc[const.ZMQ_OFC]
+            zmq_sub = config_zmq_ipc[const.ZMQ_MLD]
             # CHECK TMP FILE(SEND)
             self.check_exists_tmp(zmq_pub)
             # CHECK TMP FILE(RECV)
