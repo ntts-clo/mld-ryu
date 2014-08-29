@@ -127,7 +127,10 @@ class mld_process():
             bvid_variations = bvid_variation.data[const.BV_TAG_BV_INFO]
             self.bvid_variation = {}
             for bvid_variation in bvid_variations:
-                self.bvid_variation[bvid_variation[const.BV_TAG_KEY]] = \
+                # ":"で区切られたkeyを昇順にソートして再設定
+                bvid_key = const.COLON_DELIMIT.join(sorted(bvid_variation[
+                    const.BV_TAG_KEY].split(const.COLON_DELIMIT)))
+                self.bvid_variation[bvid_key] = \
                     bvid_variation[const.BV_TAG_BVID]
 
             # ZMQの接続文字列を取得
@@ -277,10 +280,9 @@ class mld_process():
             # TCPによるSoket設定の読み込み
             config_zmq_tcp = configfile.data[const.ZMQ_TCP]
             zmq_sub = config_zmq_tcp[const.MLD_SERVER_IP]
-            zmq_sub_list = zmq_sub.split(const.PORT_DELIMIT)
+            zmq_sub_list = zmq_sub.split(const.COLON_DELIMIT)
             # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
-            zmq_pub = const.SEND_IP + const.PORT_DELIMIT \
-                + zmq_sub_list[1]
+            zmq_pub = const.SEND_IP + const.COLON_DELIMIT + zmq_sub_list[1]
             # zmq_urlを設定し、返却
             return [zmq_url + zmq_pub, zmq_url + zmq_sub]
 
@@ -448,7 +450,7 @@ class mld_process():
         record_list = [
             icmpv6.mldv2_report_group(
                 address=info[0], srcs=[info[1]], type_=info[2])
-                    for info in report_info]
+            for info in report_info]
         report = icmpv6.mldv2_report(records=record_list)
         self.logger.debug("created report : %s", str(report))
         return report
@@ -689,7 +691,7 @@ class mld_process():
             # 視聴中のMCグループ毎にレポートを作成
             report_info = [
                 (mc_info[0], mc_info[1], icmpv6.MODE_IS_INCLUDE)
-                    for mc_info in self.ch_info.channel_info.keys()]
+                for mc_info in self.ch_info.channel_info.keys()]
             self.send_packetout(
                 report_info, vid, edge_sw_dpid, edge_router_port)
 
@@ -875,7 +877,8 @@ class mld_process():
             listening_switch = self.ch_info.channel_info[
                 (address, src)].keys()
             # datapathidの昇順に":"でつなぐ
-            bvid_key = ":".join(map(str, sorted(listening_switch)))
+            bvid_key = const.COLON_DELIMIT.join(
+                map(str, sorted(listening_switch)))
             self.logger.debug("bvid_key : %s", bvid_key)
             bvid = self.bvid_variation[bvid_key]
         else:

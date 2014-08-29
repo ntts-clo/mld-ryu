@@ -17,6 +17,9 @@ CON_REPLY_DEL_MC_GROUP = 34
 CON_REPLY_DEL_SWITCH = 35
 CON_REPLY_DEL_PORT = 36
 
+# デリミタ
+COLON_DELIMIT = ":"
+
 # =============================================================================
 # ログファイルの定義
 # =============================================================================
@@ -33,7 +36,6 @@ CHECK_ZMQ_TYPE_IPC = "ipc"
 CHECK_ZMQ_TYPE_TCP = "tcp"
 # ZMQ用定数
 URL_DELIMIT = "://"
-PORT_DELIMIT = ":"
 SEND_IP = "0.0.0.0"
 # 設定ファイルの定義名
 SETTING = "settings"

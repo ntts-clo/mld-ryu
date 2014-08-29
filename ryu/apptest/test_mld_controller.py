@@ -92,7 +92,6 @@ MLD_SERVER_IP = "mld_server_ip"
 CHECK_VLAN_FLG = True
 # ZMQ用定数
 URL_DELIMIT = "://"
-PORT_DELIMIT = ":"
 SEND_IP = "0.0.0.0"
 
 # 設定ファイルの定義名
@@ -252,8 +251,8 @@ class test_mld_controller():
         """
         #【前処理】
         zmq_url = "tcp://"
-        send_ip_path = zmq_url + SEND_IP + PORT_DELIMIT + "7003"
-        recv_ip_path = zmq_url + RECV_IP + PORT_DELIMIT + "7003"
+        send_ip_path = zmq_url + SEND_IP + const.COLON_DELIMIT + "7003"
+        recv_ip_path = zmq_url + RECV_IP + const.COLON_DELIMIT + "7003"
 
         #【実行】
         self.mld_ctrl.create_socket(send_ip_path, recv_ip_path)
