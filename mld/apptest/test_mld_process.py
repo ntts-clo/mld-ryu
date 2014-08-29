@@ -92,7 +92,7 @@ class test_mld_process():
         self.mld_proc.ch_info = channel_info(self.config)
         self.mld_proc.config = self.config
 
-    @attr(do="False")
+    @attr(do=False)
     def test_init(self):
         # ロガーの設定
         ok_(self.mld_proc.logger)
@@ -135,7 +135,7 @@ class test_mld_process():
         # Flowmod生成用インスタンス
         ok_(self.mld_proc.flowmod_gen)
 
-    @attr(do="False")
+    @attr(do=False)
     def test_init_get_zmq_connect_exception(self):
         # 読み込む設定ファイルを変更(check_zmq_typeがTrueを返却)
         temp_conf = const.CONF_FILE
@@ -502,19 +502,24 @@ class test_mld_process():
     def test_create_mldreport(self):
         mc_addr = "ff38::1:1"
         serv_ip = "2001:1::20"
-        types = [icmpv6.MODE_IS_INCLUDE, icmpv6.MODE_IS_EXCLUDE,
-                 icmpv6.CHANGE_TO_INCLUDE_MODE, icmpv6.CHANGE_TO_EXCLUDE_MODE,
-                 icmpv6.ALLOW_NEW_SOURCES, icmpv6.BLOCK_OLD_SOURCES]
+        report_info = [
+            (mc_addr, serv_ip, icmpv6.MODE_IS_INCLUDE),
+            (mc_addr, serv_ip, icmpv6.MODE_IS_EXCLUDE),
+            (mc_addr, serv_ip, icmpv6.CHANGE_TO_INCLUDE_MODE),
+            (mc_addr, serv_ip, icmpv6.CHANGE_TO_EXCLUDE_MODE),
+            (mc_addr, serv_ip, icmpv6.ALLOW_NEW_SOURCES),
+            (mc_addr, serv_ip, icmpv6.BLOCK_OLD_SOURCES)]
 
         # 全typeを持つreportが生成されること
-        actual = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
-        eq_(len(types), len(actual.records))
+        actual = self.mld_proc.create_mldreport(report_info)
+        eq_(len(report_info), len(actual.records))
 
         idx = 0
         for report in actual.records:
-            eq_(types[idx], report.type_)
-            eq_(mc_addr, report.address)
-            eq_([serv_ip], report.srcs)
+            eq_(report_info[idx][0], report.address)
+            eq_(1, len(report.srcs))
+            eq_(report_info[idx][1], report.srcs[0])
+            eq_(report_info[idx][2], report.type_)
             idx += 1
 
     @attr(do=False)
@@ -605,8 +610,10 @@ class test_mld_process():
         mc_addr = "ff38::1:1"
         serv_ip = "2001:1::20"
         vid = self.config[const.C_TAG_ID]
-        types = [icmpv6.ALLOW_NEW_SOURCES, icmpv6.CHANGE_TO_INCLUDE_MODE]
-        report = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
+        report_info = [
+            (mc_addr, serv_ip, icmpv6.ALLOW_NEW_SOURCES),
+            (mc_addr, serv_ip, icmpv6.CHANGE_TO_INCLUDE_MODE)]
+        report = self.mld_proc.create_mldreport(report_info)
         actual = self.mld_proc.create_packet(vid, report)
 
         eth = actual.get_protocol(ethernet.ethernet)
@@ -689,8 +696,8 @@ class test_mld_process():
         # packet-in受信時：reportであればmanage_userを呼び出す
         mc_addr = "ff38::1:1"
         serv_ip = "2001:1::20"
-        types = [icmpv6.MODE_IS_INCLUDE]
-        report = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
+        report = self.mld_proc.create_mldreport(
+            [(mc_addr, serv_ip, icmpv6.MODE_IS_INCLUDE)])
         data = icmpv6.icmpv6(
             type_=icmpv6.MLDV2_LISTENER_REPORT, data=report)
         dispatch_ = dispatch(const.CON_PACKET_IN, 1, data=data)
@@ -950,10 +957,18 @@ class test_mld_process():
         self.mld_proc.ch_info.update_ch_info(
             mc_addr2, serv_ip, datapathid2, port_no1, cid3)
 
-        # send_packet_to_ryuがmcアドレス分(2回)呼び出されることを確認
-        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
-        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
-        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+        # send_packetoutが1回呼び出されることを確認
+        vid = self.mld_proc.config[const.C_TAG_ID]
+        edge_sw_dpid = self.mld_proc.edge_switch[const.SW_TAG_DATAPATHID]
+        edge_router_port = self.mld_proc.edge_switch[
+            const.SW_TAG_EDGE_ROUTER_PORT]
+        report_info = [
+            (mc_info[0], mc_info[1], icmpv6.MODE_IS_INCLUDE)
+            for mc_info in self.mld_proc.ch_info.channel_info.keys()]
+
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
+        self.mld_proc.send_packetout(
+            report_info, vid, edge_sw_dpid, edge_router_port)
         self.mocker.ReplayAll()
 
         self.mld_proc.reply_proxy("::", [])
@@ -979,23 +994,16 @@ class test_mld_process():
         self.mld_proc.ch_info.update_ch_info(
             mc_addr2, serv_ip, datapathid2, port_no1, cid3)
 
-        # 受信したmc_addrを引数にcreate_mldreportが呼び出されることを確認
-        report_type = [icmpv6.MODE_IS_INCLUDE]
-        self.mocker.StubOutWithMock(self.mld_proc, "create_mldreport")
-        self.mld_proc.create_mldreport(
-            mc_address=mc_addr1, mc_serv_ip=serv_ip, report_types=report_type)
+        vid = self.mld_proc.config[const.C_TAG_ID]
+        edge_sw_dpid = self.mld_proc.edge_switch[const.SW_TAG_DATAPATHID]
+        edge_router_port = self.mld_proc.edge_switch[
+            const.SW_TAG_EDGE_ROUTER_PORT]
 
-        self.mocker.StubOutWithMock(self.mld_proc, "create_packet")
-        self.mld_proc.create_packet(IsA(int), None)
-
-        self.mocker.StubOutWithMock(self.mld_proc, "create_packetout")
-        self.mld_proc.create_packetout(
-            datapathid=self.mld_proc.edge_switch[const.SW_TAG_DATAPATHID],
-            port=self.mld_proc.edge_switch[const.SW_TAG_EDGE_ROUTER_PORT],
-            packet=None)
-
-        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
-        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+        # 受信したmc_addrを引数にsend_packetoutが呼び出されることを確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
+        self.mld_proc.send_packetout(
+            [(mc_addr1, serv_ip, icmpv6.MODE_IS_INCLUDE)],
+            vid, edge_sw_dpid, edge_router_port)
         self.mocker.ReplayAll()
 
         self.mld_proc.reply_proxy(mc_addr1, [serv_ip])
@@ -1016,9 +1024,9 @@ class test_mld_process():
         self.mld_proc.ch_info.update_ch_info(
             mc_addr1, serv_ip, datapathid2, port_no1, cid2)
 
-        # create_mldreportが呼び出されないことを確認
-        self.mocker.StubOutWithMock(self.mld_proc, "create_mldreport")
-        self.mld_proc.create_mldreport(IsA(str), IsA(str), IsA(list))
+        # send_packetoutが呼び出されないことを確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
+        self.mld_proc.send_packetout(IsA(list), IsA(int), IsA(int), IsA(int))
         self.mocker.ReplayAll()
 
         self.mld_proc.reply_proxy("ff38::1:2", [serv_ip])
@@ -1047,12 +1055,49 @@ class test_mld_process():
         self.mocker.VerifyAll()
 
     @attr(do=False)
+    def test_send_packetout(self):
+        # 引数が正しく設定されていることを確認
+        mc_addr1 = "ff38::1:1"
+        mc_addr2 = "ff38::1:2"
+        serv_ip = "2001:1::20"
+
+        vid = self.mld_proc.config[const.C_TAG_ID]
+        edge_sw_dpid = self.mld_proc.edge_switch[const.SW_TAG_DATAPATHID]
+        edge_router_port = self.mld_proc.edge_switch[
+            const.SW_TAG_EDGE_ROUTER_PORT]
+        report_info = [
+            (mc_addr1, serv_ip, icmpv6.MODE_IS_INCLUDE),
+            (mc_addr2, serv_ip, icmpv6.MODE_IS_INCLUDE)]
+
+        # create_mldreportをmock化
+        self.mocker.StubOutWithMock(self.mld_proc, "create_mldreport")
+        self.mld_proc.create_mldreport(report_info).AndReturn("mld")
+
+        # create_packetをmock化
+        self.mocker.StubOutWithMock(self.mld_proc, "create_packet")
+        self.mld_proc.create_packet(vid, "mld").AndReturn("sendpkt")
+
+        # create_packetoutをmock化
+        self.mocker.StubOutWithMock(self.mld_proc, "create_packetout")
+        self.mld_proc.create_packetout(
+            datapathid=edge_sw_dpid, port=edge_router_port, packet="sendpkt")
+
+        # send_packet_to_ryu呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
+        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+        self.mocker.ReplayAll()
+
+        self.mld_proc.send_packetout(
+            report_info, vid, edge_sw_dpid, edge_router_port)
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
     def test_manage_user_reply(self):
         # update_user_infoがCON_REPLY_NOTHING以外を返却する場合はreply_to_ryuを呼び出す
         mc_addr = "ff38::1:1"
         serv_ip = "2001:1::20"
-        types = [icmpv6.MODE_IS_INCLUDE]
-        mld = self.mld_proc.create_mldreport(mc_addr, serv_ip, types)
+        mld = self.mld_proc.create_mldreport(
+            [(mc_addr, serv_ip, icmpv6.MODE_IS_INCLUDE)])
         data = icmpv6.icmpv6(
             type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
 
@@ -1263,21 +1308,21 @@ class test_mld_process():
             pbb_isid=self.mc_info_list[0][const.SW_TAG_MLD_INFO_PBB_ISID],
             bvid=4001).AndReturn(0)
 
-        # send_packet_to_ryuの呼び出し確認
-        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
-        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
-        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+        # ssend_flowmodの呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_flowmod")
+        self.mld_proc.send_flowmod(0)
 
-        # create_mldreportの呼び出し確認
-        report_types = [icmpv6.ALLOW_NEW_SOURCES,
-                        icmpv6.CHANGE_TO_INCLUDE_MODE]
-        mld_report = self.mld_proc.create_mldreport(
-            mc_address=mc_addr, mc_serv_ip=serv_ip, report_types=report_types)
-        self.mocker.StubOutWithMock(self.mld_proc, "create_mldreport")
-        self.mld_proc.create_mldreport(
-            mc_address=mc_addr, mc_serv_ip=serv_ip,
-            report_types=report_types).AndReturn(mld_report)
-
+        # send_packetoutの呼び出し確認
+        vid = self.mld_proc.config[const.C_TAG_ID]
+        edge_switch_dpid = self.mld_proc.edge_switch[const.SW_TAG_DATAPATHID]
+        edge_switch_port = self.mld_proc.edge_switch[
+            const.SW_TAG_EDGE_ROUTER_PORT]
+        report_info = [
+            (mc_addr, serv_ip, icmpv6.ALLOW_NEW_SOURCES),
+            (mc_addr, serv_ip, icmpv6.CHANGE_TO_INCLUDE_MODE)]
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
+        self.mld_proc.send_packetout(
+            report_info, vid, edge_switch_dpid, edge_switch_port)
         self.mocker.ReplayAll()
 
         self.mld_proc.reply_to_ryu(
@@ -1317,10 +1362,9 @@ class test_mld_process():
         self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
         self.mld_proc.send_packet_to_ryu(IsA(dispatch))
 
-        # create_mldreportが呼び出されないことの確認
-        self.mocker.StubOutWithMock(self.mld_proc, "create_mldreport")
-        self.mld_proc.create_mldreport(IsA(str), IsA(str), IsA(list))
-
+        # send_packetoutが呼び出されないことの確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
+        self.mld_proc.send_packetout(IsA(list), IsA(int), IsA(int), IsA(int))
         self.mocker.ReplayAll()
 
         self.mld_proc.reply_to_ryu(
@@ -1399,18 +1443,15 @@ class test_mld_process():
         self.mld_proc.ch_info.update_ch_info(
             mc_addr, serv_ip, datapathid, in_port, cid)
 
-        # create_mldreportの呼び出し確認
-        report_types = [icmpv6.BLOCK_OLD_SOURCES]
-        mld_report = self.mld_proc.create_mldreport(
-            mc_address=mc_addr, mc_serv_ip=serv_ip, report_types=report_types)
-        self.mocker.StubOutWithMock(self.mld_proc, "create_mldreport")
-        self.mld_proc.create_mldreport(
-            mc_address=mc_addr, mc_serv_ip=serv_ip,
-            report_types=report_types).AndReturn(mld_report)
-
-        # send_packet_to_ryuの呼び出し確認
-        self.mocker.StubOutWithMock(self.mld_proc, "send_packet_to_ryu")
-        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
+        # send_packetoutの呼び出し確認
+        vid = self.mld_proc.config[const.C_TAG_ID]
+        edge_switch_dpid = self.mld_proc.edge_switch[const.SW_TAG_DATAPATHID]
+        edge_switch_port = self.mld_proc.edge_switch[
+            const.SW_TAG_EDGE_ROUTER_PORT]
+        report_info = [(mc_addr, serv_ip, icmpv6.BLOCK_OLD_SOURCES)]
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
+        self.mld_proc.send_packetout(
+            report_info, vid, edge_switch_dpid, edge_switch_port)
 
         # flowmod_gen.remove_mgをスタブ化
         self.mocker.StubOutWithMock(self.mld_proc.flowmod_gen, "remove_mg")
@@ -1420,9 +1461,6 @@ class test_mld_process():
             ivid=self.mc_info_list[0][const.SW_TAG_MLD_INFO_IVID],
             pbb_isid=self.mc_info_list[0][const.SW_TAG_MLD_INFO_PBB_ISID],
             bvid=4001).AndReturn(0)
-
-        # send_packet_to_ryuの呼び出し確認
-        self.mld_proc.send_packet_to_ryu(IsA(dispatch))
 
         self.mocker.ReplayAll()
 
@@ -1449,9 +1487,9 @@ class test_mld_process():
         self.mld_proc.ch_info.update_ch_info(
             mc_addr, serv_ip, datapathid, in_port, cid)
 
-        # create_mldreportが呼び出されないことの確認
-        self.mocker.StubOutWithMock(self.mld_proc, "create_mldreport")
-        self.mld_proc.create_mldreport(IsA(str), IsA(str), IsA(list))
+        # send_packetoutが呼び出されないことの確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
+        self.mld_proc.send_packetout(IsA(list), IsA(int), IsA(int), IsA(int))
 
         # flowmod_gen.remove_mgをスタブ化
         self.mocker.StubOutWithMock(self.mld_proc.flowmod_gen, "remove_mg")
@@ -2082,21 +2120,10 @@ class test_user_manage():
         bf_time1 = self.mld_proc.ch_info.user_info_list[0].time
         bf_time2 = self.mld_proc.ch_info.user_info_list[1].time
 
-        types = [icmpv6.MODE_IS_INCLUDE, icmpv6.MODE_IS_INCLUDE]
-        mld = self.mld_proc.create_mldreport(
-            self.mc_addr2, self.serv_ip, types)
-
-        record_list = []
-        record_list.append(
-            icmpv6.mldv2_report_group(
-                type_=icmpv6.MODE_IS_INCLUDE, address=self.mc_addr1,
-                srcs=[self.serv_ip]))
-        record_list.append(
-            icmpv6.mldv2_report_group(
-                type_=icmpv6.MODE_IS_INCLUDE, address=self.mc_addr2,
-                srcs=[self.serv_ip]))
-        mld = icmpv6.mldv2_report(records=record_list)
-
+        report_info = [
+            (self.mc_addr1, self.serv_ip, icmpv6.MODE_IS_INCLUDE),
+            (self.mc_addr2, self.serv_ip, icmpv6.MODE_IS_INCLUDE)]
+        mld = self.mld_proc.create_mldreport(report_info)
         data = icmpv6.icmpv6(
             type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
         dispatch_ = dispatch(
@@ -2627,9 +2654,8 @@ class test_user_manage():
 
         # packet-inしたデータを作成
         cid = 2111
-        types = [icmpv6.MODE_IS_INCLUDE]
         mld = self.mld_proc.create_mldreport(
-            self.mc_addr2, self.serv_ip, types)
+            [(self.mc_addr2, self.serv_ip, icmpv6.MODE_IS_INCLUDE)])
         data = icmpv6.icmpv6(
             type_=icmpv6.MLDV2_LISTENER_REPORT, data=mld)
         dispatch_ = dispatch(

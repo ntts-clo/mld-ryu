@@ -443,19 +443,12 @@ class mld_process():
     # create_mldreport
     # ==================================================================
     def create_mldreport(self, report_info):
-#    def create_mldreport(self, mc_address, mc_serv_ip, report_types):
         self.logger.debug("")
 
         record_list = [
             icmpv6.mldv2_report_group(
                 address=info[0], srcs=[info[1]], type_=info[2])
                     for info in report_info]
-#        for report_type in report_types:
-#            record_list.append(
-#                icmpv6.mldv2_report_group(
-#                    type_=report_type, address=mc_address,
-#                    srcs=[mc_serv_ip]))
-
         report = icmpv6.mldv2_report(records=record_list)
         self.logger.debug("created report : %s", str(report))
         return report
@@ -699,10 +692,6 @@ class mld_process():
                     for mc_info in self.ch_info.channel_info.keys()]
             self.send_packetout(
                 report_info, vid, edge_sw_dpid, edge_router_port)
-#            for mc_info in self.ch_info.channel_info.keys():
-#                self.send_packetout(
-#                    mc_info[0], mc_info[1], [icmpv6.MODE_IS_INCLUDE],
-#                    vid, edge_sw_dpid, edge_router_port)
 
         # Specific Queryの場合
         else:
@@ -724,13 +713,10 @@ class mld_process():
     # send_packetout
     # ==================================================================
     def send_packetout(self, report_info, vid, datapathid, port):
-#    def send_packetout(self, mc_addr, serv_ip, report_type, vid,
-#                       datapathid, port):
         self.logger.debug("")
 
         mld = self.create_mldreport(report_info)
-#        mld = self.create_mldreport(
-#            mc_address=mc_addr, mc_serv_ip=serv_ip, report_types=report_type)
+
         # packetのsrcはMLD処理部のものを使用する
         sendpkt = self.create_packet(vid, mld)
         # エッジスイッチにp-out
@@ -916,11 +902,6 @@ class mld_process():
                                (address, src, icmpv6.CHANGE_TO_INCLUDE_MODE)]
                 self.send_packetout(
                     report_info, vid, edge_switch_dpid, edge_switch_port)
-#                report_types = [icmpv6.ALLOW_NEW_SOURCES,
-#                                icmpv6.CHANGE_TO_INCLUDE_MODE]
-#                self.send_packetout(
-#                    address, src, report_types, vid,
-#                    edge_switch_dpid, edge_switch_port)
 
         elif reply_type == const.CON_REPLY_ADD_SWITCH:
             # SWの追加
@@ -947,9 +928,6 @@ class mld_process():
                 self.send_packetout(
                     [(address, src, icmpv6.BLOCK_OLD_SOURCES)], vid,
                     edge_switch_dpid, edge_switch_port)
-#                self.send_packetout(
-#                    address, src, [icmpv6.BLOCK_OLD_SOURCES], vid,
-#                    edge_switch_dpid, edge_switch_port)
 
             flowlist = self.flowmod_gen.remove_mg(
                 multicast_address=address, datapathid=target_switch,
