@@ -279,7 +279,7 @@ class mld_process():
         elif zmq_type.lower() == const.CHECK_ZMQ_TYPE_TCP:
             # TCPによるSoket設定の読み込み
             config_zmq_tcp = configfile.data[const.ZMQ_TCP]
-            zmq_sub_list = zmq_sub.split(const.PORT_DELIMIT)
+            zmq_sub = config_zmq_tcp[const.OFC_SERVER_IP]
             zmq_sub_list = zmq_sub.split(const.COLON_DELIMIT)
             # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
             zmq_pub = const.SEND_IP + const.COLON_DELIMIT + zmq_sub_list[1]
