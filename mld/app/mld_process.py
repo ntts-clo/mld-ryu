@@ -264,8 +264,8 @@ class mld_process():
         if zmq_type.lower() == const.CHECK_ZMQ_TYPE_IPC:
             # IPCによるSoket設定の読み込み
             config_zmq_ipc = configfile.data[const.ZMQ_IPC]
-            zmq_pub = config_zmq_ipc[const.ZMQ_PUB]
-            zmq_sub = config_zmq_ipc[const.ZMQ_SUB]
+            zmq_pub = config_zmq_ipc[const.ZMQ_MLD]
+            zmq_sub = config_zmq_ipc[const.ZMQ_OFC]
             # CHECK TMP FILE(SEND)
             self.check_exists_tmp(zmq_pub)
             # CHECK TMP FILE(RECV)
@@ -276,7 +276,7 @@ class mld_process():
         elif zmq_type.lower() == const.CHECK_ZMQ_TYPE_TCP:
             # TCPによるSoket設定の読み込み
             config_zmq_tcp = configfile.data[const.ZMQ_TCP]
-            zmq_sub = config_zmq_tcp[const.MLD_SERVER_IP]
+            zmq_sub = config_zmq_tcp[const.OFC_SERVER_IP]
             zmq_sub_list = zmq_sub.split(const.PORT_DELIMIT)
             # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
             zmq_pub = const.SEND_IP + const.PORT_DELIMIT \
