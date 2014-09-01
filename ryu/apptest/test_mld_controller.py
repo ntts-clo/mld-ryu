@@ -78,14 +78,11 @@ CHECK_URL_TCP = "tcp://"
 # 設定ファイルの定義名
 SETTING = "settings"
 CHECK_VLAN_FLG = "check_vlan_flg"
-#OFC_ZMQ_URL = "ofc_zmq_url"
-#OFC_ZMQ_SEND = "ofc_zmq_send"
-#OFC_ZMQ_RECV = "ofc_zmq_recv"
 ZMQ_TYPE = "zmq_type"
 ZMQ_IPC = "zmq_ipc"
 ZMQ_TCP = "zmq_tcp"
-ZMQ_PUB = "mld_zmq"
-ZMQ_SUB = "ofc_zmq"
+MLD_ZMQ = "mld_zmq"
+OFC_ZMQ = "ofc_zmq"
 MLD_SERVER_IP = "mld_server_ip"
 
 # VLANチェックフラグ用定数
@@ -185,9 +182,9 @@ class test_mld_controller():
         configdata = self.config.data[const.SETTING]
         zmq_url = configdata[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
         eq_(self.mld_ctrl.zmq_pub,
-            zmq_url + self.config_zmq_ipc[const.ZMQ_PUB])
+            zmq_url + self.config_zmq_ipc[const.OFC_ZMQ])
         eq_(self.mld_ctrl.zmq_sub,
-            zmq_url + self.config_zmq_ipc[const.ZMQ_SUB])
+            zmq_url + self.config_zmq_ipc[const.MLD_ZMQ])
 
         # ZeroMQ送受信用設定
         ok_(self.mld_ctrl.send_sock)
@@ -816,8 +813,8 @@ class test_mld_controller():
         self.config_zmq_tcp = config.data[ZMQ_TCP]
 
         zmq_url = "ipc://"
-        send_mld_ryu_file_path = self.config_zmq_ipc[ZMQ_PUB]
-        recv_mld_ryu_file_path = self.config_zmq_ipc[ZMQ_SUB]
+        send_mld_ryu_file_path = self.config_zmq_ipc[const.OFC_ZMQ]
+        recv_mld_ryu_file_path = self.config_zmq_ipc[const.MLD_ZMQ]
         # CHECK TMP FILE(SEND)
         self.mld_ctrl.check_exists_tmp(send_mld_ryu_file_path)
         self.mld_ctrl.check_exists_tmp(recv_mld_ryu_file_path)
@@ -895,8 +892,8 @@ class test_mld_controller():
         self.config_zmq_tcp = config.data[ZMQ_TCP]
 
         zmq_url = "ipc://"
-        send_mld_ryu_file_path = self.config_zmq_ipc[ZMQ_PUB]
-        recv_mld_ryu_file_path = self.config_zmq_ipc[ZMQ_SUB]
+        send_mld_ryu_file_path = self.config_zmq_ipc[const.OFC_ZMQ]
+        recv_mld_ryu_file_path = self.config_zmq_ipc[const.MLD_ZMQ]
         # CHECK TMP FILE(SEND)
         self.mld_ctrl.check_exists_tmp(send_mld_ryu_file_path)
         self.mld_ctrl.check_exists_tmp(recv_mld_ryu_file_path)
@@ -1067,8 +1064,16 @@ class test_mld_controller():
         # 【結果】
         logger.debug("test_get_zmq_connect_Success001 [result] %s",
                      str(result))
-        assert_equal(result, ["ipc:///tmp/feeds/ryu-mld",
-                              "ipc:///tmp/feeds/mld-ryu"])
+
+        configdata = self.config.data[const.SETTING]
+        zmq_url = configdata[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
+        eq_(self.mld_ctrl.zmq_pub,
+            zmq_url + self.config_zmq_ipc[const.OFC_ZMQ])
+        eq_(self.mld_ctrl.zmq_sub,
+            zmq_url + self.config_zmq_ipc[const.MLD_ZMQ])
+
+        assert_equal(result, [zmq_url + self.config_zmq_ipc[const.OFC_ZMQ],
+                              zmq_url + self.config_zmq_ipc[const.MLD_ZMQ]])
 
     def test_get_zmq_connect_Success002(self):
         # mld_controller.get_zmq_connect(self, zmq_type)
