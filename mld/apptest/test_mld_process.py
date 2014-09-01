@@ -124,9 +124,9 @@ class test_mld_process():
         # ZeroMQ送受信用設定
         zmq_url = self.config[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
         eq_(self.mld_proc.zmq_pub, zmq_url +
-            self.config_zmq_ipc[const.ZMQ_PUB])
+            self.config_zmq_ipc[const.MLD_ZMQ])
         eq_(self.mld_proc.zmq_sub, zmq_url +
-            self.config_zmq_ipc[const.ZMQ_SUB])
+            self.config_zmq_ipc[const.OFC_ZMQ])
 
         # ZeroMQ送受信用設定
         ok_(self.mld_proc.send_sock)
@@ -273,14 +273,16 @@ class test_mld_process():
         """
         # 【前処理】
         config = read_json(TEST_COMMON_PATH + const.CONF_FILE)
+
         # 【実行】
         result = self.mld_proc.get_zmq_connect(config)
 
         # 【結果】
         logger.debug("test_get_zmq_connect_ipc [result] %s",
                      str(result))
-        eq_(result, ["ipc:///tmp/feeds/ryu-mld",
-                     "ipc:///tmp/feeds/mld-ryu"])
+        #config_zmq_ipc = configfile.data[const.ZMQ_IPC]
+        eq_(result, ["ipc:///tmp/feeds/mld-ryu",
+                     "ipc:///tmp/feeds/ryu-mld"])
 
     @attr(do=False)
     def test_get_zmq_connect_tcp(self):
@@ -299,7 +301,8 @@ class test_mld_process():
         # 【結果】
         logger.debug("test_get_zmq_connect_tcp [result] %s",
                      str(result))
-        eq_(result, ["tcp://0.0.0.0:7002", "tcp://192.168.5.11:7002"])
+        eq_(result, ["tcp://0.0.0.0:7002",
+                     "tcp://192.168.5.10:7002"])
 
     @attr(do=False)
     @raises(Exception)

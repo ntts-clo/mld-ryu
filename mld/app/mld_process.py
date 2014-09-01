@@ -264,8 +264,8 @@ class mld_process():
         if zmq_type.lower() == const.CHECK_ZMQ_TYPE_IPC:
             # IPCによるSoket設定の読み込み
             config_zmq_ipc = configfile.data[const.ZMQ_IPC]
-            zmq_pub = config_zmq_ipc[const.ZMQ_MLD]
-            zmq_sub = config_zmq_ipc[const.ZMQ_OFC]
+            zmq_pub = config_zmq_ipc[const.MLD_ZMQ]
+            zmq_sub = config_zmq_ipc[const.OFC_ZMQ]
             # CHECK TMP FILE(SEND)
             self.check_exists_tmp(zmq_pub)
             # CHECK TMP FILE(RECV)
