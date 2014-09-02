@@ -761,10 +761,10 @@ class test_mld_controller():
         result = self.mld_ctrl.create_packet_out(datapath, packetdata)
         #【結果】
         logger.debug("test_create_packet_out_Success001 [result] %s",
-                     result.data)
-        # 結果確認用flowmoddata作成
+                     result.actions)
 
-        # 結果確認
+        # 【結果】
+        assert_not_equal(result, None)
 
     def test_send_to_mld_Success001(self):
         # mld_controller.send_to_mld
@@ -861,14 +861,72 @@ class test_mld_controller():
         send_hub.wait()
         send_hub.kill()
         self.mld_ctrl.loop_flg = True
-        """
-        # 【実行】
-        result = self.mld_ctrl.receive_from_mld()
 
-        # 【結果】
-        print("result %s", result)
-        assert_equal(result, None)
+    def test_receive_from_mld_Success002(self):
+        # mld_controller.receive_from_mld
+        logger.debug("test_receive_from_mld_Success002")
         """
+        概要：MLD_Process受信処理
+        条件：正常に動作するであろうデータを設定し、実行する
+        結果：resultがNoneであること
+        """
+
+        # 【前処理】
+        # DummyDatapathを生成
+        datapath = _Datapath()
+        # DummyDatapathidを設定
+        datapath.id = 1
+        datapath.xid = 999
+        self.mld_ctrl.loop_flg = True
+
+        config = read_json(TEST_COMMON_PATH + const.CONF_FILE)
+        self.config = config.data[const.SETTING]
+        self.config_zmq_ipc = config.data[ZMQ_IPC]
+        self.config_zmq_tcp = config.data[ZMQ_TCP]
+
+        zmq_url = "ipc://"
+        send_mld_ryu_file_path = self.config_zmq_ipc[const.OFC_ZMQ]
+        recv_mld_ryu_file_path = self.config_zmq_ipc[const.MLD_ZMQ]
+        # CHECK TMP FILE(SEND)
+        self.mld_ctrl.check_exists_tmp(send_mld_ryu_file_path)
+        self.mld_ctrl.check_exists_tmp(recv_mld_ryu_file_path)
+        send_mld_ryu_path = zmq_url + send_mld_ryu_file_path
+        recv_mld_ryu_path = zmq_url + recv_mld_ryu_file_path
+
+        ctx = zmq.Context()
+
+        # SEND SOCKET CREATE
+        self.send_sock_mld_ryu = ctx.socket(zmq.PUB)
+        self.send_sock_mld_ryu.bind(send_mld_ryu_path)
+        print("send_mld_ryu_path %s", send_mld_ryu_path)
+        # RECV SOCKET CREATE
+        self.recv_sock_mld_ryu = ctx.socket(zmq.SUB)
+        self.recv_sock_mld_ryu.connect(recv_mld_ryu_path)
+        self.recv_sock_mld_ryu.setsockopt(zmq.SUBSCRIBE, "")
+        print("recv_mld_ryu_path %s", recv_mld_ryu_path)
+
+        # Packetの作成
+        eth = ethernet.ethernet(ethertype=ether.ETH_TYPE_8021Q,
+                                src=HOST_MACADDR1,
+                                dst=HOST_MACADDR2)
+        vln = vlan.vlan(ethertype=ether.ETH_TYPE_IPV6, vid=100)
+        hop = [ipv6.hop_opts(nxt=inet.IPPROTO_ICMPV6,
+                            data=[ipv6.option(type_=5, len_=2, data=""),
+                                  ipv6.option(type_=1, len_=0)])]
+        ip6 = ipv6.ipv6(src=SRC_IP, dst=DST_IP,
+                        nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=hop)
+        mld = icmpv6_extend(type_=icmpv6.ICMPV6_MEMBERSHIP_QUERY,
+                            data=icmpv6.mldv2_query(address=MC_ADDR1))
+
+        packet = eth / vln / ip6 / mld
+        packet.serialize()
+
+        #【実行】
+        self.mocker.StubOutWithMock(self.mld_ctrl, "recv_sock")
+        self.mld_ctrl.recv_sock.recv(packet).AndReturn(packet)
+        self.mocker.ReplayAll()
+        self.mld_ctrl.receive_from_mld()
+        self.mocker.VerifyAll()
 
     def test_receive_from_mld_Failuer001(self):
         # mld_controller.receive_from_mld
@@ -948,6 +1006,50 @@ class test_mld_controller():
             send_hub.wait()
             send_hub.kill()
             self.mld_ctrl.loop_flg = True
+
+    def test_receive_from_mld_Failuer002(self):
+        # mld_controller.receive_from_mld
+        logger.debug("test_receive_from_mld_Failuer002")
+        """
+        概要：MLD_Process受信処理
+        条件：正常に動作するであろうデータを設定し、実行する
+        結果：resultがNoneであること
+        """
+
+        # 【前処理】
+
+        config = read_json(TEST_COMMON_PATH + const.CONF_FILE)
+        self.config = config.data[const.SETTING]
+        self.config_zmq_ipc = config.data[ZMQ_IPC]
+        self.config_zmq_tcp = config.data[ZMQ_TCP]
+
+        zmq_url = "ipc://"
+        send_mld_ryu_file_path = self.config_zmq_ipc[const.OFC_ZMQ]
+        recv_mld_ryu_file_path = self.config_zmq_ipc[const.MLD_ZMQ]
+        # CHECK TMP FILE(SEND)
+        self.mld_ctrl.check_exists_tmp(send_mld_ryu_file_path)
+        self.mld_ctrl.check_exists_tmp(recv_mld_ryu_file_path)
+        send_mld_ryu_path = zmq_url + send_mld_ryu_file_path
+        recv_mld_ryu_path = zmq_url + recv_mld_ryu_file_path
+
+        ctx = zmq.Context()
+
+        # SEND SOCKET CREATE
+        self.send_sock_mld_ryu = ctx.socket(zmq.PUB)
+        self.send_sock_mld_ryu.bind(send_mld_ryu_path)
+        print("send_mld_ryu_path %s", send_mld_ryu_path)
+        # RECV SOCKET CREATE
+        self.recv_sock_mld_ryu = ctx.socket(zmq.SUB)
+        self.recv_sock_mld_ryu.connect(recv_mld_ryu_path)
+        self.recv_sock_mld_ryu.setsockopt(zmq.SUBSCRIBE, "")
+        print("recv_mld_ryu_path %s", recv_mld_ryu_path)
+
+        try:
+            self.mocker.StubOutWithMock(self.mld_ctrl, "recv_sock")
+            self.mocker.ReplayAll()
+            self.mld_ctrl.receive_from_mld()
+        except SystemExit:
+            self.mocker.VerifyAll()
 
     def test_send_msg_to_flowmod_Success001(self):
         # mld_controller.send_msg_to_flowmod(self, msgbase, flowmod):
