@@ -7,8 +7,8 @@ from ryu.lib.packet import icmpv6
 from ryu.ofproto import ether, inet
 from ryu.ofproto import ofproto_v1_3 as ofproto
 from ryu.ofproto import ofproto_v1_3_parser as parser
-from ryu.ofproto.ofproto_v1_3_parser import OFPActionPopVlan, OFPActionPushPbb, \
-    OFPActionSetField, OFPActionPushVlan, OFPActionPopPbb
+from ryu.ofproto.ofproto_v1_3_parser import OFPActionPopVlan, \
+    OFPActionPushPbb, OFPActionSetField, OFPActionPushVlan, OFPActionPopPbb
 
 DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 COMMON_PATH = DIR_PATH + "/../../common/"
