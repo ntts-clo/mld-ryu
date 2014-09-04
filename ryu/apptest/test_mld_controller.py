@@ -7,15 +7,15 @@
 # >sudo pip install mox
 #
 # ■nosetestsによる実行
-# nosetests test_mld_controller.py
-# nosetests -v test_mld_controller.py
-# nosetests -s test_mld_controller.py
-# nosetests -v --with-coverage test_mld_controller.py
+# sudo nosetests test_mld_controller.py
+# sudo nosetests -v test_mld_controller.py
+# sudo nosetests -s test_mld_controller.py
+# sudo nosetests -v --with-coverage test_mld_controller.py
 # ■coverage関連
-# coverage erase（統計データの初期化)
-# coverage run test_mld_controller.py（テストコードの実行/計測)
-# coverage report（カバレッジの計測結果の表示)
-# coverage html（HTMLレポート作成)
+# sudo coverage erase（統計データの初期化)
+# sudo coverage run test_mld_controller.py（テストコードの実行/計測)
+# sudo coverage report（カバレッジの計測結果の表示)
+# sudo coverage html（HTMLレポート作成)
 import pdb
 import nose
 import os
@@ -87,13 +87,8 @@ MLD_SERVER_IP = "mld_server_ip"
 
 # VLANチェックフラグ用定数
 CHECK_VLAN_FLG = True
-# ZMQ用定数
-URL_DELIMIT = "://"
-SEND_IP = "0.0.0.0"
 
 # 設定ファイルの定義名
-
-
 MC_ADDR1 = "ff38::1:1"
 SERVER_IP1 = "2001::1:20"
 MC_ADDR2 = "ff38::1:2"
@@ -180,7 +175,7 @@ class test_mld_controller():
 
         # ZeroMQ送受信用設定
         configdata = self.config.data[const.SETTING]
-        zmq_url = configdata[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
+        zmq_url = configdata[const.ZMQ_TYPE].lower() + const.DELIMIT_URL
         eq_(self.mld_ctrl.zmq_pub,
             zmq_url + self.config_zmq_ipc[const.OFC_ZMQ])
         eq_(self.mld_ctrl.zmq_sub,
@@ -248,8 +243,8 @@ class test_mld_controller():
         """
         #【前処理】
         zmq_url = "tcp://"
-        send_ip_path = zmq_url + SEND_IP + const.COLON_DELIMIT + "7003"
-        recv_ip_path = zmq_url + RECV_IP + const.COLON_DELIMIT + "7003"
+        send_ip_path = zmq_url + const.SEND_IP + const.DELIMIT_COLON + "7003"
+        recv_ip_path = zmq_url + RECV_IP + const.DELIMIT_COLON + "7003"
 
         #【実行】
         self.mld_ctrl.create_socket(send_ip_path, recv_ip_path)
@@ -1168,7 +1163,7 @@ class test_mld_controller():
                      str(result))
 
         configdata = self.config.data[const.SETTING]
-        zmq_url = configdata[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
+        zmq_url = configdata[const.ZMQ_TYPE].lower() + const.DELIMIT_URL
         eq_(self.mld_ctrl.zmq_pub,
             zmq_url + self.config_zmq_ipc[const.OFC_ZMQ])
         eq_(self.mld_ctrl.zmq_sub,
