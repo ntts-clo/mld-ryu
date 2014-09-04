@@ -281,10 +281,6 @@ class channel_user_info():
         # user_infoの内容をStringで返却。（DEBUG用）
         info = ""
         info += "        {\n"
-#        info += "          mc_addr : %s\n" % self.mc_addr
-#        info += "          serv_ip : %s\n" % self.serv_ip
-#        info += "          datapathid : %s\n" % self.datapathid
-#        info += "          port_no : %s\n" % self.port_no
         info += "          cid : %s\n" % self.cid
         info += "          time : %f\n" % self.time
         info += "        }\n"
@@ -295,57 +291,6 @@ class channel_user_info():
 
     def __lt__(self, other):
         return (self.time < other.time)
-
-
-# 動作確認用
-'''
-if __name__ == "__main__":
-    ch_info = channel_info()
-
-    # add
-    logger.debug("**** <1>")
-    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
-    logger.debug("")
-    logger.debug("**** <1> add cid 100")
-    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 1, 100)
-    logger.debug("")
-    logger.debug("**** <1> add port 2")
-    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 2, 120)
-    logger.debug("")
-    logger.debug("**** <1> add datapath 2")
-    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 2, 1, 210)
-    logger.debug("")
-    logger.debug("**** <2>")
-    ch_info.update_ch_info("ff38::1:2", "2001::1:20", 1, 1, 111)
-    logger.debug(ch_info.get_channel_info())
-    logger.debug(ch_info.get_user_info_list())
-
-    # update
-    logger.debug("")
-    logger.debug("**** <1> update cid 111")
-    ch_info.update_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
-    logger.debug("")
-    logger.debug(ch_info.get_channel_info())
-    logger.debug(ch_info.get_user_info_list())
-
-    # remove
-    logger.debug("")
-    logger.debug("**** remove <1> cid 111")
-    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 1, 111)
-    logger.debug("")
-    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 1, 100)
-    logger.debug("")
-    logger.debug("**** remove <1> datapath 2")
-    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 2, 1, 210)
-    logger.debug("")
-    logger.debug("**** remove <1> port 2")
-    ch_info.remove_ch_info("ff38::1:1", "2001::1:20", 1, 2, 120)
-    logger.debug("")
-    logger.debug("**** remove <2>")
-    ch_info.remove_ch_info("ff38::1:2", "2001::1:20", 1, 1, 111)
-    logger.debug(ch_info.get_channel_info())
-    logger.debug(ch_info.get_user_info_list())
-'''
 
 
 class database_accessor():
@@ -364,41 +309,3 @@ class database_accessor():
         # 投入対象オブジェクトをdumpしてそのまま投入
         dump = inserted_obj.dump_self()
         self.col.update({"ch": "all"}, {"$set": {key: dump}}, upsert=True)
-
-"""
-if '__main__' == __name__:
-    a = hoge(int=5)
-    b = hoge()
-    b.int = 2
-    logger.debug(a.int)
-    logger.debug(b.int)
-
-    # open mongodb
-    client = MongoClient("mongodb://localhost:27017")
-    db = client.testdb
-    col = db.posts
-
-    # serialize
-    dump_a = cpickle.dumps(a)
-    dump_b = cpickle.dumps(b)
-
-    c = cpickle.loads(dump_a)
-
-    # insert
-    for i in range(0, 10000):
-        dict_a = {"switch_name": "s1", "data": dump_a}
-        col.update({"switch_name": "s1"}, \
-                   {"$set": {"data": dump_a}}, \
-                   upsert=True)
-
-    # query
-    result = col.find_one({"switch_name": "s1"})
-    dump_result = result["data"]
-    load_result = cpickle.loads(dump_result)
-
-    # check
-    logger.debug(load_result.int)
-    logger.debug(load_result.float)
-    logger.debug(load_result.dict["key1"].str)
-    logger.debug(load_result.dict["key2"].str)
-"""
