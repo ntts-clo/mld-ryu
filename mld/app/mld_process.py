@@ -689,14 +689,22 @@ class mld_process():
         edge_sw_dpid = self.edge_switch[const.SW_TAG_DATAPATHID]
         edge_router_port = self.edge_switch[const.SW_TAG_EDGE_ROUTER_PORT]
 
+        # 視聴中のチャンネルかつベストエフォートのものを抽出
+        be_listening_ch = [
+            listening_ch for listening_ch in self.ch_info.channel_info.keys()
+            if self.mc_info_dict[listening_ch[0], listening_ch[1]][
+                const.MC_TAG_MC_TYPE] == self.BEST_EFFORT]
+        self.logger.debug("be_listening_ch : %s", str(be_listening_ch))
+
         # General Queryの場合
         if mc_addr == "::" and srcs == []:
-            # 視聴中のMCグループ毎にレポートを作成
-            report_info = [
-                (mc_info[0], mc_info[1], icmpv6.MODE_IS_INCLUDE)
-                for mc_info in self.ch_info.channel_info.keys()]
-            self.send_packetout(
-                report_info, vid, edge_sw_dpid, edge_router_port)
+            # 視聴中のベストエフォートサービスのマルチキャストグループ毎にレポートを作成
+            if be_listening_ch:
+                report_info = [
+                    (mc_info[0], mc_info[1], icmpv6.MODE_IS_INCLUDE)
+                    for mc_info in be_listening_ch]
+                self.send_packetout(
+                    report_info, vid, edge_sw_dpid, edge_router_port)
 
         # Specific Queryの場合
         else:
@@ -704,8 +712,8 @@ class mld_process():
             if srcs == []:
                 self.logger.info("this query has no Source Address.")
 
-            # 対象マルチキャストアドレスを視聴中のユーザがいればレポートを作成
-            elif (mc_addr, srcs[0]) in self.ch_info.channel_info:
+            # 対象マルチキャストアドレスがベストエフォートサービスで、視聴中のユーザがいればレポートを作成
+            elif (mc_addr, srcs[0]) in be_listening_ch:
                 self.send_packetout(
                     [(mc_addr, srcs[0], icmpv6.MODE_IS_INCLUDE)],
                     vid, edge_sw_dpid, edge_router_port)
