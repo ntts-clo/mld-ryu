@@ -1,4 +1,7 @@
 # coding: utf-8
+# zmq install
+#  >sudo apt-get install libzmq-dev
+#  >sudo apt-get install python-zmq
 
 import os
 import sys
@@ -44,7 +47,7 @@ class mld_controller(app_manager.RyuApp):
 
     # RyuAppのコンテキストにDPSetを登録
     _CONTEXTS = {
-        'dpset': dpset.DPSet
+        "dpset": dpset.DPSet
     }
 
     def __init__(self, *args, **kwargs):
@@ -58,7 +61,7 @@ class mld_controller(app_manager.RyuApp):
             super(mld_controller, self).__init__(*args, **kwargs)
 
             # コンテキストからDPSetの取得
-            self.dpset = kwargs['dpset']
+            self.dpset = kwargs["dpset"]
 
             # システムモジュールのソケットに対しパッチを適用
             patcher.monkey_patch()
@@ -255,12 +258,7 @@ class mld_controller(app_manager.RyuApp):
 
                     # flowmoddata.datapathidに紐付くdatapathを取得する
                     datapath = None
-                    try:
-                        datapath = self.dpset.get(flowmoddata.datapathid)
-                    except KeyError:
-                        self.logger.error("FlowMod dpset[dpid:%s] = None",
-                                          flowmoddata.datapathid)
-                        return False
+                    datapath = self.dpset.get(flowmoddata.datapathid)
                     if datapath is None:
                         self.logger.error("FlowMod dpset[dpid:%s] = None",
                                           flowmoddata.datapathid)
@@ -279,12 +277,7 @@ class mld_controller(app_manager.RyuApp):
 
                 # dispatch[datapathid]に紐付くdatapathを取得する
                 datapath = None
-                try:
-                    datapath = self.dpset.get(dispatch["datapathid"])
-                except KeyError:
-                    self.logger.error("PacketOut dpset[dpid:%s] = None",
-                                      dispatch["datapathid"])
-                    return False
+                datapath = self.dpset.get(dispatch["datapathid"])
                 if datapath is None:
                     self.logger.error("PacketOut dpset[dpid:%s] = None",
                                       dispatch["datapathid"])
@@ -409,7 +402,7 @@ class mld_controller(app_manager.RyuApp):
         zmq_type = settings[const.ZMQ_TYPE]
 
         # zmq_urlの設定
-        zmq_url = zmq_type.lower() + const.URL_DELIMIT
+        zmq_url = zmq_type.lower() + const.DELIMIT_URL
 
         if zmq_type.lower() == const.CHECK_ZMQ_TYPE_IPC:
             # IPCによるSoket設定の読み込み
@@ -427,9 +420,9 @@ class mld_controller(app_manager.RyuApp):
             # TCPによるSoket設定の読み込み
             config_zmq_tcp = configfile.data[const.ZMQ_TCP]
             zmq_sub = config_zmq_tcp[const.MLD_SERVER_IP]
-            zmq_sub_list = zmq_sub.split(const.COLON_DELIMIT)
+            zmq_sub_list = zmq_sub.split(const.DELIMIT_COLON)
             # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
-            zmq_pub = const.SEND_IP + const.COLON_DELIMIT + zmq_sub_list[1]
+            zmq_pub = const.SEND_IP + const.DELIMIT_COLON + zmq_sub_list[1]
             # zmq_urlを設定し、返却
             return [zmq_url + zmq_pub, zmq_url + zmq_sub]
 
@@ -452,13 +445,13 @@ class mld_controller(app_manager.RyuApp):
             # ディレクトリの存在チェック
             dirpath = os.path.dirname(filename)
             if os.path.isdir(dirpath):
-                f = open(filename, "w")
+                f = open(filename, const.WRITE)
                 f.write("")
                 f.close()
                 self.logger.info("create [file]:%s", filename)
             else:
                 os.makedirs(dirpath)
-                f = open(filename, "w")
+                f = open(filename, const.WRITE)
                 f.write("")
                 f.close()
                 self.logger.info("create [dir]:%s, [file]:%s",
