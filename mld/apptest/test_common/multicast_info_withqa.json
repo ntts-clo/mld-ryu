@@ -1,0 +1,25 @@
+{
+    "mc_info": [
+        {
+            "ivid": 2011, 
+            "mc_addr": "ff38::1:1", 
+            "pbb_isid": 10011, 
+            "serv_ip": "2001:1::20", 
+            "type": "BE"
+        }, 
+        {
+            "ivid": 2021, 
+            "mc_addr": "ff38::1:2", 
+            "pbb_isid": 10021, 
+            "serv_ip": "2001:1::20", 
+            "type": "BE"
+        }, 
+        {
+            "ivid": 2031, 
+            "mc_addr": "ff38::1:3", 
+            "pbb_isid": 10031, 
+            "serv_ip": "2001:1::20", 
+            "type": "QA"
+        }
+    ]
+}

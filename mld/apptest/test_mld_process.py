@@ -942,7 +942,7 @@ class test_mld_process():
 
     @attr(do=False)
     def test_reply_proxy_exists_user_gq(self):
-        # 視聴情報がありGeneralQueryの場合、視聴中のmcアドレス分p-out
+        # 視聴情報がありGeneralQueryの場合、視聴中のBEのmcアドレス分p-out
         mc_addr1 = "ff38::1:1"
         serv_ip = "2001:1::20"
         datapathid2 = 2
@@ -955,10 +955,15 @@ class test_mld_process():
             mc_addr1, serv_ip, datapathid2, port_no1, cid2)
 
         mc_addr2 = "ff38::1:2"
-        serv_ip = "2001:1::20"
         cid3 = 22101
         self.mld_proc.ch_info.update_ch_info(
             mc_addr2, serv_ip, datapathid2, port_no1, cid3)
+
+        # QAのマルチキャストアドレス
+        mc_addr3 = "ff38::1:3"
+        cid4 = 32101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr3, serv_ip, datapathid2, port_no1, cid4)
 
         # send_packetoutが1回呼び出されることを確認
         vid = self.mld_proc.config[const.C_TAG_ID]
@@ -966,15 +971,73 @@ class test_mld_process():
         edge_router_port = self.mld_proc.edge_switch[
             const.SW_TAG_EDGE_ROUTER_PORT]
         report_info = [
-            (mc_info[0], mc_info[1], icmpv6.MODE_IS_INCLUDE)
-            for mc_info in self.mld_proc.ch_info.channel_info.keys()]
+            (mc_addr2, serv_ip, icmpv6.MODE_IS_INCLUDE),
+            (mc_addr1, serv_ip, icmpv6.MODE_IS_INCLUDE)]
+            # mc_addr3はQAのため返却されないこと
 
         self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
         self.mld_proc.send_packetout(
             report_info, vid, edge_sw_dpid, edge_router_port)
         self.mocker.ReplayAll()
 
+        # マルチキャスト情報を別ファイルの内容で上書き
+        temp_dict = self.mld_proc.mc_info_dict
+        mc_info = read_json(TEST_COMMON_PATH + "multicast_info_withqa.json")
+        mc_info_dict = {}
+        for mc_info in mc_info.data[const.MC_TAG_MC_INFO]:
+            mc_info_dict[
+                mc_info[const.MC_TAG_MC_ADDR],
+                mc_info[const.MC_TAG_SERV_IP]] = mc_info
+        self.mld_proc.mc_info_dict = mc_info_dict
+
         self.mld_proc.reply_proxy("::", [])
+        self.mocker.VerifyAll()
+
+        self.mld_proc.mc_info_dict = temp_dict
+
+    @attr(do=False)
+    @raises(ExpectedMethodCallsError)
+    def test_reply_proxy_exists_user_gq_allqa(self):
+        # 視聴情報がありGeneralQueryの場合、視聴中のmcアドレスがQAのみの場合返却なし
+        mc_addr1 = "ff38::1:1"
+        serv_ip = "2001:1::20"
+        datapathid2 = 2
+        port_no1 = 1
+        cid1 = 12101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid1)
+        cid2 = 12102
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid2)
+
+        mc_addr2 = "ff38::1:2"
+        cid3 = 22101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr2, serv_ip, datapathid2, port_no1, cid3)
+
+        mc_addr3 = "ff38::1:3"
+        cid4 = 32101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr3, serv_ip, datapathid2, port_no1, cid4)
+
+        # マルチキャスト情報を別ファイルの内容で上書き
+        temp_dict = self.mld_proc.mc_info_dict
+        mc_info = read_json(TEST_COMMON_PATH + "multicast_info_allqa.json")
+        mc_info_dict = {}
+        for mc_info in mc_info.data[const.MC_TAG_MC_INFO]:
+            mc_info_dict[
+                mc_info[const.MC_TAG_MC_ADDR],
+                mc_info[const.MC_TAG_SERV_IP]] = mc_info
+        self.mld_proc.mc_info_dict = mc_info_dict
+
+        # send_packetoutが呼び出されないことを確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
+        self.mld_proc.send_packetout(IsA(list), IsA(int), IsA(int), IsA(int))
+        self.mocker.ReplayAll()
+
+        self.mld_proc.reply_proxy("::", [])
+
+        self.mld_proc.mc_info_dict = temp_dict
         self.mocker.VerifyAll()
 
     @attr(do=False)
@@ -1033,6 +1096,41 @@ class test_mld_process():
         self.mocker.ReplayAll()
 
         self.mld_proc.reply_proxy("ff38::1:2", [serv_ip])
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
+    @raises(ExpectedMethodCallsError)
+    def test_reply_proxy_exists_user_sq_no_be(self):
+        # 視聴情報がありSpecificQuery場合、受信したmcアドレスが視聴中かつBEでなければなにもしない
+        mc_addr1 = "ff38::1:3"
+        serv_ip = "2001:1::20"
+        datapathid2 = 2
+        port_no1 = 1
+        cid1 = 12101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid1)
+        cid2 = 12102
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid2)
+
+        # send_packetoutが呼び出されないことを確認
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
+        self.mld_proc.send_packetout(IsA(list), IsA(int), IsA(int), IsA(int))
+        self.mocker.ReplayAll()
+
+        # マルチキャスト情報を別ファイルの内容で上書き
+        temp_dict = self.mld_proc.mc_info_dict
+        mc_info = read_json(TEST_COMMON_PATH + "multicast_info_withqa.json")
+        mc_info_dict = {}
+        for mc_info in mc_info.data[const.MC_TAG_MC_INFO]:
+            mc_info_dict[
+                mc_info[const.MC_TAG_MC_ADDR],
+                mc_info[const.MC_TAG_SERV_IP]] = mc_info
+        self.mld_proc.mc_info_dict = mc_info_dict
+
+        self.mld_proc.reply_proxy("ff38::1:2", [serv_ip])
+
+        self.mld_proc.mc_info_dict = temp_dict
         self.mocker.VerifyAll()
 
     @attr(do=False)
