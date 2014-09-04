@@ -1,15 +1,16 @@
 # coding: utf-8
 from ryu.ofproto import ofproto_v1_3
+import mld_const as const
 
 
 class dispatch():
     def __init__(self, type_, datapathid, in_port=-1, cid=0, data=None):
         self.dispatch = {}
-        self.dispatch["type_"] = type_
-        self.dispatch["datapathid"] = datapathid
-        self.dispatch["in_port"] = in_port
-        self.dispatch["cid"] = cid
-        self.dispatch["data"] = data
+        self.dispatch[const.DISP_TYPE] = type_
+        self.dispatch[const.DISP_DPID] = datapathid
+        self.dispatch[const.DISP_IN_PORT] = in_port
+        self.dispatch[const.DISP_CID] = cid
+        self.dispatch[const.DISP_DATA] = data
 
     def __getitem__(self, key):
         return self.dispatch[key]

@@ -543,15 +543,17 @@ class mld_process():
 
         try:
             dispatch_ = recvpkt.dispatch
-            self.logger.debug("received [type_]: %s", str(dispatch_["type_"]))
-            self.logger.debug("received [data]: %s", str(dispatch_["data"]))
-            receive_type = dispatch_["type_"]
+            self.logger.debug("received [type_]: %s",
+                              str(dispatch_[const.DISP_TYPE]))
+            self.logger.debug("received [data]: %s",
+                              str(dispatch_[const.DISP_DATA]))
+            receive_type = dispatch_[const.DISP_TYPE]
 
             if receive_type == const.CON_MAIN_DISPATCHER:
                 self.set_switch_config(dispatch_)
 
             elif receive_type == const.CON_PACKET_IN:
-                pkt_icmpv6 = dispatch_["data"]
+                pkt_icmpv6 = dispatch_[const.DISP_DATA]
                 self.logger.debug("pkt_icmpv6 : " + str(pkt_icmpv6))
 
                 # MLDv2 Report
@@ -571,7 +573,8 @@ class mld_process():
 
             else:
                 self.logger.error(
-                    "dispatch[type_]:Not Exist(%s)", dispatch_["type_"])
+                    "dispatch[type_]:Not Exist(%s)",
+                    dispatch_[const.DISP_TYPE])
 
         except:
             self.logger.error(
@@ -582,10 +585,11 @@ class mld_process():
     # ==================================================================
     def set_switch_config(self, dispatch_):
         self.logger.debug("")
-        self.logger.debug("dispatch_[data] : " + str(dispatch_["data"]))
+        self.logger.debug("dispatch_[data] : %s",
+                          str(dispatch_[const.DISP_DATA]))
 
         # 初期設定をFlowModする
-        datapathid = dispatch_["datapathid"]
+        datapathid = dispatch_[const.DISP_DPID]
         flowlist = self.flowmod_gen.initialize_flows(
             datapathid=datapathid,
             pbb_isid=self.switch_mld_info[const.SW_TAG_MLD_INFO_PBB_ISID],
@@ -738,10 +742,10 @@ class mld_process():
     def manage_user(self, dispatch_):
         self.logger.debug("")
 
-        mldv2_report = dispatch_["data"].data
-        target_switch = dispatch_["datapathid"]
-        in_port = dispatch_["in_port"]
-        cid = dispatch_["cid"]
+        mldv2_report = dispatch_[const.DISP_DATA].data
+        target_switch = dispatch_[const.DISP_DPID]
+        in_port = dispatch_[const.DISP_IN_PORT]
+        cid = dispatch_[const.DISP_CID]
 
         for report in mldv2_report.records:
 
@@ -966,7 +970,8 @@ class mld_process():
 
         flowmod = dispatch(
             type_=const.CON_FLOW_MOD, datapathid=None, data=flowlist)
-        self.logger.debug("flowmod[data] : %s", str(flowmod["data"]))
+        self.logger.debug("flowmod[data] : %s",
+                          str(flowmod[const.DISP_DATA]))
         self.send_packet_to_ryu(flowmod)
 
     # ==================================================================

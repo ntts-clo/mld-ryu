@@ -173,13 +173,14 @@ class mld_controller(app_manager.RyuApp):
             dispatch_ = dispatch(type_=const.CON_PACKET_IN,
                                    datapathid=msg.datapath.id,
                                    cid=vid,
-                                   in_port=msg.match["in_port"],
+                                   in_port=msg.match[const.DISP_IN_PORT],
                                    data=pkt_icmpv6)
 
             self.logger.debug("dispatch [type_]:%s", const.CON_PACKET_IN)
             self.logger.debug("dispatch [datapathid]:%s", msg.datapath.id)
             self.logger.debug("dispatch [cid]:%s", str(vid))
-            self.logger.debug("dispatch [in_port]:%s", msg.match["in_port"])
+            self.logger.debug("dispatch [in_port]:%s",
+                              msg.match[const.DISP_IN_PORT])
             self.logger.debug("dispatch [data]:%s", pkt_icmpv6)
 
             self.send_to_mld(dispatch_)
@@ -249,9 +250,10 @@ class mld_controller(app_manager.RyuApp):
             self.logger.debug("dpset:%s", self.dpset.get_all())
 
             # CHECK dispatch[type_]
-            if dispatch["type_"] == const.CON_FLOW_MOD:
-                flowmodlist = dispatch["data"]
-                self.logger.debug("FlowMod[data]:%s", dispatch["data"])
+            if dispatch[const.DISP_TYPE] == const.CON_FLOW_MOD:
+                flowmodlist = dispatch[const.DISP_DATA]
+                self.logger.debug("FlowMod[data]:%s",
+                                  dispatch[const.DISP_DATA])
 
                 for flowmoddata in flowmodlist:
                     self.logger.debug("[flowmoddata]:%s", flowmoddata)
@@ -273,17 +275,17 @@ class mld_controller(app_manager.RyuApp):
                     # BARRIER_REQUEST送信
                     self.send_msg_to_barrier_request(datapath)
 
-            elif dispatch["type_"] == const.CON_PACKET_OUT:
+            elif dispatch[const.DISP_TYPE] == const.CON_PACKET_OUT:
 
                 # dispatch[datapathid]に紐付くdatapathを取得する
                 datapath = None
-                datapath = self.dpset.get(dispatch["datapathid"])
+                datapath = self.dpset.get(dispatch[const.DISP_DPID])
                 if datapath is None:
                     self.logger.error("PacketOut dpset[dpid:%s] = None",
-                                      dispatch["datapathid"])
+                                      dispatch[const.DISP_DPID])
                     return False
 
-                recvpkt = dispatch["data"]
+                recvpkt = dispatch[const.DISP_DATA]
                 self.logger.debug("PACKET_OUT[data]:%s \n", recvpkt.data)
 
                 # PACKET_OUT生成
@@ -294,7 +296,7 @@ class mld_controller(app_manager.RyuApp):
 
             else:
                 self.logger.error("dispatch[type_]:Not Exist(%s)",
-                                  dispatch["type_"])
+                                  dispatch[const.DISP_TYPE])
                 return False
 
         except:
