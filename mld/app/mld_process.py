@@ -128,8 +128,8 @@ class mld_process():
             self.bvid_variation = {}
             for bvid_variation in bvid_variations:
                 # ":"で区切られたkeyを昇順にソートして再設定
-                bvid_key = const.COLON_DELIMIT.join(sorted(bvid_variation[
-                    const.BV_TAG_KEY].split(const.COLON_DELIMIT)))
+                bvid_key = const.DELIMIT_COLON.join(sorted(bvid_variation[
+                    const.BV_TAG_KEY].split(const.DELIMIT_COLON)))
                 self.bvid_variation[bvid_key] = \
                     bvid_variation[const.BV_TAG_BVID]
 
@@ -175,12 +175,12 @@ class mld_process():
                 const.CONF_FILE + " at 'mld_esw_ifname'.")
             self.end_process()
 
-        for line in ifconf.split("\n"):
+        for line in ifconf.split(const.DELIMIT_NEW_LINE):
             if not len(line) == 0:
-                if not line[0] == " ":
+                if not line[0] == const.DELIMIT_SPACE:
                     # インターフェース名を取得
                     for x in line:
-                        if not x == " ":
+                        if not x == const.DELIMIT_SPACE:
                             ifname += x
                         else:
                             line = line[len(ifname):]
@@ -262,7 +262,7 @@ class mld_process():
         zmq_type = settings[const.ZMQ_TYPE]
 
         # zmq_urlの設定
-        zmq_url = zmq_type.lower() + const.URL_DELIMIT
+        zmq_url = zmq_type.lower() + const.DELIMIT_URL
 
         if zmq_type.lower() == const.CHECK_ZMQ_TYPE_IPC:
             # IPCによるSoket設定の読み込み
@@ -280,9 +280,9 @@ class mld_process():
             # TCPによるSoket設定の読み込み
             config_zmq_tcp = configfile.data[const.ZMQ_TCP]
             zmq_sub = config_zmq_tcp[const.OFC_SERVER_IP]
-            zmq_sub_list = zmq_sub.split(const.COLON_DELIMIT)
+            zmq_sub_list = zmq_sub.split(const.DELIMIT_COLON)
             # zmq_subのポート設定を取得し、zmq_pubのIPアドレスに付与
-            zmq_pub = const.SEND_IP + const.COLON_DELIMIT + zmq_sub_list[1]
+            zmq_pub = const.SEND_IP + const.DELIMIT_COLON + zmq_sub_list[1]
             # zmq_urlを設定し、返却
             return [zmq_url + zmq_pub, zmq_url + zmq_sub]
 
@@ -303,13 +303,13 @@ class mld_process():
         else:
             dirpath = os.path.dirname(filename)
             if os.path.isdir(dirpath):
-                f = open(filename, "w")
+                f = open(filename, const.WRITE)
                 f.write("")
                 f.close()
                 self.logger.info("create [file]:%s", filename)
             else:
                 os.makedirs(dirpath)
-                f = open(filename, "w")
+                f = open(filename, const.WRITE)
                 f.write("")
                 f.close()
                 self.logger.info("create [dir]:%s, [file]:%s",
@@ -880,7 +880,7 @@ class mld_process():
             listening_switch = self.ch_info.channel_info[
                 (address, src)].keys()
             # datapathidの昇順に":"でつなぐ
-            bvid_key = const.COLON_DELIMIT.join(
+            bvid_key = const.DELIMIT_COLON.join(
                 map(str, sorted(listening_switch)))
             self.logger.debug("bvid_key : %s", bvid_key)
             bvid = self.bvid_variation[bvid_key]

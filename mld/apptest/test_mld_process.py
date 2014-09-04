@@ -122,7 +122,7 @@ class test_mld_process():
         ok_(self.mld_proc.bvid_variation)
 
         # ZeroMQ送受信用設定
-        zmq_url = self.config[const.ZMQ_TYPE].lower() + const.URL_DELIMIT
+        zmq_url = self.config[const.ZMQ_TYPE].lower() + const.DELIMIT_URL
         eq_(self.mld_proc.zmq_pub, zmq_url +
             self.config_zmq_ipc[const.MLD_ZMQ])
         eq_(self.mld_proc.zmq_sub, zmq_url +

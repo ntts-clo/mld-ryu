@@ -17,8 +17,17 @@ CON_REPLY_DEL_MC_GROUP = 34
 CON_REPLY_DEL_SWITCH = 35
 CON_REPLY_DEL_PORT = 36
 
+# =============================================================================
+# 共通定義
+# =============================================================================
 # デリミタ
-COLON_DELIMIT = ":"
+DELIMIT_NEW_LINE = "\n"
+DELIMIT_SPACE = " "
+DELIMIT_URL = "://"
+DELIMIT_COLON = ":"
+
+# 書き込みモード
+WRITE = "w"
 
 # =============================================================================
 # ログファイルの定義
@@ -34,8 +43,7 @@ CONF_FILE = "config.json"
 # Socketタイプ用定数
 CHECK_ZMQ_TYPE_IPC = "ipc"
 CHECK_ZMQ_TYPE_TCP = "tcp"
-# ZMQ用定数
-URL_DELIMIT = "://"
+# ZMQ用送信元IPアドレスの定数
 SEND_IP = "0.0.0.0"
 # 設定ファイルの定義名
 SETTING = "settings"
