@@ -379,7 +379,7 @@ class mld_controller(app_manager.RyuApp):
                         pass
 
                     else:
-                        self.logger.error("%s ", e)
+                        self.logger.error("ZMQError %s", e)
 
                 if recvpkt is not None:
                     self.logger.info("receive from mld_process.")
