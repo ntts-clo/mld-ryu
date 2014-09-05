@@ -74,11 +74,11 @@ class flow_mod_generator(object):
     def start_mg(self, multicast_address, datapathid, portno, mc_ivid, ivid,
                  pbb_isid, bvid):
         flow_mod_datas = []
-        self.container_switches[datapathid].start_mg_container(portno, ivid,
-                                                               pbb_isid, bvid,
+        self.container_switches[datapathid].start_mg_container([portno], ivid,
+                                                               pbb_isid,
                                                                flow_mod_datas)
         for edge_switch in self.edge_switchs:
-            edge_switch.start_mg_edge(multicast_address, datapathid, mc_ivid,
+            edge_switch.start_mg_edge(multicast_address, mc_ivid,
                                       ivid, pbb_isid, bvid, flow_mod_datas)
         return flow_mod_datas
 
@@ -89,7 +89,6 @@ class flow_mod_generator(object):
                  bvid):
         flow_mod_datas = []
         self.container_switches[datapathid].add_port_container(portno, ivid,
-                                                               pbb_isid, bvid,
                                                                flow_mod_datas)
         return flow_mod_datas
 
@@ -100,12 +99,11 @@ class flow_mod_generator(object):
                      pbb_isid, bvid):
         flow_mod_datas = []
         # 収容スイッチに設定するフローはstartMG時と同じ
-        self.container_switches[datapathid].start_mg_container(portno, ivid,
-                                                               pbb_isid, bvid,
+        self.container_switches[datapathid].start_mg_container([portno], ivid,
+                                                               pbb_isid,
                                                                flow_mod_datas)
         for edge_switch in self.edge_switchs:
-            edge_switch.add_datapath_edge(multicast_address, datapathid, ivid,
-                                          pbb_isid, bvid, flow_mod_datas)
+            edge_switch.add_datapath_edge(ivid, pbb_isid, bvid, flow_mod_datas)
         return flow_mod_datas
 
     # =========================================================================
@@ -115,10 +113,10 @@ class flow_mod_generator(object):
                   pbb_isid, bvid):
         flow_mod_datas = []
         for edge_switch in self.edge_switchs:
-            edge_switch.remove_mg_edge(multicast_address, datapathid, mc_ivid,
+            edge_switch.remove_mg_edge(multicast_address, mc_ivid,
                                        ivid, pbb_isid, bvid, flow_mod_datas)
         self.container_switches[datapathid].remove_mg_container(portno, ivid,
-                                                                pbb_isid, bvid,
+                                                                pbb_isid,
                                                                 flow_mod_datas)
         return flow_mod_datas
 
@@ -129,8 +127,7 @@ class flow_mod_generator(object):
                     pbb_isid, bvid):
         flow_mod_datas = []
         self.container_switches[datapathid]\
-            .remove_port_container(portno, ivid, pbb_isid, bvid,
-                                   flow_mod_datas)
+            .remove_port_container(portno, ivid, flow_mod_datas)
         return flow_mod_datas
 
     # =========================================================================
@@ -140,13 +137,37 @@ class flow_mod_generator(object):
                         pbb_isid, bvid):
         flow_mod_datas = []
         for edge_switch in self.edge_switchs:
-            edge_switch.remove_datapath_edge(multicast_address, datapathid,
-                                             ivid, pbb_isid, bvid,
+            edge_switch.remove_datapath_edge(ivid, pbb_isid, bvid,
                                              flow_mod_datas)
         # 収容スイッチに設定するフローはremoveMG時と同じ
         self.container_switches[datapathid].remove_mg_container(portno, ivid,
-                                                                pbb_isid, bvid,
+                                                                pbb_isid,
                                                                 flow_mod_datas)
+        return flow_mod_datas
+
+    # =========================================================================
+    # マルチキャスト配信の視聴状況に応じたエッジSWのリカバリ
+    # =========================================================================
+    def recovery_ch_edge(self, datapathid,
+                         multicast_address, mc_ivid, ivid, pbb_isid, bvid):
+        flow_mod_datas = []
+        self.all_switches[datapathid].start_mg_edge(multicast_address,
+                                                    mc_ivid,
+                                                    ivid,
+                                                    pbb_isid,
+                                                    bvid,
+                                                    flow_mod_datas)
+        return flow_mod_datas
+
+    # =========================================================================
+    # マルチキャスト配信の視聴状況に応じた収容SWのリカバリ
+    # =========================================================================
+    def recovery_ch_container(self, datapathid, portnos, ivid, pbb_isid):
+        flow_mod_datas = []
+        self.all_switches[datapathid].start_mg_container(portnos,
+                                                         ivid,
+                                                         pbb_isid,
+                                                         flow_mod_datas)
         return flow_mod_datas
 
 
@@ -161,34 +182,30 @@ class flow_mod_gen_impl(object):
     def initialize_flows(self, ivid, pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_exception("Unsupported Operation.")
 
-    def start_mg_edge(self, multicast_address, datapathid, mc_ivid, ivid,
-                      pbb_isid, bvid, flow_mod_datas):
+    def start_mg_edge(self, multicast_address, mc_ivid,
+                      ivid, pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_exception("Unsupported Operation.")
 
-    def add_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid,
-                          bvid, flow_mod_datas):
+    def add_datapath_edge(self, ivid, pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_exception("Unsupported Operation.")
 
-    def remove_mg_edge(self, multicast_address, datapathid, mc_ivid, ivid,
-                       pbb_isid, bvid, flow_mod_datas):
+    def remove_mg_edge(self, multicast_address, mc_ivid, ivid, pbb_isid,
+                       bvid, flow_mod_datas):
         raise flow_mod_gen_exception("Unsupported Operation.")
 
-    def remove_datapath_edge(self, multicast_address, datapathid, ivid,
-                             pbb_isid, bvid, flow_mod_datas):
+    def remove_datapath_edge(self, ivid, pbb_isid, bvid, flow_mod_datas):
         raise flow_mod_gen_exception("Unsupported Operation.")
 
-    def start_mg_container(self, portno, ivid, pbb_isid, bvid, flow_mod_datas):
+    def start_mg_container(self, portnos, ivid, pbb_isid, flow_mod_datas):
         raise flow_mod_gen_exception("Unsupported Operation.")
 
-    def add_port_container(self, portno, ivid, pbb_isid, bvid, flow_mod_datas):
+    def add_port_container(self, portno, ivid, flow_mod_datas):
         raise flow_mod_gen_exception("Unsupported Operation.")
 
-    def remove_mg_container(self, portno, ivid, pbb_isid, bvid,
-                            flow_mod_datas):
+    def remove_mg_container(self, portno, ivid, pbb_isid, flow_mod_datas):
         raise flow_mod_gen_exception("Unsupported Operation.")
 
-    def remove_port_container(self, portno, ivid, pbb_isid, bvid,
-                              flow_mod_datas):
+    def remove_port_container(self, portno, ivid, flow_mod_datas):
         raise flow_mod_gen_exception("Unsupported Operation.")
 
     # MLD QueryのPacketIn
@@ -428,7 +445,7 @@ class apresia_12k(flow_mod_gen_impl):
                                             datapathid, in_port, ivid,
                                             flow_mod_datas)
 
-    def start_mg_edge(self, multicast_address, datapathid, mc_ivid,
+    def start_mg_edge(self, multicast_address, mc_ivid,
                       ivid, pbb_isid, bvid, flow_mod_datas):
 
         mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
@@ -453,9 +470,7 @@ class apresia_12k(flow_mod_gen_impl):
             self.make_flow_vlan_setting(ofproto.OFPFC_ADD, mydpid,
                                         in_port, ivid, flow_mod_datas)
 
-    # multicast_addressは使用しない
-    def add_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid,
-                          bvid, flow_mod_datas):
+    def add_datapath_edge(self, ivid, pbb_isid, bvid, flow_mod_datas):
 
         mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
 
@@ -465,9 +480,8 @@ class apresia_12k(flow_mod_gen_impl):
                                    mydpid, in_port, ivid, pbb_isid, bvid,
                                    flow_mod_datas)
 
-    # bvidは使用しない
-    def remove_mg_edge(self, multicast_address, datapathid, mc_ivid,
-                       ivid, pbb_isid, bvid, flow_mod_datas):
+    def remove_mg_edge(self, multicast_address, mc_ivid, ivid, pbb_isid,
+                       bvid, flow_mod_datas):
 
         mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
         edge_router_port = self.switch_info[const.SW_TAG_EDGE_ROUTER_PORT]
@@ -492,9 +506,7 @@ class apresia_12k(flow_mod_gen_impl):
                                         mydpid, in_port, ivid,
                                         flow_mod_datas)
 
-    # multicast_addressは使用しない
-    def remove_datapath_edge(self, multicast_address, datapathid, ivid,
-                             pbb_isid, bvid, flow_mod_datas):
+    def remove_datapath_edge(self, ivid, pbb_isid, bvid, flow_mod_datas):
 
         mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
 
@@ -504,8 +516,7 @@ class apresia_12k(flow_mod_gen_impl):
                                    mydpid, in_port, ivid, pbb_isid, bvid,
                                    flow_mod_datas)
 
-    # bvidは使用しない
-    def start_mg_container(self, portno, ivid, pbb_isid, bvid, flow_mod_datas):
+    def start_mg_container(self, portnos, ivid, pbb_isid, flow_mod_datas):
 
         mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
         edge_switch_port = self.switch_info[const.SW_TAG_EDGE_SWITCH_PORT]
@@ -522,12 +533,12 @@ class apresia_12k(flow_mod_gen_impl):
                                      flow_mod_datas)
 
         # VLAN設定(OLT出力側）
-        in_port = self.logical_port_untag(portno)
-        self.make_flow_vlan_setting(ofproto.OFPFC_ADD,
-                                    mydpid, in_port, ivid, flow_mod_datas)
+        for portno in portnos:
+            in_port = self.logical_port_untag(portno)
+            self.make_flow_vlan_setting(ofproto.OFPFC_ADD,
+                                        mydpid, in_port, ivid, flow_mod_datas)
 
-    # pbb_isid, bvidは使用しない
-    def add_port_container(self, portno, ivid, pbb_isid, bvid, flow_mod_datas):
+    def add_port_container(self, portno, ivid, flow_mod_datas):
 
         mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
 
@@ -536,9 +547,7 @@ class apresia_12k(flow_mod_gen_impl):
         self.make_flow_vlan_setting(ofproto.OFPFC_ADD,
                                     mydpid, in_port, ivid, flow_mod_datas)
 
-    # bvidは使用しない
-    def remove_mg_container(self, portno, ivid, pbb_isid, bvid,
-                            flow_mod_datas):
+    def remove_mg_container(self, portno, ivid, pbb_isid, flow_mod_datas):
 
         mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
         edge_switch_port = self.switch_info[const.SW_TAG_EDGE_SWITCH_PORT]
@@ -559,9 +568,7 @@ class apresia_12k(flow_mod_gen_impl):
         self.make_flow_vlan_setting(ofproto.OFPFC_DELETE_STRICT,
                                     mydpid, in_port, ivid, flow_mod_datas)
 
-    # pbb_isid、bvidは使用しない
-    def remove_port_container(self, portno, ivid, pbb_isid, bvid,
-                              flow_mod_datas):
+    def remove_port_container(self, portno, ivid, flow_mod_datas):
 
         mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
 
@@ -630,7 +637,7 @@ class apresia_26k(flow_mod_gen_impl):
         else:
             raise flow_mod_gen_exception("Unsupported Operation.")
 
-    def start_mg_edge(self, multicast_address, datapathid, mc_ivid,
+    def start_mg_edge(self, multicast_address, mc_ivid,
                       ivid, pbb_isid, bvid, flow_mod_datas):
 
         mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
@@ -666,9 +673,7 @@ class apresia_26k(flow_mod_gen_impl):
                                     mydpid, in_port, ivid,
                                     flow_mod_datas)
 
-    # multicast_addressは使用しない
-    def add_datapath_edge(self, multicast_address, datapathid, ivid, pbb_isid,
-                          bvid, flow_mod_datas):
+    def add_datapath_edge(self, ivid, pbb_isid, bvid, flow_mod_datas):
 
         mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
         fcrp_sw_port = self.switch_info[const.SW_TAG_FCRP_PORT]
@@ -685,9 +690,8 @@ class apresia_26k(flow_mod_gen_impl):
                                    mydpid, in_port, ivid, pbb_isid, bvid,
                                    flow_mod_datas)
 
-    # bvidは使用しない
-    def remove_mg_edge(self, multicast_address, datapathid, mc_ivid,
-                       ivid, pbb_isid, bvid, flow_mod_datas):
+    def remove_mg_edge(self, multicast_address, mc_ivid, ivid, pbb_isid,
+                       bvid, flow_mod_datas):
 
         mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
         edge_router_port = self.switch_info[const.SW_TAG_EDGE_ROUTER_PORT]
@@ -722,9 +726,7 @@ class apresia_26k(flow_mod_gen_impl):
                                     mydpid, in_port, ivid,
                                     flow_mod_datas)
 
-    # multicast_addressは使用しない
-    def remove_datapath_edge(self, multicast_address, datapathid, ivid,
-                             pbb_isid, bvid, flow_mod_datas):
+    def remove_datapath_edge(self, ivid, pbb_isid, bvid, flow_mod_datas):
 
         mydpid = self.switch_info[const.SW_TAG_DATAPATHID]
         fcrp_sw_port = self.switch_info[const.SW_TAG_FCRP_PORT]

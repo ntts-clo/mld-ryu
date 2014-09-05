@@ -69,8 +69,8 @@ class mld_controller(app_manager.RyuApp):
             # 設定情報の読み込み
             config = read_json(COMMON_PATH + const.CONF_FILE)
             self.logger.info("%s:%s", const.CONF_FILE,
-                json.dumps(config.data, indent=4,
-                           sort_keys=True, ensure_ascii=False))
+                             json.dumps(config.data, indent=4,
+                                        sort_keys=True, ensure_ascii=False))
             self.config = config.data[const.SETTING]
 
             # ループフラグの設定
@@ -124,7 +124,7 @@ class mld_controller(app_manager.RyuApp):
             pkt = packet.Packet(msg.data)
 
             self.logger.info("OFPPacketIn.[ver]:%s [dpid]:%s [xid]:%s",
-                              msg.version, msg.datapath.id, msg.xid)
+                             msg.version, msg.datapath.id, msg.xid)
             self.logger.debug("OFPPacketIn.[data]:%s", str(pkt))
 
             # CHECK VLAN
@@ -142,7 +142,7 @@ class mld_controller(app_manager.RyuApp):
                 return False
 
             # CHECK MLD TYPE
-            if not pkt_icmpv6.type_ in [icmpv6.MLDV2_LISTENER_REPORT,
+            if pkt_icmpv6.type_ not in [icmpv6.MLDV2_LISTENER_REPORT,
                                         icmpv6.MLD_LISTENER_QUERY]:
                 self.logger.debug("check icmpv6.TYPE:%s \n",
                                   str(pkt_icmpv6.type_))
@@ -153,16 +153,16 @@ class mld_controller(app_manager.RyuApp):
 
                 if pkt_icmpv6.data.record_num == 0:
                     self.logger.debug("check data.record_num:%s \n",
-                                          str(pkt_icmpv6.data.record_num))
+                                      str(pkt_icmpv6.data.record_num))
                     return False
 
                 for mldv2_report_group in pkt_icmpv6.data.records:
 
-                    if not mldv2_report_group.type_ \
-                                            in [icmpv6.MODE_IS_INCLUDE,
-                                                icmpv6.CHANGE_TO_INCLUDE_MODE,
-                                                icmpv6.ALLOW_NEW_SOURCES,
-                                                icmpv6.BLOCK_OLD_SOURCES]:
+                    if mldv2_report_group.type_ \
+                        not in [icmpv6.MODE_IS_INCLUDE,
+                                icmpv6.CHANGE_TO_INCLUDE_MODE,
+                                icmpv6.ALLOW_NEW_SOURCES,
+                                icmpv6.BLOCK_OLD_SOURCES]:
                         self.logger.debug("check report_group.[type_]:%s \n",
                                           str(mldv2_report_group.type_))
 
@@ -171,10 +171,10 @@ class mld_controller(app_manager.RyuApp):
 
             # SET dispatch
             dispatch_ = dispatch(type_=const.CON_PACKET_IN,
-                                   datapathid=msg.datapath.id,
-                                   cid=vid,
-                                   in_port=msg.match[const.DISP_IN_PORT],
-                                   data=pkt_icmpv6)
+                                 datapathid=msg.datapath.id,
+                                 cid=vid,
+                                 in_port=msg.match[const.DISP_IN_PORT],
+                                 data=pkt_icmpv6)
 
             self.logger.debug("dispatch [type_]:%s", const.CON_PACKET_IN)
             self.logger.debug("dispatch [datapathid]:%s", msg.datapath.id)
@@ -196,7 +196,7 @@ class mld_controller(app_manager.RyuApp):
         try:
             msg = ev.msg
             self.logger.info("OFPBarrierReply.[ver]:%s [dpid]:%s [xid]:%s",
-                          msg.version, msg.datapath.id, msg.xid)
+                             msg.version, msg.datapath.id, msg.xid)
 
         except:
             self.logger.error("%s ", traceback.print_exc())
@@ -309,14 +309,15 @@ class mld_controller(app_manager.RyuApp):
         self.logger.debug("")
 
         # Create flow mod message.
-        flowmod = datapath.ofproto_parser.OFPFlowMod(datapath=datapath,
-                                        table_id=flowdata.table_id,
-                                        command=flowdata.command,
-                                        priority=flowdata.priority,
-                                        out_port=flowdata.out_port,
-                                        out_group=flowdata.out_group,
-                                        match=flowdata.match,
-                                        instructions=flowdata.instructions)
+        parser = datapath.ofproto_parser
+        flowmod = parser.OFPFlowMod(datapath=datapath,
+                                    table_id=flowdata.table_id,
+                                    command=flowdata.command,
+                                    priority=flowdata.priority,
+                                    out_port=flowdata.out_port,
+                                    out_group=flowdata.out_group,
+                                    match=flowdata.match,
+                                    instructions=flowdata.instructions)
 
         self.logger.debug("flowdata [datapathid]:%s", flowdata.datapathid)
         self.logger.debug("flowdata [command]:%s", flowdata.command)
@@ -337,7 +338,8 @@ class mld_controller(app_manager.RyuApp):
         self.logger.debug("")
 
         # Create packetout message.
-        packetout = datapath.ofproto_parser.OFPPacketOut(datapath=datapath,
+        parser = datapath.ofproto_parser
+        packetout = parser.OFPPacketOut(datapath=datapath,
                                         buffer_id=pktoutdata.buffer_id,
                                         in_port=pktoutdata.in_port,
                                         actions=pktoutdata.actions,
