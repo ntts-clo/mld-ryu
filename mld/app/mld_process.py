@@ -654,7 +654,7 @@ class mld_process():
                                 const.MC_TAG_SERV_IP: del_user_info.serv_ip}
                             send_thre = threading.Thread(
                                 target=self.send_mldquery,
-                                name="SendQueryThread", args=[[mc_info], ])
+                                name=const.THREAD_QUERY, args=[[mc_info], ])
                             send_thre.daemon = True
                             send_thre.start()
 
@@ -701,7 +701,7 @@ class mld_process():
         self.logger.debug("be_listening_ch : %s", str(be_listening_ch))
 
         # General Queryの場合
-        if mc_addr == "::" and srcs == []:
+        if mc_addr == const.DELIMIT_DOUBLE_COLON and srcs == []:
             # 視聴中のベストエフォートサービスのマルチキャストグループ毎にレポートを作成
             if be_listening_ch:
                 report_info = [
@@ -841,7 +841,7 @@ class mld_process():
                                    const.MC_TAG_SERV_IP: src}
                         send_thre = threading.Thread(
                             target=self.send_mldquery,
-                            name="SendQueryThread", args=[[mc_info], ])
+                            name=const.THREAD_QUERY, args=[[mc_info], ])
                         send_thre.daemon = True
                         send_thre.start()
                     else:
@@ -1009,7 +1009,7 @@ if __name__ == "__main__":
         mld_proc = mld_process()
         # Query定期送信スレッド
         send_thre = threading.Thread(
-            target=mld_proc.send_mldquery_regularly, name="SendRegThread")
+            target=mld_proc.send_mldquery_regularly, name=const.THREAD_REG)
         send_thre.daemon = True
         send_thre.start()
         # パケット受信処理

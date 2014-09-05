@@ -25,6 +25,11 @@ DELIMIT_NEW_LINE = "\n"
 DELIMIT_SPACE = " "
 DELIMIT_URL = "://"
 DELIMIT_COLON = ":"
+DELIMIT_DOUBLE_COLON = "::"
+
+# THREAD_NAME
+THREAD_QUERY = "SendQueryThread"
+THREAD_REG = "SendRegThread"
 
 # 書き込みモード
 WRITE = "w"
