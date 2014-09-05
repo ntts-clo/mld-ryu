@@ -543,14 +543,38 @@ class mld_process():
 
         try:
             dispatch_ = recvpkt.dispatch
-            self.logger.debug("received [type_]: %s",
-                              str(dispatch_[const.DISP_TYPE]))
-            self.logger.debug("received [data]: %s",
-                              str(dispatch_[const.DISP_DATA]))
+            self.logger.debug(
+                "received [type_]: %s", str(dispatch_[const.DISP_TYPE]))
+            self.logger.debug(
+                "received [data]: %s", str(dispatch_[const.DISP_DATA]))
             receive_type = dispatch_[const.DISP_TYPE]
 
             if receive_type == const.CON_MAIN_DISPATCHER:
                 self.set_switch_config(dispatch_)
+
+                # 視聴情報がある場合（SWの再起動が行われた場合）は視聴情報を再度設定する
+                for mc_addr, serv_ip in self.ch_info.channel_info:
+                    ids = self.get_ids(mc_addr, serv_ip)
+                    ivid = ids[const.SW_TAG_MLD_INFO_IVID]
+                    pbb_isid = ids[const.SW_TAG_MLD_INFO_PBB_ISID]
+                    bvid = ids[const.SW_TAG_MLD_INFO_BVID]
+                    datapathid = dispatch_[const.DISP_DPID]
+
+                    if datapathid == self.edge_switch[const.SW_TAG_DATAPATHID]:
+                        # エッジSWの再設定
+                        flowlist = self.flowmod_gen.recovery_ch_edge(
+                            datapathid, mc_addr,
+                            self.switch_mc_info[const.SW_TAG_MC_INFO_IVID],
+                            ivid, pbb_isid, bvid)
+                        self.send_flowmod(flowlist)
+#                    else:
+#                        # 収容SWの再設定
+#                        # 対象SW配下のポートを取得
+#                        portnos = self.ch_info.channel_info[
+#                            (mc_addr, serv_ip)][datapathid].port_info.keys()
+#                        flowlist = self.flowmod_gen.recovery_ch_container(
+#                            datapathid, portnos, ivid, pbb_isid)
+#                        self.send_flowmod(flowlist)
 
             elif receive_type == const.CON_PACKET_IN:
                 pkt_icmpv6 = dispatch_[const.DISP_DATA]
@@ -572,21 +596,48 @@ class mld_process():
                     self.reply_proxy(query.address, query.srcs)
 
             else:
-                self.logger.error(
-                    "dispatch[type_]:Not Exist(%s)",
-                    dispatch_[const.DISP_TYPE])
+                self.logger.error("dispatch[type_]:Not Exist(%s)",
+                                  dispatch_[const.DISP_TYPE])
 
         except:
-            self.logger.error(
-                "%s ", traceback.print_exc())
+            self.logger.error("%s ", traceback.print_exc())
+
+    # ==================================================================
+    # get_ids
+    # ==================================================================
+    def get_ids(self, address, src):
+        self.logger.debug("")
+
+        # マルチキャストアドレスに対応するpbb_isidとividを抽出
+        mc_info = self.mc_info_dict[address, src]
+        pbb_isid = mc_info[const.MC_TAG_MC_PBB_ISID]
+        ivid = mc_info[const.MC_TAG_MC_IVID]
+
+        # 視聴情報からbvidを特定する
+        bvid = None
+        if (address, src) in self.ch_info.channel_info:
+            listening_switch = self.ch_info.channel_info[
+                (address, src)].keys()
+            # datapathidの昇順に":"でつなぐ
+            bvid_key = const.DELIMIT_COLON.join(
+                map(str, sorted(listening_switch)))
+            self.logger.debug("bvid_key : %s", bvid_key)
+            bvid = self.bvid_variation[bvid_key]
+        else:
+            # 対象マルチキャストアドレスが全く視聴されていない（離脱によって視聴ユーザがいなくなった）場合
+            bvid = -1
+
+        return {const.SW_TAG_MLD_INFO_IVID: ivid,
+                const.SW_TAG_MLD_INFO_PBB_ISID: pbb_isid,
+                const.SW_TAG_MLD_INFO_BVID: bvid}
 
     # ==================================================================
     # set_switch_config
     # ==================================================================
     def set_switch_config(self, dispatch_):
         self.logger.debug("")
-        self.logger.debug("dispatch_[data] : %s",
-                          str(dispatch_[const.DISP_DATA]))
+        self.logger.debug(
+            "dispatch_[data] : " + str(dispatch_[const.DISP_DATA]))
 
         # 初期設定をFlowModする
         datapathid = dispatch_[const.DISP_DPID]
@@ -879,29 +930,16 @@ class mld_process():
         edge_switch_dpid = self.edge_switch[const.SW_TAG_DATAPATHID]
         edge_switch_port = self.edge_switch[const.SW_TAG_EDGE_ROUTER_PORT]
 
-        # マルチキャストアドレスに対応するpbb_isidとividを抽出
-        mc_info = self.mc_info_dict[address, src]
-        pbb_isid = mc_info[const.MC_TAG_MC_PBB_ISID]
-        ivid = mc_info[const.MC_TAG_MC_IVID]
-        mc_info_type = mc_info[const.MC_TAG_MC_TYPE]
+        # pbb_isid,ivid,bvidを取得
+        ids = self.get_ids(address, src)
+        ivid = ids[const.SW_TAG_MLD_INFO_IVID]
+        pbb_isid = ids[const.SW_TAG_MLD_INFO_PBB_ISID]
+        bvid = ids[const.SW_TAG_MLD_INFO_BVID]
+        self.logger.debug(
+            "pbb_isid, ivid, bvid : %s, %s, %s", pbb_isid, ivid, bvid)
 
-        # 視聴情報からbvidを特定する
-        bvid = None
-        if self.ch_info.channel_info and \
-                (address, src) in self.ch_info.channel_info:
-            listening_switch = self.ch_info.channel_info[
-                (address, src)].keys()
-            # datapathidの昇順に":"でつなぐ
-            bvid_key = const.DELIMIT_COLON.join(
-                map(str, sorted(listening_switch)))
-            self.logger.debug("bvid_key : %s", bvid_key)
-            bvid = self.bvid_variation[bvid_key]
-        else:
-            # 全く視聴されていない（離脱によって視聴ユーザがいなくなった）場合
-            bvid = -1
-
-        self.logger.debug("pbb_isid, ivid, bvid : %s, %s, %s",
-                          pbb_isid, ivid, bvid)
+        # 対象マルチキャストアドレスのタイプ（BE or QA）を取得
+        mc_service_type = self.mc_info_dict[address, src][const.MC_TAG_MC_TYPE]
 
         # Flow追加の場合
         if reply_type == const.CON_REPLY_ADD_MC_GROUP:
@@ -915,7 +953,7 @@ class mld_process():
             self.send_flowmod(flowlist)
 
             # ベストエフォートの場合のみ
-            if mc_info_type == self.BEST_EFFORT:
+            if mc_service_type == self.BEST_EFFORT:
                 report_info = [(address, src, icmpv6.ALLOW_NEW_SOURCES),
                                (address, src, icmpv6.CHANGE_TO_INCLUDE_MODE)]
                 self.send_packetout(
@@ -942,7 +980,7 @@ class mld_process():
             # MCアドレスの削除
             self.logger.debug("reply_type : CON_REPLY_DEL_MC_GROUP")
             # ベストエフォートの場合のみ
-            if mc_info_type == self.BEST_EFFORT:
+            if mc_service_type == self.BEST_EFFORT:
                 self.send_packetout(
                     [(address, src, icmpv6.BLOCK_OLD_SOURCES)], vid,
                     edge_switch_dpid, edge_switch_port)
@@ -978,8 +1016,8 @@ class mld_process():
 
         flowmod = dispatch(
             type_=const.CON_FLOW_MOD, datapathid=None, data=flowlist)
-        self.logger.debug("flowmod[data] : %s",
-                          str(flowmod[const.DISP_DATA]))
+        self.logger.debug(
+            "flowmod[data] : %s", str(flowmod[const.DISP_DATA]))
         self.send_packet_to_ryu(flowmod)
 
     # ==================================================================

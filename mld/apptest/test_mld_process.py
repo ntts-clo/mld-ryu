@@ -663,7 +663,7 @@ class test_mld_process():
         self.mld_proc.send_packet_to_ryu(packet)
 
     @attr(do=False)
-    def test_analyse_receive_packet_switch_feature(self):
+    def test_analyse_receive_packet_switch_feature_nouser(self):
         # switchとの初回接続時：set_switch_configを呼び出す
         dispatch_ = dispatch(const.CON_MAIN_DISPATCHER, 1)
 
@@ -673,6 +673,117 @@ class test_mld_process():
 
         self.mld_proc.analyse_receive_packet(dispatch_)
         self.mocker.VerifyAll()
+
+    @attr(do=False)
+    def test_analyse_receive_packet_switch_feature_esw(self):
+        # エッジSWの再起動時：set_switch_configとrecovery_ch_edgeを呼び出す
+        datapathid = self.mld_proc.edge_switch[const.SW_TAG_DATAPATHID]
+        dispatch_ = dispatch(const.CON_MAIN_DISPATCHER, datapathid)
+
+        mc_addr1 = "ff38::1:1"
+        serv_ip = "2001:1::20"
+        datapathid2 = self.mld_proc.switches[1][const.SW_TAG_DATAPATHID]
+        port_no1 = 1
+        cid1 = 12101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid1)
+
+        cid2 = 12102
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid2)
+
+        mc_addr2 = "ff38::1:2"
+        cid3 = 22101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr2, serv_ip, datapathid2, port_no1, cid3)
+
+        # set_switch_config呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc, "set_switch_config")
+        self.mld_proc.set_switch_config(dispatch_.dispatch)
+
+        ids1 = self.mld_proc.get_ids(mc_addr1, serv_ip)
+        ivid1 = ids1[const.SW_TAG_MLD_INFO_IVID]
+        pbb_isid1 = ids1[const.SW_TAG_MLD_INFO_PBB_ISID]
+        bvid1 = ids1[const.SW_TAG_MLD_INFO_BVID]
+
+        ids2 = self.mld_proc.get_ids(mc_addr2, serv_ip)
+        ivid2 = ids2[const.SW_TAG_MLD_INFO_IVID]
+        pbb_isid2 = ids2[const.SW_TAG_MLD_INFO_PBB_ISID]
+        bvid2 = ids2[const.SW_TAG_MLD_INFO_BVID]
+
+        # recovery_ch_edge, send_flowmod呼び出し確認
+        self.mocker.StubOutWithMock(
+            self.mld_proc.flowmod_gen, "recovery_ch_edge")
+        self.mocker.StubOutWithMock(self.mld_proc, "send_flowmod")
+
+        self.mld_proc.flowmod_gen.recovery_ch_edge(
+            datapathid, mc_addr2,
+            self.mld_proc.switch_mc_info[const.SW_TAG_MC_INFO_IVID],
+            ivid2, pbb_isid2, bvid2).AndReturn("flowlist2")
+        self.mld_proc.send_flowmod("flowlist2")
+
+        self.mld_proc.flowmod_gen.recovery_ch_edge(
+            datapathid, mc_addr1,
+            self.mld_proc.switch_mc_info[const.SW_TAG_MC_INFO_IVID],
+            ivid1, pbb_isid1, bvid1).AndReturn("flowlist1")
+        self.mld_proc.send_flowmod("flowlist1")
+        self.mocker.ReplayAll()
+
+        self.mld_proc.analyse_receive_packet(dispatch_)
+        self.mocker.VerifyAll()
+
+#    @attr(do=False)
+#    def test_analyse_receive_packet_switch_feature_csw(self):
+#        # 収容SWの再起動時：set_switch_configとrecovery_ch_containerを呼び出す
+#        datapathid = self.mld_proc.switches[1][const.SW_TAG_DATAPATHID]
+#        dispatch_ = dispatch(const.CON_MAIN_DISPATCHER, datapathid)
+#
+#        mc_addr1 = "ff38::1:1"
+#        serv_ip = "2001:1::20"
+#        datapathid2 = datapathid
+#        port_no1 = 1
+#        cid1 = 12101
+#        self.mld_proc.ch_info.update_ch_info(
+#            mc_addr1, serv_ip, datapathid2, port_no1, cid1)
+#
+#        port_no2 = 2
+#        cid2 = 12201
+#        self.mld_proc.ch_info.update_ch_info(
+#            mc_addr1, serv_ip, datapathid2, port_no2, cid2)
+#
+#        mc_addr2 = "ff38::1:2"
+#        port_no3 = 3
+#        cid3 = 22301
+#        self.mld_proc.ch_info.update_ch_info(
+#            mc_addr2, serv_ip, datapathid2, port_no3, cid3)
+#
+#        # set_switch_config呼び出し確認
+#        self.mocker.StubOutWithMock(self.mld_proc, "set_switch_config")
+#        self.mld_proc.set_switch_config(dispatch_.dispatch)
+#
+#        ids1 = self.mld_proc.get_ids(mc_addr1, serv_ip)
+#        ivid1 = ids1[const.SW_TAG_MLD_INFO_IVID]
+#        pbb_isid1 = ids1[const.SW_TAG_MLD_INFO_PBB_ISID]
+#
+#        ids2 = self.mld_proc.get_ids(mc_addr2, serv_ip)
+#        ivid2 = ids2[const.SW_TAG_MLD_INFO_IVID]
+#        pbb_isid2 = ids2[const.SW_TAG_MLD_INFO_PBB_ISID]
+#
+#        # recovery_ch_container, send_flowmod呼び出し確認
+#        self.mocker.StubOutWithMock(
+#            self.mld_proc.flowmod_gen, "recovery_ch_container")
+#        self.mocker.StubOutWithMock(self.mld_proc, "send_flowmod")
+#        self.mld_proc.flowmod_gen.recovery_ch_container(
+#            datapathid, [port_no3], ivid2, pbb_isid2).AndReturn("flowlist2")
+#        self.mld_proc.send_flowmod("flowlist2")
+#
+#        self.mld_proc.flowmod_gen.recovery_ch_container(
+#            datapathid, [port_no1, port_no2], ivid1, pbb_isid1).AndReturn("flowlist1")
+#        self.mld_proc.send_flowmod("flowlist1")
+#        self.mocker.ReplayAll()
+#
+#        self.mld_proc.analyse_receive_packet(dispatch_)
+#        self.mocker.VerifyAll()
 
     @attr(do=False)
     def test_analyse_receive_packet_packetin_query(self):
@@ -748,6 +859,82 @@ class test_mld_process():
 
         self.mld_proc.analyse_receive_packet(dispatch_)
         self.mocker.VerifyAll()
+
+    @attr(do=False)
+    def test_get_ids_no_ch(self):
+        # 対象マルチキャストアドレスの視聴ユーザがいない場合、bvidは-1が返却されること
+        mc_addr = "ff38::1:1"
+        serv_ip = "2001:1::20"
+        actual = self.mld_proc.get_ids(mc_addr, serv_ip)
+
+        eq_(3, len(actual))
+        eq_(2011, actual[const.SW_TAG_MLD_INFO_IVID])
+        eq_(10011, actual[const.SW_TAG_MLD_INFO_PBB_ISID])
+        eq_(-1, actual[const.SW_TAG_MLD_INFO_BVID])
+
+    @attr(do=False)
+    def test_get_ids_ch_dp1(self):
+        # 対象マルチキャストアドレスを収容スイッチ１のみで視聴している場合、それに対応するbvidが返却されること
+        mc_addr1 = "ff38::1:1"
+        serv_ip = "2001:1::20"
+        datapathid2 = self.mld_proc.switches[1][const.SW_TAG_DATAPATHID]
+        port_no1 = 1
+        cid1 = 12101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid1)
+
+        actual = self.mld_proc.get_ids(mc_addr1, serv_ip)
+
+        eq_(3, len(actual))
+        eq_(2011, actual[const.SW_TAG_MLD_INFO_IVID])
+        eq_(10011, actual[const.SW_TAG_MLD_INFO_PBB_ISID])
+        eq_(4001, actual[const.SW_TAG_MLD_INFO_BVID])
+
+    @attr(do=False)
+    def test_get_ids_ch_dp2(self):
+        # 対象マルチキャストアドレスを収容スイッチ2のみで視聴している場合、それに対応するbvidが返却されること
+        mc_addr2 = "ff38::1:2"
+        serv_ip = "2001:1::20"
+        datapathid3 = self.mld_proc.switches[2][const.SW_TAG_DATAPATHID]
+        port_no1 = 1
+        cid1 = 12101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr2, serv_ip, datapathid3, port_no1, cid1)
+
+        actual = self.mld_proc.get_ids(mc_addr2, serv_ip)
+
+        eq_(3, len(actual))
+        eq_(2021, actual[const.SW_TAG_MLD_INFO_IVID])
+        eq_(10021, actual[const.SW_TAG_MLD_INFO_PBB_ISID])
+        eq_(4002, actual[const.SW_TAG_MLD_INFO_BVID])
+
+    @attr(do=False)
+    def test_get_ids_ch_dp1_2(self):
+        # 対象マルチキャストアドレスを収容スイッチ１、２両方で視聴している場合、それに対応するbvidが返却されること
+        mc_addr1 = "ff38::1:1"
+        serv_ip = "2001:1::20"
+        datapathid2 = self.mld_proc.switches[1][const.SW_TAG_DATAPATHID]
+        port_no1 = 1
+        cid1 = 12101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid1)
+
+        datapathid3 = self.mld_proc.switches[2][const.SW_TAG_DATAPATHID]
+        cid2 = 13101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid3, port_no1, cid2)
+
+        mc_addr2 = "ff38::1:2"
+        cid3 = 22101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr2, serv_ip, datapathid2, port_no1, cid3)
+
+        actual = self.mld_proc.get_ids(mc_addr1, serv_ip)
+
+        eq_(3, len(actual))
+        eq_(2011, actual[const.SW_TAG_MLD_INFO_IVID])
+        eq_(10011, actual[const.SW_TAG_MLD_INFO_PBB_ISID])
+        eq_(4000, actual[const.SW_TAG_MLD_INFO_BVID])
 
     @attr(do=False)
     def test_set_switch_config(self):
@@ -973,7 +1160,7 @@ class test_mld_process():
         report_info = [
             (mc_addr2, serv_ip, icmpv6.MODE_IS_INCLUDE),
             (mc_addr1, serv_ip, icmpv6.MODE_IS_INCLUDE)]
-            # mc_addr3はQAのため返却されないこと
+        # mc_addr3はQAのため返却されないこと
 
         self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
         self.mld_proc.send_packetout(
