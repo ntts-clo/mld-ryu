@@ -772,11 +772,15 @@ class mld_process():
         edge_sw_dpid = self.edge_switch[const.SW_TAG_DATAPATHID]
         edge_router_port = self.edge_switch[const.SW_TAG_EDGE_ROUTER_PORT]
 
-        # 視聴中のチャンネルかつベストエフォートのものを抽出
-        listening_ch = [
-            be_ch for be_ch in self.ch_info.channel_info.keys()
-            if self.mc_info_dict[be_ch[0], be_ch[1]][
-                const.MC_TAG_MC_TYPE] == self.BEST_EFFORT]
+        if self.QA_REPLY:
+            # 視聴中の全てのチャンネルを抽出
+            listening_ch = self.ch_info.channel_info.keys()
+        else:
+            # 視聴中のチャンネルかつベストエフォートのものを抽出
+            listening_ch = [
+                be_ch for be_ch in self.ch_info.channel_info.keys()
+                if self.mc_info_dict[be_ch[0], be_ch[1]][
+                    const.MC_TAG_MC_TYPE] == self.BEST_EFFORT]
 
         # General Queryの場合
         if mc_addr == const.DELIMIT_DOUBLE_COLON and srcs == []:
