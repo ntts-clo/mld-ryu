@@ -947,8 +947,9 @@ class test_mld_controller():
         zmqerr.msg = 999
         zmqerr.trackeback = "Error"
         # 受信処理はdummyのメソッドに置き換える
+        tmpsockt = self.mld_ctrl.recv_sock
+        self.mld_ctrl.recv_sock = dummy_socket
         self.mocker.StubOutWithMock(self.mld_ctrl.recv_sock, "recv")
-        #self.mld_ctrl.recv_sock.recv(flags=zmq.NOBLOCK).AndRaise(zmqerr)
         self.mld_ctrl.recv_sock.recv(flags=zmq.NOBLOCK).AndRaise(Exception(zmqerr))
         self.mocker.StubOutWithMock(self.mld_ctrl.logger, "error")
         self.mld_ctrl.logger.error(IsA(str), None)
@@ -957,6 +958,7 @@ class test_mld_controller():
         self.mld_ctrl.receive_from_mld()
         #【結果】
         self.mocker.VerifyAll()
+        self.mld_ctrl.recv_sock = tmpsockt
 
     def test_send_msg_to_flowmod_Success001(self):
         # mld_controller.send_msg_to_flowmod(self, msgbase, flowmod):
