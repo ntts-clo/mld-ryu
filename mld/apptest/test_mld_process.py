@@ -712,7 +712,7 @@ class test_mld_process():
         self.mld_proc.analyse_receive_packet(dispatch_)
         self.mocker.VerifyAll()
 
-    @attr(do=True)
+    @attr(do=False)
     def test_analyse_receive_packet_switch_feature_esw_26k(self):
         # エッジSWの再起動時：Apresiaが26000の場合、set_switch_configとrecovery_ch_edgeを呼び出す
         # sw情報を26000のものに変更
@@ -839,7 +839,8 @@ class test_mld_process():
 #        self.mld_proc.send_flowmod("flowlist2")
 #
 #        self.mld_proc.flowmod_gen.recovery_ch_container(
-#            datapathid, [port_no1, port_no2], ivid1, pbb_isid1).AndReturn("flowlist1")
+#            datapathid, [port_no1, port_no2], ivid1, pbb_isid1).AndReturn(
+#                "flowlist1")
 #        self.mld_proc.send_flowmod("flowlist1")
 #        self.mocker.ReplayAll()
 #
@@ -1244,6 +1245,66 @@ class test_mld_process():
         self.mld_proc.mc_info_dict = temp_dict
 
     @attr(do=False)
+    def test_reply_proxy_exists_user_gq_qareply(self):
+        # 視聴情報がありGeneralQueryの場合、視聴中のmcアドレス分p-out
+        mc_addr1 = "ff38::1:1"
+        serv_ip = "2001:1::20"
+        datapathid2 = 2
+        port_no1 = 1
+        cid1 = 12101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid1)
+        cid2 = 12102
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid2)
+
+        mc_addr2 = "ff38::1:2"
+        cid3 = 22101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr2, serv_ip, datapathid2, port_no1, cid3)
+
+        # QAのマルチキャストアドレス
+        mc_addr3 = "ff38::1:3"
+        cid4 = 32101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr3, serv_ip, datapathid2, port_no1, cid4)
+
+        # send_packetoutが1回呼び出されることを確認
+        vid = self.mld_proc.config[const.C_TAG_ID]
+        edge_sw_dpid = self.mld_proc.edge_switch[const.SW_TAG_DATAPATHID]
+        edge_router_port = self.mld_proc.edge_switch[
+            const.SW_TAG_EDGE_ROUTER_PORT]
+        report_info = [
+            (mc_addr2, serv_ip, icmpv6.MODE_IS_INCLUDE),
+            (mc_addr3, serv_ip, icmpv6.MODE_IS_INCLUDE),
+            (mc_addr1, serv_ip, icmpv6.MODE_IS_INCLUDE)]
+        # QA_REPLY = TrueなのでQAのmc_addr3も返却されること
+
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
+        self.mld_proc.send_packetout(
+            report_info, vid, edge_sw_dpid, edge_router_port)
+        self.mocker.ReplayAll()
+
+        # マルチキャスト情報を別ファイルの内容で上書き
+        temp_dict = self.mld_proc.mc_info_dict
+        mc_info = read_json(TEST_COMMON_PATH + "multicast_info_withqa.json")
+        mc_info_dict = {}
+        for mc_info in mc_info.data[const.MC_TAG_MC_INFO]:
+            mc_info_dict[
+                mc_info[const.MC_TAG_MC_ADDR],
+                mc_info[const.MC_TAG_SERV_IP]] = mc_info
+        self.mld_proc.mc_info_dict = mc_info_dict
+
+        # QA時もReportを返却させる
+        self.mld_proc.QA_REPLY = True
+        self.mld_proc.reply_proxy("::", [])
+
+        # 変更を元に戻す
+        self.mld_proc.QA_REPLY = False
+        self.mld_proc.mc_info_dict = temp_dict
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
     @raises(ExpectedMethodCallsError)
     def test_reply_proxy_exists_user_gq_allqa(self):
         # 視聴情報がありGeneralQueryの場合、視聴中のmcアドレスがQAのみの場合返却なし
@@ -1285,6 +1346,63 @@ class test_mld_process():
 
         self.mld_proc.reply_proxy("::", [])
 
+        self.mld_proc.mc_info_dict = temp_dict
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
+    def test_reply_proxy_exists_user_gq_allqa_qareply(self):
+        # 視聴情報がありGeneralQueryの場合、視聴中のmcアドレスがQAのみの場合でも返却
+        mc_addr1 = "ff38::1:1"
+        serv_ip = "2001:1::20"
+        datapathid2 = 2
+        port_no1 = 1
+        cid1 = 12101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid1)
+        cid2 = 12102
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid2)
+
+        mc_addr2 = "ff38::1:2"
+        cid3 = 22101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr2, serv_ip, datapathid2, port_no1, cid3)
+
+        mc_addr3 = "ff38::1:3"
+        cid4 = 32101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr3, serv_ip, datapathid2, port_no1, cid4)
+
+        # マルチキャスト情報を別ファイルの内容で上書き
+        temp_dict = self.mld_proc.mc_info_dict
+        mc_info = read_json(TEST_COMMON_PATH + "multicast_info_allqa.json")
+        mc_info_dict = {}
+        for mc_info in mc_info.data[const.MC_TAG_MC_INFO]:
+            mc_info_dict[
+                mc_info[const.MC_TAG_MC_ADDR],
+                mc_info[const.MC_TAG_SERV_IP]] = mc_info
+        self.mld_proc.mc_info_dict = mc_info_dict
+
+        # send_packetoutが1回呼び出されることを確認
+        vid = self.mld_proc.config[const.C_TAG_ID]
+        edge_sw_dpid = self.mld_proc.edge_switch[const.SW_TAG_DATAPATHID]
+        edge_router_port = self.mld_proc.edge_switch[
+            const.SW_TAG_EDGE_ROUTER_PORT]
+        report_info = [
+            (mc_addr2, serv_ip, icmpv6.MODE_IS_INCLUDE),
+            (mc_addr3, serv_ip, icmpv6.MODE_IS_INCLUDE),
+            (mc_addr1, serv_ip, icmpv6.MODE_IS_INCLUDE)]
+        # QA_REPLY = TrueなのでQAのmc_addr3も返却されること
+
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
+        self.mld_proc.send_packetout(
+            report_info, vid, edge_sw_dpid, edge_router_port)
+        self.mocker.ReplayAll()
+
+        self.mld_proc.QA_REPLY = True
+        self.mld_proc.reply_proxy("::", [])
+
+        self.mld_proc.QA_REPLY = False
         self.mld_proc.mc_info_dict = temp_dict
         self.mocker.VerifyAll()
 
@@ -1350,7 +1468,8 @@ class test_mld_process():
     @raises(ExpectedMethodCallsError)
     def test_reply_proxy_exists_user_sq_no_be(self):
         # 視聴情報がありSpecificQuery場合、受信したmcアドレスが視聴中かつBEでなければなにもしない
-        mc_addr1 = "ff38::1:3"
+        # BEのアドレスを登録
+        mc_addr1 = "ff38::1:2"
         serv_ip = "2001:1::20"
         datapathid2 = 2
         port_no1 = 1
@@ -1360,6 +1479,12 @@ class test_mld_process():
         cid2 = 12102
         self.mld_proc.ch_info.update_ch_info(
             mc_addr1, serv_ip, datapathid2, port_no1, cid2)
+
+        # QAのアドレスを登録
+        mc_addr2 = "ff38::1:3"
+        cid3 = 22101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr2, serv_ip, datapathid2, port_no1, cid3)
 
         # send_packetoutが呼び出されないことを確認
         self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
@@ -1376,8 +1501,59 @@ class test_mld_process():
                 mc_info[const.MC_TAG_SERV_IP]] = mc_info
         self.mld_proc.mc_info_dict = mc_info_dict
 
-        self.mld_proc.reply_proxy("ff38::1:2", [serv_ip])
+        # QAのアドレスを指定
+        self.mld_proc.reply_proxy(mc_addr2, [serv_ip])
 
+        self.mld_proc.mc_info_dict = temp_dict
+        self.mocker.VerifyAll()
+
+    @attr(do=False)
+    def test_reply_proxy_exists_user_sq_no_be_qareply(self):
+        # 視聴情報がありSpecificQuery場合、受信したmcアドレスが視聴中ならReportを返却
+        # BEのアドレスを登録
+        mc_addr1 = "ff38::1:2"
+        serv_ip = "2001:1::20"
+        datapathid2 = 2
+        port_no1 = 1
+        cid1 = 12101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid1)
+
+        # QAのアドレスを登録
+        mc_addr2 = "ff38::1:3"
+        cid3 = 22101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr2, serv_ip, datapathid2, port_no1, cid3)
+
+        # send_packetoutが1回呼び出されることを確認
+        vid = self.mld_proc.config[const.C_TAG_ID]
+        edge_sw_dpid = self.mld_proc.edge_switch[const.SW_TAG_DATAPATHID]
+        edge_router_port = self.mld_proc.edge_switch[
+            const.SW_TAG_EDGE_ROUTER_PORT]
+        report_info = [
+            (mc_addr2, serv_ip, icmpv6.MODE_IS_INCLUDE)]
+        #QAのアドレスでも返却されることを確認
+
+        self.mocker.StubOutWithMock(self.mld_proc, "send_packetout")
+        self.mld_proc.send_packetout(
+            report_info, vid, edge_sw_dpid, edge_router_port)
+        self.mocker.ReplayAll()
+
+        # マルチキャスト情報を別ファイルの内容で上書き
+        temp_dict = self.mld_proc.mc_info_dict
+        mc_info = read_json(TEST_COMMON_PATH + "multicast_info_withqa.json")
+        mc_info_dict = {}
+        for mc_info in mc_info.data[const.MC_TAG_MC_INFO]:
+            mc_info_dict[
+                mc_info[const.MC_TAG_MC_ADDR],
+                mc_info[const.MC_TAG_SERV_IP]] = mc_info
+        self.mld_proc.mc_info_dict = mc_info_dict
+
+        # QAのアドレスを指定
+        self.mld_proc.QA_REPLY = True
+        self.mld_proc.reply_proxy(mc_addr2, [serv_ip])
+
+        self.mld_proc.QA_REPLY = False
         self.mld_proc.mc_info_dict = temp_dict
         self.mocker.VerifyAll()
 
@@ -2836,7 +3012,7 @@ class test_user_manage():
             cid1, icmpv6.BLOCK_OLD_SOURCES)
 
         # sendの実行待ち
-        time.sleep(2)
+        time.sleep(3)
 
         # 返却値の確認
         eq_(const.CON_REPLY_NOTHING, actual)
