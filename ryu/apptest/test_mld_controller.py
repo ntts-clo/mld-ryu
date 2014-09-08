@@ -950,9 +950,10 @@ class test_mld_controller():
         self.mocker.StubOutWithMock(self.mld_ctrl.recv_sock, "recv")
         #self.mld_ctrl.recv_sock.recv(flags=zmq.NOBLOCK).AndRaise(zmqerr)
         self.mld_ctrl.recv_sock.recv(flags=zmq.NOBLOCK).AndRaise(Exception(zmqerr))
+        self.mocker.StubOutWithMock(self.mld_ctrl.logger, "error")
+        self.mld_ctrl.logger.error(IsA(str), None)
         self.mocker.ReplayAll()
         #【実行】
-        #pdb.set_trace()
         self.mld_ctrl.receive_from_mld()
         #【結果】
         self.mocker.VerifyAll()
