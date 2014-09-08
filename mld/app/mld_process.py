@@ -554,35 +554,10 @@ class mld_process():
             receive_type = dispatch_[const.DISP_TYPE]
 
             if receive_type == const.CON_MAIN_DISPATCHER:
+                # SWの初期設定
                 self.set_switch_config(dispatch_)
-
-                # 視聴情報がある場合（SWの再起動が行われた場合）は視聴情報を再度設定する
-                for mc_addr, serv_ip in self.ch_info.channel_info:
-                    ids = self.get_ids(mc_addr, serv_ip)
-                    ivid = ids[const.SW_TAG_MLD_INFO_IVID]
-                    pbb_isid = ids[const.SW_TAG_MLD_INFO_PBB_ISID]
-                    bvid = ids[const.SW_TAG_MLD_INFO_BVID]
-                    datapathid = dispatch_[const.DISP_DPID]
-
-                    for sw in self.switches:
-                        # エッジSW(Apresia26000の場合のみ)の再設定
-                        if (sw[const.SW_TAG_TYPE] == const.SW_TYPE_26K and
-                                sw[const.SW_TAG_NAME] == const.SW_NAME_ESW and
-                                datapathid == sw[const.SW_TAG_DATAPATHID]):
-                            flowlist = self.flowmod_gen.recovery_ch_edge(
-                                datapathid, mc_addr,
-                                self.switch_mc_info[const.SW_TAG_MC_INFO_IVID],
-                                ivid, pbb_isid, bvid)
-                            self.send_flowmod(flowlist)
-#                        else:
-#                            # 収容SWの再設定
-#                            # 対象SW配下のポートを取得
-#                            portnos = self.ch_info.channel_info[
-#                                (mc_addr, serv_ip)][
-#                                    datapathid].port_info.keys()
-#                            flowlist = self.flowmod_gen.recovery_ch_container(
-#                                datapathid, portnos, ivid, pbb_isid)
-#                            self.send_flowmod(flowlist)
+                # SWのリカバリ
+                self.set_switch_recovery(dispatch_)
 
             elif receive_type == const.CON_PACKET_IN:
                 pkt_icmpv6 = dispatch_[const.DISP_DATA]
@@ -660,6 +635,51 @@ class mld_process():
         self.send_flowmod(flowlist)
 
     # ==================================================================
+    # set_switch_recovery
+    # ==================================================================
+    def set_switch_recovery(self, dispatch_):
+        self.logger.debug("")
+
+        datapathid = dispatch_[const.DISP_DPID]
+        is_edge = False
+#        is_container = False
+        is_recovery = False
+
+        for sw in self.switches:
+            if datapathid == sw[const.SW_TAG_DATAPATHID]:
+                if sw[const.SW_TAG_NAME] == const.SW_NAME_ESW:
+                    is_edge = True
+                    if sw[const.SW_TAG_TYPE] == const.SW_TYPE_26K:
+                        # Apresia26000でエッジスイッチの場合のみリカバリ対象
+                        is_recovery = True
+#                else:
+#                    is_container = True
+
+        if is_recovery:
+            # 視聴情報がある（SWの再起動などにより）場合は視聴情報を再度設定する
+            for mc_addr, serv_ip in self.ch_info.channel_info:
+                ids = self.get_ids(mc_addr, serv_ip)
+                ivid = ids[const.SW_TAG_MLD_INFO_IVID]
+                pbb_isid = ids[const.SW_TAG_MLD_INFO_PBB_ISID]
+                bvid = ids[const.SW_TAG_MLD_INFO_BVID]
+
+                if is_edge:
+                    flowlist = self.flowmod_gen.recovery_ch_edge(
+                        datapathid, mc_addr,
+                        self.switch_mc_info[const.SW_TAG_MC_INFO_IVID],
+                        ivid, pbb_isid, bvid)
+                    self.send_flowmod(flowlist)
+#                elif is_container:
+#                    # 収容SWの再設定
+#                    # 対象SW配下のポートを取得
+#                    portnos = self.ch_info.channel_info[
+#                        (mc_addr, serv_ip)][
+#                            datapathid].port_info.keys()
+#                    flowlist = self.flowmod_gen.recovery_ch_container(
+#                        datapathid, portnos, ivid, pbb_isid)
+#                    self.send_flowmod(flowlist)
+
+    # ==================================================================
     # create_packetout
     # ==================================================================
     def create_packetout(self, datapathid, port, packet):
@@ -729,13 +749,10 @@ class mld_process():
                                       self.ch_info.get_channel_info())
                     self.logger.debug("user_info_list : \n%s",
                                       self.ch_info.get_user_info_list())
-
                 else:
                     self.logger.debug("timeout users are nothing.")
-
             else:
                 self.logger.debug("ch_info is nothing.")
-
         except:
             self.logger.error("%s ", traceback.print_exc())
 
@@ -760,7 +777,6 @@ class mld_process():
             be_ch for be_ch in self.ch_info.channel_info.keys()
             if self.mc_info_dict[be_ch[0], be_ch[1]][
                 const.MC_TAG_MC_TYPE] == self.BEST_EFFORT]
-        self.logger.debug("listening_ch : %s", str(listening_ch))
 
         # General Queryの場合
         if mc_addr == const.DELIMIT_DOUBLE_COLON and srcs == []:
