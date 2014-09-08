@@ -72,6 +72,9 @@ class mld_process():
     # ZMQ受信間隔
     ZMQ_POLL_INTERVAL = 10
 
+    # 品質保証サービス時、Queryに対する返却を行うフラグ（True時のみ返却）
+    QA_REPLY = False
+
     def __init__(self):
         try:
             # ロガーの設定
@@ -350,7 +353,8 @@ class mld_process():
         # General Query
         if requraly_query_type == self.GENERAL_QUERY:
             self.logger.debug("create general query")
-            mc_info = {const.MC_TAG_MC_ADDR: "::", const.MC_TAG_SERV_IP: None}
+            mc_info = {const.MC_TAG_MC_ADDR: const.DELIMIT_DOUBLE_COLON,
+                       const.MC_TAG_SERV_IP: None}
             while self.SEND_LOOP:
                 self.send_mldquery([mc_info])
                 # タイムアウトチェック
@@ -560,21 +564,25 @@ class mld_process():
                     bvid = ids[const.SW_TAG_MLD_INFO_BVID]
                     datapathid = dispatch_[const.DISP_DPID]
 
-                    if datapathid == self.edge_switch[const.SW_TAG_DATAPATHID]:
-                        # エッジSWの再設定
-                        flowlist = self.flowmod_gen.recovery_ch_edge(
-                            datapathid, mc_addr,
-                            self.switch_mc_info[const.SW_TAG_MC_INFO_IVID],
-                            ivid, pbb_isid, bvid)
-                        self.send_flowmod(flowlist)
-#                    else:
-#                        # 収容SWの再設定
-#                        # 対象SW配下のポートを取得
-#                        portnos = self.ch_info.channel_info[
-#                            (mc_addr, serv_ip)][datapathid].port_info.keys()
-#                        flowlist = self.flowmod_gen.recovery_ch_container(
-#                            datapathid, portnos, ivid, pbb_isid)
-#                        self.send_flowmod(flowlist)
+                    for sw in self.switches:
+                        # エッジSW(Apresia26000の場合のみ)の再設定
+                        if (sw[const.SW_TAG_TYPE] == const.SW_TYPE_26K and
+                                sw[const.SW_TAG_NAME] == const.SW_NAME_ESW and
+                                datapathid == sw[const.SW_TAG_DATAPATHID]):
+                            flowlist = self.flowmod_gen.recovery_ch_edge(
+                                datapathid, mc_addr,
+                                self.switch_mc_info[const.SW_TAG_MC_INFO_IVID],
+                                ivid, pbb_isid, bvid)
+                            self.send_flowmod(flowlist)
+#                        else:
+#                            # 収容SWの再設定
+#                            # 対象SW配下のポートを取得
+#                            portnos = self.ch_info.channel_info[
+#                                (mc_addr, serv_ip)][
+#                                    datapathid].port_info.keys()
+#                            flowlist = self.flowmod_gen.recovery_ch_container(
+#                                datapathid, portnos, ivid, pbb_isid)
+#                            self.send_flowmod(flowlist)
 
             elif receive_type == const.CON_PACKET_IN:
                 pkt_icmpv6 = dispatch_[const.DISP_DATA]
@@ -618,6 +626,7 @@ class mld_process():
         if (address, src) in self.ch_info.channel_info:
             listening_switch = self.ch_info.channel_info[
                 (address, src)].keys()
+            self.logger.debug("listening_switch : %s", listening_switch)
             # datapathidの昇順に":"でつなぐ
             bvid_key = const.DELIMIT_COLON.join(
                 map(str, sorted(listening_switch)))
@@ -627,9 +636,11 @@ class mld_process():
             # 対象マルチキャストアドレスが全く視聴されていない（離脱によって視聴ユーザがいなくなった）場合
             bvid = -1
 
-        return {const.SW_TAG_MLD_INFO_IVID: ivid,
-                const.SW_TAG_MLD_INFO_PBB_ISID: pbb_isid,
-                const.SW_TAG_MLD_INFO_BVID: bvid}
+        ids = {const.SW_TAG_MLD_INFO_IVID: ivid,
+               const.SW_TAG_MLD_INFO_PBB_ISID: pbb_isid,
+               const.SW_TAG_MLD_INFO_BVID: bvid}
+        self.logger.debug("ids : %s", str(ids))
+        return ids
 
     # ==================================================================
     # set_switch_config
@@ -745,19 +756,19 @@ class mld_process():
         edge_router_port = self.edge_switch[const.SW_TAG_EDGE_ROUTER_PORT]
 
         # 視聴中のチャンネルかつベストエフォートのものを抽出
-        be_listening_ch = [
-            listening_ch for listening_ch in self.ch_info.channel_info.keys()
-            if self.mc_info_dict[listening_ch[0], listening_ch[1]][
+        listening_ch = [
+            be_ch for be_ch in self.ch_info.channel_info.keys()
+            if self.mc_info_dict[be_ch[0], be_ch[1]][
                 const.MC_TAG_MC_TYPE] == self.BEST_EFFORT]
-        self.logger.debug("be_listening_ch : %s", str(be_listening_ch))
+        self.logger.debug("listening_ch : %s", str(listening_ch))
 
         # General Queryの場合
         if mc_addr == const.DELIMIT_DOUBLE_COLON and srcs == []:
             # 視聴中のベストエフォートサービスのマルチキャストグループ毎にレポートを作成
-            if be_listening_ch:
+            if listening_ch:
                 report_info = [
                     (mc_info[0], mc_info[1], icmpv6.MODE_IS_INCLUDE)
-                    for mc_info in be_listening_ch]
+                    for mc_info in listening_ch]
                 self.send_packetout(
                     report_info, vid, edge_sw_dpid, edge_router_port)
 
@@ -768,7 +779,7 @@ class mld_process():
                 self.logger.info("this query has no Source Address.")
 
             # 対象マルチキャストアドレスがベストエフォートサービスで、視聴中のユーザがいればレポートを作成
-            elif (mc_addr, srcs[0]) in be_listening_ch:
+            elif (mc_addr, srcs[0]) in listening_ch:
                 self.send_packetout(
                     [(mc_addr, srcs[0], icmpv6.MODE_IS_INCLUDE)],
                     vid, edge_sw_dpid, edge_router_port)

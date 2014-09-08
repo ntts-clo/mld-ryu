@@ -675,14 +675,72 @@ class test_mld_process():
         self.mocker.VerifyAll()
 
     @attr(do=False)
-    def test_analyse_receive_packet_switch_feature_esw(self):
-        # エッジSWの再起動時：set_switch_configとrecovery_ch_edgeを呼び出す
+    @raises(ExpectedMethodCallsError)
+    def test_analyse_receive_packet_switch_feature_esw_12k(self):
+        # エッジSWの再起動時：Apresiaが12000の場合、set_switch_configを呼び出す
         datapathid = self.mld_proc.edge_switch[const.SW_TAG_DATAPATHID]
         dispatch_ = dispatch(const.CON_MAIN_DISPATCHER, datapathid)
 
         mc_addr1 = "ff38::1:1"
         serv_ip = "2001:1::20"
         datapathid2 = self.mld_proc.switches[1][const.SW_TAG_DATAPATHID]
+        port_no1 = 1
+        cid1 = 12101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid1)
+
+        cid2 = 12102
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr1, serv_ip, datapathid2, port_no1, cid2)
+
+        mc_addr2 = "ff38::1:2"
+        cid3 = 22101
+        self.mld_proc.ch_info.update_ch_info(
+            mc_addr2, serv_ip, datapathid2, port_no1, cid3)
+
+        # set_switch_config呼び出し確認
+        self.mocker.StubOutWithMock(self.mld_proc, "set_switch_config")
+        self.mld_proc.set_switch_config(dispatch_.dispatch)
+
+        # recovery_ch_edgeが呼び出されないことの確認
+        self.mocker.StubOutWithMock(
+            self.mld_proc.flowmod_gen, "recovery_ch_edge")
+        self.mld_proc.flowmod_gen.recovery_ch_edge(
+            IsA(int), IsA(str), IsA(int), IsA(int), IsA(int), IsA(int))
+        self.mocker.ReplayAll()
+
+        self.mld_proc.analyse_receive_packet(dispatch_)
+        self.mocker.VerifyAll()
+
+    @attr(do=True)
+    def test_analyse_receive_packet_switch_feature_esw_26k(self):
+        # エッジSWの再起動時：Apresiaが26000の場合、set_switch_configとrecovery_ch_edgeを呼び出す
+        # sw情報を26000のものに変更
+        temp_sw = self.mld_proc.switches
+        self.mld_proc.switches = read_json(
+            TEST_COMMON_PATH + "switch_info_26k.json").data[
+                const.SW_TAG_SWITCHES]
+
+        # bvid_variationを26000のものに変更
+        temp_bvid = self.mld_proc.bvid_variation
+        bvid_variations = read_json(
+            TEST_COMMON_PATH + "bvid_variation_26k.json").data[
+                const.BV_TAG_BV_INFO]
+        bvid_variation = {}
+        for bvid_var in bvid_variations:
+            # ":"で区切られたkeyを昇順にソートして再設定
+            bvid_key = const.DELIMIT_COLON.join(sorted(bvid_var[
+                const.BV_TAG_KEY].split(const.DELIMIT_COLON)))
+            bvid_variation[bvid_key] = bvid_var[const.BV_TAG_BVID]
+
+        self.mld_proc.bvid_variation = bvid_variation
+
+        datapathid = self.mld_proc.switches[1][const.SW_TAG_DATAPATHID]
+        dispatch_ = dispatch(const.CON_MAIN_DISPATCHER, datapathid)
+
+        mc_addr1 = "ff38::1:1"
+        serv_ip = "2001:1::20"
+        datapathid2 = self.mld_proc.switches[2][const.SW_TAG_DATAPATHID]
         port_no1 = 1
         cid1 = 12101
         self.mld_proc.ch_info.update_ch_info(
@@ -730,8 +788,11 @@ class test_mld_process():
         self.mocker.ReplayAll()
 
         self.mld_proc.analyse_receive_packet(dispatch_)
+        self.mld_proc.switches = temp_sw
+        self.mld_proc.bvid_variation = temp_bvid
         self.mocker.VerifyAll()
 
+#    # 収容SWの再起動は対象外だが、必要になった時のためにコメントとして残しておく
 #    @attr(do=False)
 #    def test_analyse_receive_packet_switch_feature_csw(self):
 #        # 収容SWの再起動時：set_switch_configとrecovery_ch_containerを呼び出す
