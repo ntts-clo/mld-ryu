@@ -1,0 +1,55 @@
+From 64acfc501192f9dad372f9d50410567ef4965d3a Mon Sep 17 00:00:00 2001
+From: t-koshiba <koshiba.tomohiro@gmail.com>
+Date: Tue, 9 Sep 2014 13:39:57 +0900
+Subject: [PATCH] icmpv6 correspond to ipv6 with extension header
+
+
+Signed-off-by: t-koshiba <koshiba.tomohiro@gmail.com>
+---
+ ryu/lib/packet/icmpv6.py       |    7 ++++++-
+ ryu/lib/packet/packet_utils.py |    4 ++--
+ 2 files changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/ryu/lib/packet/icmpv6.py b/ryu/lib/packet/icmpv6.py
+index c36ad04..e3060d9 100644
+--- a/ryu/lib/packet/icmpv6.py
++++ b/ryu/lib/packet/icmpv6.py
+@@ -143,7 +143,12 @@ class icmpv6(packet_base.PacketBase):
+             else:
+                 hdr += self.data
+         if self.csum == 0:
+-            self.csum = packet_utils.checksum_ip(prev, len(hdr), hdr + payload)
++            if prev.ext_hdrs:
++                nxt = inet.IPPROTO_ICMPV6
++            else:
++                nxt = prev.nxt
++            self.csum = packet_utils.checksum_ip(prev, len(hdr),
++                                                 hdr + payload, nxt)
+             struct.pack_into('!H', hdr, 2, self.csum)
+ 
+         return hdr
+diff --git a/ryu/lib/packet/packet_utils.py b/ryu/lib/packet/packet_utils.py
+index 3839e69..5201da0 100644
+--- a/ryu/lib/packet/packet_utils.py
++++ b/ryu/lib/packet/packet_utils.py
+@@ -40,7 +40,7 @@ _IPV4_PSEUDO_HEADER_PACK_STR = '!4s4sxBH'
+ _IPV6_PSEUDO_HEADER_PACK_STR = '!16s16sI3xB'
+ 
+ 
+-def checksum_ip(ipvx, length, payload):
++def checksum_ip(ipvx, length, payload, nxt=None):
+     """
+     calculate checksum of IP pseudo header
+ 
+@@ -91,7 +91,7 @@ def checksum_ip(ipvx, length, payload):
+         header = struct.pack(_IPV6_PSEUDO_HEADER_PACK_STR,
+                              addrconv.ipv6.text_to_bin(ipvx.src),
+                              addrconv.ipv6.text_to_bin(ipvx.dst),
+-                             length, ipvx.nxt)
++                             length, ipvx.nxt if nxt is None else nxt)
+     else:
+         raise ValueError('Unknown IP version %d' % ipvx.version)
+ 
+-- 
+1.7.9.5
+

@@ -40,7 +40,7 @@ _IPV4_PSEUDO_HEADER_PACK_STR = '!4s4sxBH'
 _IPV6_PSEUDO_HEADER_PACK_STR = '!16s16sI3xB'
 
 
-def checksum_ip(ipvx, length, payload):
+def checksum_ip(ipvx, length, payload, nxt=None):
     """
     calculate checksum of IP pseudo header
 
@@ -91,7 +91,7 @@ def checksum_ip(ipvx, length, payload):
         header = struct.pack(_IPV6_PSEUDO_HEADER_PACK_STR,
                              addrconv.ipv6.text_to_bin(ipvx.src),
                              addrconv.ipv6.text_to_bin(ipvx.dst),
-                             length, ipvx.nxt)
+                             length, ipvx.nxt if nxt is None else nxt)
     else:
         raise ValueError('Unknown IP version %d' % ipvx.version)
 

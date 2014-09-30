@@ -24,6 +24,7 @@ from . import packet_base
 from . import packet_utils
 from ryu.lib import addrconv
 from ryu.lib import stringify
+from ryu.ofproto import inet
 
 ICMPV6_DST_UNREACH = 1       # dest unreachable, codes:
 ICMPV6_PACKET_TOO_BIG = 2       # packet too big
@@ -143,7 +144,12 @@ class icmpv6(packet_base.PacketBase):
             else:
                 hdr += self.data
         if self.csum == 0:
-            self.csum = packet_utils.checksum_ip(prev, len(hdr), hdr + payload)
+            if prev.ext_hdrs:
+                nxt = inet.IPPROTO_ICMPV6
+            else:
+                nxt = prev.nxt
+            self.csum = packet_utils.checksum_ip(prev, len(hdr),
+                                                 hdr + payload, nxt)
             struct.pack_into('!H', hdr, 2, self.csum)
 
         return hdr
