@@ -528,7 +528,7 @@ class test_mld_process():
     @attr(do=False)
     def test_create_packet_query01(self):
         # MLD Queryを持つpacketを生成
-        mc_addr = "ff38::1:1"
+        mc_addr = "ff38::1234:5678"
         serv_ip = "2001:1::20"
         vid = self.config[const.C_TAG_ID]
         query = self.mld_proc.create_mldquery(mc_addr, serv_ip)
@@ -536,14 +536,14 @@ class test_mld_process():
 
         eth = actual.get_protocol(ethernet.ethernet)
         eq_(self.MAC, eth.src)
-        eq_(self.mld_proc.QUERY_DST, eth.dst)
+        eq_("33:33:12:34:56:78", eth.dst)
 
         vln = actual.get_protocol(vlan.vlan)
         eq_(vid, vln.vid)
 
         ip6 = actual.get_protocol(ipv6.ipv6)
         eq_(self.IP6, ip6.src)
-        eq_(self.mld_proc.QUERY_DST_IP, ip6.dst)
+        eq_(mc_addr, ip6.dst)
         # 拡張ヘッダを持っていることを確認
         eq_(inet.IPPROTO_HOPOPTS, ip6.nxt)
         ok_(ip6.ext_hdrs)
@@ -557,8 +557,8 @@ class test_mld_process():
         # MLD Queryを持つpacketを生成
         # icmpv6_extendにて拡張ヘッダーがない場合の動作確認
         # ip6のnexthederがinet.IPPROTO_ICMPV6となっていること
-        mc_addr = "ff38::1:1"
-        serv_ip = "2001:1::20"
+        mc_addr = "::"
+        serv_ip = None
         vid = self.config[const.C_TAG_ID]
         query = self.mld_proc.create_mldquery(mc_addr, serv_ip)
 
