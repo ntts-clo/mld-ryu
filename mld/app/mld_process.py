@@ -23,6 +23,7 @@ import ctypes
 import threading
 import re
 import subprocess
+import netaddr
 
 from user_manage import channel_info, channel_user_info
 from flowmod_gen import flow_mod_generator
@@ -478,14 +479,23 @@ class mld_process():
 
         # MLDV2_Query
         if type(mld) == icmpv6.mldv2_query:
+            eth_dst = self.QUERY_DST
+            ip_dst = self.QUERY_DST_IP
+            if mld.address != "::":
+                ip_str = netaddr.ip.IPAddress(mld.address).\
+                    format(netaddr.ipv6_verbose())
+                eth_dst = "33:33:" + ip_str[30:32] + ":" + \
+                    ip_str[32:34] + ":" + ip_str[35:37] + ":" + ip_str[37:39]
+                ip_dst = mld.address
+
             # ETHER
             eth = ethernet.ethernet(
                 ethertype=ether.ETH_TYPE_8021Q,
-                src=self.ifinfo[self.IF_KEY_MAC], dst=self.QUERY_DST)
+                src=self.ifinfo[self.IF_KEY_MAC], dst=eth_dst)
 
             # IPV6 with ExtensionHeader
             ip6 = ipv6.ipv6(
-                src=self.ifinfo[self.IF_KEY_IP6], dst=self.QUERY_DST_IP,
+                src=self.ifinfo[self.IF_KEY_IP6], dst=ip_dst,
                 hop_limit=1, nxt=inet.IPPROTO_HOPOPTS, ext_hdrs=ext_headers)
 
             # MLD Query
