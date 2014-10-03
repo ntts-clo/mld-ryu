@@ -23,7 +23,7 @@ import ctypes
 import threading
 import re
 import subprocess
-import netaddr
+import netaddr.ip
 
 from user_manage import channel_info, channel_user_info
 from flowmod_gen import flow_mod_generator
